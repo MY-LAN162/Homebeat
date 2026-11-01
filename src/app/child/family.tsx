@@ -6,16 +6,19 @@ import { JoinRequests } from '../../components/JoinRequests';
 import { Btn, Card, Field, H1, Screen, T } from '../../components/ui';
 import { displayName } from '../../domain/address';
 import { formatCode } from '../../domain/pairing';
+import { formatShortDate, hm } from '../../domain/time';
 import { useStore } from '../../state/store';
 import { colors } from '../../theme';
 
 export default function ChildFamily() {
-  const { data, newPairing, upsertCaregiver, removeCaregiver, updateMember, setRole, setCurrentMember, loadDemo, reset } = useStore();
+  const { data, newPairing, upsertCaregiver, removeCaregiver, updateMember, setRole, setCurrentMember, loadDemo, reset, syncEnabled, now } = useStore();
   const [adding, setAdding] = useState(false);
   const [cName, setCName] = useState('');
   const [cPhone, setCPhone] = useState('');
   const [sosOnly, setSosOnly] = useState(false);
   const caregivers = [...data.caregivers].sort((a, b) => a.order - b.order);
+  // Đã nối máy chủ với gia đình thật: ẩn các nút chỉ dùng để thử (đổi vai trò, nạp dữ liệu mẫu).
+  const connected = syncEnabled && !!data.familyId && !data.demo;
 
   return (
     <Screen>
@@ -24,19 +27,28 @@ export default function ChildFamily() {
       <JoinRequests />
       <T size={13} weight="700" color={colors.muted}>NGƯỜI ĐƯỢC CHĂM SÓC</T>
       {data.members.map((m) => {
-        const p = data.pairing?.memberId === m.id ? data.pairing : undefined;
+        // Chỉ hiện mã còn hạn và chưa dùng (dùng rồi thì đã xóa khi con bấm Đồng ý).
+        const p = data.pairing?.memberId === m.id && new Date(data.pairing.expiresAt) > now ? data.pairing : undefined;
         return (
           <Card key={m.id}>
             <T size={16} weight="700">{displayName(m)}</T>
             <T size={13} color={colors.muted}>App gọi “{m.call.toLowerCase()}”, xưng “{m.self.toLowerCase()}”</T>
             <Field label="Số điện thoại" value={m.phone ?? ''} onChange={(v) => updateMember(m.id, { phone: v })} keyboard="phone-pad" />
-            {p ? (
-              <T size={15} weight="700" color={colors.green}>Mã kết nối: {formatCode(p.code)}</T>
-            ) : (
-              <Btn variant="secondary" label="Tạo mã kết nối mới" height={44} size={14} onPress={() =>
-                  newPairing(m.id).catch(() => notify('Chưa tạo được mã', 'Kiểm tra kết nối mạng rồi thử lại.'))
-                } />
+            {p && (
+              <View style={{ gap: 2 }}>
+                <T size={15} weight="700" color={colors.green}>Mã kết nối: {formatCode(p.code)}</T>
+                <T size={13} color={colors.muted}>
+                  Nhập trên máy của {m.call.toLowerCase()}, hết hạn {hm(new Date(p.expiresAt))} {formatShortDate(new Date(p.expiresAt))}
+                </T>
+              </View>
             )}
+            <Btn
+              variant="secondary"
+              label={p ? 'Tạo mã khác' : `Tạo mã kết nối cho máy của ${m.call.toLowerCase()}`}
+              height={44}
+              size={14}
+              onPress={() => newPairing(m.id).catch(() => notify('Chưa tạo được mã', 'Kiểm tra kết nối mạng rồi thử lại.'))}
+            />
           </Card>
         );
       })}
@@ -82,10 +94,14 @@ export default function ChildFamily() {
 
       <Btn variant="secondary" label="Cài đặt (cảnh báo, cỡ chữ)" onPress={() => router.push('/child/settings')} />
 
-      <T size={13} weight="700" color={colors.muted}>BẢN THỬ</T>
+      <T size={13} weight="700" color={colors.muted}>{connected ? 'DỮ LIỆU TRÊN MÁY NÀY' : 'BẢN THỬ'}</T>
       <Card style={{ gap: 8 }}>
-        <T size={13} color={colors.muted}>Chưa có máy chủ đồng bộ, nên có thể thử cả hai vai trò trên một máy.</T>
-        {data.members.map((m) => (
+        {!connected && (
+          <T size={13} color={colors.muted}>
+            {data.demo ? 'Đang xem dữ liệu mẫu.' : 'Chưa kết nối với máy của bố mẹ.'} Có thể thử cả hai vai trò trên một máy.
+          </T>
+        )}
+        {!connected && data.members.map((m) => (
           <Btn
             key={m.id}
             variant="secondary"
@@ -99,7 +115,7 @@ export default function ChildFamily() {
             }}
           />
         ))}
-        <Btn variant="ghost" height={40} size={14} label="Nạp dữ liệu mẫu" onPress={loadDemo} />
+        {!connected && <Btn variant="ghost" height={40} size={14} label="Nạp dữ liệu mẫu" onPress={loadDemo} />}
         <Btn
           variant="ghost"
           height={40}

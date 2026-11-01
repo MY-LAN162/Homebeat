@@ -76,8 +76,14 @@ export type SharedData = Pick<AppData, CollectionName | 'settings'>;
 /**
  * Những gì cần ghi lên máy chủ để `before` (bản máy chủ đã có) thành `after` (bản trên máy).
  * Chỉ ghi tài liệu có thay đổi.
+ * `canDelete`: chỉ xóa trên máy chủ những gì người dùng THẬT SỰ bấm xóa. Dữ liệu chỉ "thiếu" trên máy
+ * (vd app tắt giữa chừng lúc đang lưu) thì không xóa, tránh mất dữ liệu của cả gia đình.
  */
-export function diffData(before: SharedData, after: SharedData): SyncWrite[] {
+export function diffData(
+  before: SharedData,
+  after: SharedData,
+  canDelete: (coll: CollectionName, id: string) => boolean = () => true,
+): SyncWrite[] {
   const out: SyncWrite[] = [];
   for (const coll of COLLECTIONS) {
     const prev = new Map<string, string>();
@@ -91,7 +97,7 @@ export function diffData(before: SharedData, after: SharedData): SyncWrite[] {
       const data = toDoc(coll, item);
       if (prev.get(id) !== JSON.stringify(data)) out.push({ op: 'set', coll, id, data });
     }
-    for (const id of prev.keys()) if (!seen.has(id)) out.push({ op: 'delete', coll, id });
+    for (const id of prev.keys()) if (!seen.has(id) && canDelete(coll, id)) out.push({ op: 'delete', coll, id });
   }
   if (JSON.stringify(before.settings) !== JSON.stringify(after.settings)) {
     out.push({ op: 'settings', data: after.settings });

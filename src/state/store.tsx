@@ -36,6 +36,9 @@ const HEARTBEAT_MS = 15 * 60_000;
 /** Mốc cho gia đình mới tạo: chưa có gì trên máy chủ, cài đặt cảnh báo luôn được gửi lên. */
 const freshBase = (): SharedData => emptyShared({} as AppData['settings']);
 
+/** Ghi nhớ thứ người dùng bấm xóa (giữ 200 mục gần nhất). */
+const markDeleted = (d: AppData, key: string) => [...(d.deleted ?? []).slice(-199), key];
+
 let counter = 0;
 export const newId = (prefix: string) => `${prefix}_${Date.now().toString(36)}_${(counter++).toString(36)}`;
 
@@ -134,6 +137,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
         AsyncStorage.setItem(BASE_KEY, JSON.stringify(b)).catch(() => undefined);
       },
       onError: (e) => setSyncError(e.message),
+      canDelete: (coll, id) => (dataRef.current.deleted ?? []).includes(`${coll}/${id}`),
     });
     let stopped = false;
     sync
@@ -284,6 +288,8 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
       decideJoin: async (req, approve) => {
         if (!sync || !data.familyId) return;
         await sync.decideJoin(data.familyId, req, approve);
+        // Mã đã dùng thì bỏ khỏi máy (máy chủ cũng đã xóa), để con tạo mã mới khi cần.
+        if (approve) update((d) => (d.pairing?.code === req.code ? { ...d, pairing: undefined } : d));
       },
       setCurrentMember: (id) => update((d) => ({ ...d, currentMemberId: id })),
       upsertCaregiver: (c) =>
@@ -293,7 +299,8 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
           const next = { ...c, id } as Caregiver;
           return { ...d, caregivers: exists ? d.caregivers.map((x) => (x.id === id ? next : x)) : [...d.caregivers, next] };
         }),
-      removeCaregiver: (id) => update((d) => ({ ...d, caregivers: d.caregivers.filter((c) => c.id !== id) })),
+      removeCaregiver: (id) =>
+        update((d) => ({ ...d, caregivers: d.caregivers.filter((c) => c.id !== id), deleted: markDeleted(d, `caregivers/${id}`) })),
       upsertMedication: (m) =>
         update((d) => {
           const id = m.id ?? newId('t');
@@ -307,7 +314,8 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
           ...d,
           medications: d.medications.map((m) => (m.id === medId ? { ...m, stockPills: (m.stockPills ?? 0) + pills } : m)),
         })),
-      removeMedication: (id) => update((d) => ({ ...d, medications: d.medications.filter((m) => m.id !== id) })),
+      removeMedication: (id) =>
+        update((d) => ({ ...d, medications: d.medications.filter((m) => m.id !== id), deleted: markDeleted(d, `medications/${id}`) })),
       markSlot: (slot, status) =>
         update((d) => ({
           ...d,

@@ -38,24 +38,28 @@ Viết bằng **React Native (Expo SDK 57)**, chạy được trên cả Android
 
 Các tính năng "AI" ở trên **không dùng mô hình AI trả phí**: gợi ý và tóm tắt dựa trên quy tắc và dữ liệu đã ghi; đọc chữ trên ảnh và nhận dạng giọng nói dùng dịch vụ có sẵn của điện thoại (miễn phí).
 
-**Máy chủ đồng bộ (Firebase)** — code đã xong, cần tạo dự án Firebase để chạy thật (xem mục *Máy chủ đồng bộ* bên dưới):
+**Dễ dùng cho mọi lứa tuổi:**
 
-- **Ghép máy bằng mã 6 số:** con tạo mã trên máy mình, bố mẹ nhập mã trên máy bố mẹ. Mã dùng 1 lần, hết hạn sau 24 giờ, nhập sai quá 5 lần trong 10 phút thì phải chờ.
+- **Hướng dẫn lần đầu 3 bước cho bố mẹ** (bấm "ổn" mỗi sáng → uống thuốc → SOS), chữ to, tự đọc to; xem lại được bằng nút "Xem lại hướng dẫn".
+- **Cỡ chữ** Bình thường / Lớn / Rất lớn cho từng máy (Cài đặt).
+- Nút "‹ Quay lại" có chữ; "Quay lại" về đúng màn hình trước.
+
+**Máy chủ đồng bộ — miễn phí (Firebase gói Spark, không cần thẻ ngân hàng):** code đã xong và đã chạy thử 2 máy qua Firebase Emulator; cần tạo dự án Firebase để chạy thật (xem mục *Máy chủ đồng bộ* bên dưới).
+
+- **Ghép máy:** con tạo mã 6 số → bố mẹ nhập mã trên máy bố mẹ → máy con hiện "Có máy xin kết nối làm máy của bố…" → con bấm **Đồng ý**. Đoán trúng mã cũng không tự vào được. Mã dùng 1 lần, hết hạn sau 24 giờ.
 - **Đồng bộ hai chiều:** con nhập thuốc, lịch khám, người nhận cảnh báo, cài đặt → máy bố mẹ nhận. Bố mẹ uống thuốc, điểm danh, đo huyết áp, bấm SOS → máy con thấy ngay.
-- **Mất mạng vẫn chạy:** dữ liệu vẫn lưu trên máy; có mạng lại thì tự gửi phần còn thiếu.
-- **Nhịp "còn sống":** máy bố mẹ báo lên máy chủ khi mở app và 15 phút một lần khi đang mở.
-- **Thông báo đẩy cho con:** SOS gửi ngay; trễ thuốc, chưa điểm danh, huyết áp cao, báo "không khỏe" thì máy chủ kiểm tra 5 phút một lần và gửi (mỗi cảnh báo 1 lần/ngày).
+- **Mất mạng vẫn chạy:** dữ liệu lưu trên máy; có mạng lại thì tự gửi phần còn thiếu. App chỉ xóa trên máy chủ những gì người dùng thật sự bấm xóa (không bao giờ xóa nhầm khi app tắt giữa chừng).
+- **Thông báo cho con (miễn phí qua Expo Push, gửi thẳng từ máy bố mẹ):** SOS, huyết áp cao, báo "không khỏe" gửi ngay; trễ thuốc, chưa điểm danh gửi khi máy bố mẹ chạy nền (khoảng 15 phút một lần, tùy điện thoại cho phép) hoặc khi mở app. Mỗi cảnh báo 1 lần/ngày.
+- **Nhịp "còn sống" kèm pin:** máy bố mẹ báo khi mở app, mỗi 15 phút khi đang mở, và khi chạy nền.
 - Chưa điền cấu hình Firebase thì app chạy như cũ (chỉ lưu trên máy).
 
 ### Để dành cho bước triển khai thật
 
-Theo yêu cầu: làm xong giao diện và cho dùng thử trước; khi triển khai thật mới làm các phần dưới, và quyết định có mua gói trả phí hay không.
-
-1. **Chọn cách chạy máy chủ:** miễn phí hoàn toàn (Firebase gói Spark, điện thoại tự gửi cảnh báo qua Expo Push, con bấm "Đồng ý" khi có máy mới xin vào gia đình) hoặc Firebase gói Blaze (Cloud Functions đã viết sẵn, cảnh báo đúng giờ hơn). Xem mục *Chi phí* bên dưới.
-2. **Chạy nền trên máy bố mẹ** để báo "còn sống" khi không mở app; sau đó mới bật thông báo đẩy "mất tín hiệu".
-3. **Chụp ảnh → chữ** cho quét đơn thuốc (ML Kit / Apple Vision, chạy trên máy) và **nhận dạng giọng nói trên điện thoại** (thư viện `expo-speech-recognition`). Cả hai cần bản development build.
-4. **Nhiều con cùng theo dõi một gia đình**, **đọc pin máy bố mẹ** (`expo-battery`), **chụp ảnh viên thuốc**.
-5. Tài khoản Expo (EAS) để build file cài Android/iPhone; tài khoản Google Play / Apple để đưa lên kho.
+1. **Tạo dự án Firebase** (gói Spark miễn phí) và **tài khoản Expo** để build file cài (xem các mục bên dưới).
+2. **Chụp ảnh → chữ** cho quét đơn thuốc (ML Kit / Apple Vision, chạy trên máy) và **nhận dạng giọng nói trên điện thoại** (`expo-speech-recognition`). Hiện bản web dùng giọng nói của trình duyệt; bản cài cần thêm 2 thư viện này.
+3. **Chụp ảnh viên thuốc**; **nhiều con cùng theo dõi một gia đình** (hiện mã kết nối chỉ dành cho máy bố mẹ).
+4. **Hạn chế đã biết của gói miễn phí:** iPhone không đảm bảo giờ chạy nền, nên cảnh báo trễ thuốc có thể đến chậm 15–60 phút; cảnh báo "mất tín hiệu" chỉ hiện trong app của con (chưa gửi thông báo). Khi cần đúng giờ hơn: bật Firebase gói Blaze, Cloud Functions trong `functions/` đã viết sẵn.
+5. Tài khoản Google Play / Apple để đưa lên kho (khi phát hành rộng).
 
 Ở chế độ thử, có thể xem cả hai vai trò trên một máy: chọn **Dùng thử với dữ liệu mẫu**, rồi vào **Gia đình › Xem màn hình của bố**.
 
@@ -123,6 +127,19 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 
 **Cách quyết định tiếp:** thử với 5–10 gia đình trong 2 tuần, xem màn hình *Mức sử dụng app* (tỷ lệ uống đúng giờ, số lần phải nhắc lại, màn hình nào không ai mở), rồi giữ, bỏ hoặc làm tiếp theo số liệu.
 
+## Kiểm tra lần 4 (1/11/2026): hướng dẫn, cỡ chữ, bản cài, đồng bộ miễn phí
+
+56 kiểm thử app + 5 logic máy chủ + 8 luật bảo mật đạt; typecheck, lint sạch; đóng gói Android / iOS / web không lỗi; thử sinh mã native Android (`expo prebuild`) thành công; `npm run e2e` 34/34; `npm run e2e:sync` 8/8 (chạy 3 lần liên tiếp).
+
+Lỗi phát hiện khi chạy thử 2 máy và đã sửa:
+
+| Lỗi | Ảnh hưởng | Đã sửa |
+|---|---|---|
+| App tắt / tải lại giữa lúc đang lưu → lần mở sau gửi lệnh xóa bố/mẹ, thuốc, nhật ký lên máy chủ | **Mất dữ liệu cả gia đình**, máy bố kẹt "Đang tải" (xảy ra ngẫu nhiên) | Chỉ xóa trên máy chủ thứ người dùng bấm xóa; có kiểm thử |
+| Máy bố mở lại app ngay sau khi được đồng ý (dữ liệu chưa về) → về màn chọn vai trò; màn hình bố mẹ trắng khi chưa có dữ liệu | Tưởng chưa kết nối | Vào thẳng màn hình bố mẹ, hiện "Đang tải dữ liệu từ máy của con…" |
+| Mã đã dùng vẫn hiện, không có nút tạo mã mới | Không thêm được máy thứ hai | Ẩn mã đã dùng / hết hạn, luôn có nút tạo mã |
+| Dòng "Chưa có máy chủ đồng bộ" hiện cả khi đã kết nối; nút đổi vai trò / nạp dữ liệu mẫu hiện trên gia đình thật | Hiểu nhầm, dễ bấm nhầm làm rối dữ liệu | Chỉ hiện khi chưa kết nối |
+
 ## Sửa lỗi lần 3 (1/11/2026): trang dùng thử báo "not found" và lỗi điều hướng
 
 Chạy thử lại theo **hành trình người dùng thật** (31 bước, mỗi bước kiểm tra màn hình đang hiện trước mắt), trên máy chủ thử giống Artifact (chỉ phục vụ 1 đường dẫn): **31/31 đạt**, không có lỗi trang.
@@ -184,36 +201,45 @@ Cấu trúc:
 |---|---|
 | `src/domain/syncdiff.ts` | Phần thuần: tính cần ghi gì lên máy chủ, gộp dữ liệu máy chủ về máy |
 | `src/services/sync.ts` | Giao diện `FamilySync` |
-| `src/services/firebaseSync.ts` | Cài `FamilySync` bằng Firebase (Auth ẩn danh, Firestore, Cloud Functions) |
+| `src/services/firebaseSync.ts` | Cài `FamilySync` bằng Firebase (Auth ẩn danh, Firestore): đồng bộ, xin vào gia đình, đồng ý / từ chối |
+| `src/services/push.ts`, `src/domain/pushRules.ts` | Máy bố mẹ tự gửi thông báo cho con qua Expo Push |
+| `src/services/background.native.ts`, `src/services/checkAndAlert.ts`, `src/domain/background.ts` | Chạy nền trên máy bố mẹ: còn sống + pin, trễ thuốc, chưa điểm danh |
 | `src/services/syncEngine.ts` | Nối kho dữ liệu của app với máy chủ |
 | `src/services/memorySync.ts` | Máy chủ giả trong bộ nhớ, dùng cho kiểm thử |
-| `firestore.rules` | Luật bảo mật: chỉ người trong gia đình đọc/ghi được |
-| `functions/` | Cloud Functions: đổi mã kết nối, gửi SOS, kiểm tra cảnh báo định kỳ |
+| `firestore.rules` | Luật bảo mật: chỉ người trong gia đình đọc/ghi được; chỉ thêm được máy đã xin vào và được đồng ý |
+| `functions/` | (Để dành, gói Blaze) Cloud Functions kiểm tra cảnh báo định kỳ |
 
-Các bước chạy thật:
+Các bước chạy thật (gói miễn phí Spark):
 
-1. Tạo dự án ở [Firebase console](https://console.firebase.google.com), gói **Blaze** (Cloud Functions cần gói này).
+1. Tạo dự án ở [Firebase console](https://console.firebase.google.com), giữ gói **Spark** (miễn phí, không cần thẻ).
 2. Bật **Authentication › Anonymous**, tạo **Firestore** (khu vực `asia-southeast1`).
-3. Thêm **Web app**, chép cấu hình vào file `.env` (mẫu ở `.env.example`).
-4. Cài công cụ và triển khai luật + functions:
+3. Thêm **Web app**, chép cấu hình vào file `.env` (mẫu ở `.env.example`); khi build bằng EAS thì thêm các biến này bằng `eas env:create` (xem mục *Cài lên điện thoại thật*).
+4. Đưa luật bảo mật lên:
 
    ```bash
-   npm --prefix functions install
    npx firebase-tools login
-   npx firebase-tools use --add
-   npx firebase-tools deploy --only firestore,functions
    ```
 
-5. Thông báo đẩy cho con: tạo dự án EAS (`npx eas-cli@latest init`, sẽ thêm `extra.eas.projectId` vào `app.json`) và dùng bản development build.
+   ```bash
+   npx firebase-tools use --add
+   ```
 
-Giờ địa phương cho cảnh báo mặc định là giờ Việt Nam (đổi bằng biến `APP_TZ` của functions).
+   ```bash
+   npx firebase-tools deploy --only firestore
+   ```
+
+5. Thông báo đẩy cho con: `npx eas-cli@latest init` (thêm mã dự án vào `app.json`), rồi dùng bản cài (không chạy trong Expo Go).
+
+Cloud Functions trong `functions/` (gói Blaze) để dành cho khi cần cảnh báo đúng giờ hơn; luồng ghép máy hiện tại không cần chúng.
 
 ## Kiểm tra
 
 ```bash
-npm test            # 47 bài kiểm thử: lịch thuốc, cảnh báo, xưng hô, mã kết nối, đồng bộ hai máy, đọc đơn thuốc, tóm tắt buổi khám, múi giờ
+npm test            # 56 bài kiểm thử: lịch thuốc, cảnh báo, xưng hô, mã kết nối, đồng bộ hai máy, đọc đơn thuốc, tóm tắt buổi khám, múi giờ
 npm --prefix functions test         # 5 bài kiểm thử logic máy chủ
-npm --prefix functions run test:rules   # 5 bài kiểm thử luật bảo mật (cần Java, chạy trên Firestore Emulator)
+npm --prefix functions run test:rules   # 8 bài kiểm thử luật bảo mật (cần Java, chạy trên Firestore Emulator)
+npm run e2e         # chạy thử 34 bước như người dùng trên trang giống Artifact
+npm run e2e:sync    # chạy thử 2 máy + 1 máy lạ qua Firebase Emulator (chạy emulator auth,firestore trước)
 npm run typecheck   # kiểm tra kiểu TypeScript
 npx expo lint
 ```

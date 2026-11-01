@@ -3,7 +3,7 @@
 //  - Máy chủ gửi về → cập nhật `base` → báo cho kho dữ liệu gộp vào.
 // `acked` là bản máy chủ đã xác nhận, lưu lại trên máy. Tắt app khi chưa gửi xong thì
 // lần mở sau so với `acked` và gửi lại phần còn thiếu.
-import { diffData, mergeRemote, type RemoteSnapshot, type SharedData } from '../domain/syncdiff';
+import { diffData, mergeRemote, type CollectionName, type RemoteSnapshot, type SharedData } from '../domain/syncdiff';
 import type { FamilySync } from './sync';
 
 export interface EngineOptions {
@@ -15,6 +15,8 @@ export interface EngineOptions {
   /** Lưu bản đã xác nhận để lần mở app sau dùng làm mốc. */
   saveAcked: (b: SharedData) => void;
   onError?: (e: Error) => void;
+  /** Tài liệu người dùng đã bấm xóa (chỉ những cái này mới được xóa trên máy chủ). Mặc định: không xóa gì. */
+  canDelete?: (coll: CollectionName, id: string) => boolean;
 }
 
 export class SyncEngine {
@@ -55,7 +57,7 @@ export class SyncEngine {
 
   /** Gửi thay đổi trên máy. Gọi mỗi khi dữ liệu đổi; không đổi gì thì không ghi. */
   push(data: SharedData): Promise<void> {
-    const writes = diffData(this.base, data);
+    const writes = diffData(this.base, data, this.o.canDelete ?? (() => false));
     if (!writes.length) return this.chain;
     this.base = data;
     const run = async () => {

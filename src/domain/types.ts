@@ -156,6 +156,8 @@ export interface AppData {
   textScale?: number;
   /** Máy bố mẹ đã gửi yêu cầu vào gia đình, đang chờ con bấm Đồng ý. */
   pendingJoin?: { familyId: string; memberId: string; at: string; denied?: boolean };
+  /** Những gì người dùng đã bấm xóa trên máy này, dạng "medications/<id>" (để chỉ xóa đúng chúng trên máy chủ). */
+  deleted?: string[];
 }
 
 export const DEFAULT_SETTINGS: AlertSettings = {

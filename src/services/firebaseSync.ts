@@ -166,7 +166,7 @@ export class FirebaseSync implements FamilySync {
       unsub = onSnapshot(
         doc(this.db, 'families', familyId, 'joinRequests', uid),
         (s) => onStatus(s.exists() ? (s.data() as JoinRequest).status : 'gone'),
-        () => undefined,
+        (e) => console.warn('[An Tâm] Không theo dõi được yêu cầu kết nối:', e.message),
       );
     });
     return () => {
@@ -179,7 +179,7 @@ export class FirebaseSync implements FamilySync {
     return onSnapshot(
       query(collection(this.db, 'families', familyId, 'joinRequests'), where('status', '==', 'pending')),
       (qs) => onList(qs.docs.map((d) => d.data() as JoinRequest)),
-      () => undefined,
+      (e) => console.warn('[An Tâm] Không nghe được yêu cầu kết nối:', e.message),
     );
   }
 

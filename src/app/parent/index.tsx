@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect } from 'react';
-import { Pressable, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 import { Btn, H1, HoldButton, Screen, SpeakButton, T } from '../../components/ui';
 import { greeting, okLabel } from '../../domain/address';
 import { currentSlot, slotsForDay } from '../../domain/schedule';
@@ -17,7 +17,19 @@ export default function ParentHome() {
   useEffect(() => {
     if (needGuide) router.push('/parent/guide');
   }, [needGuide]);
-  if (!m) return null;
+  if (!m) {
+    return (
+      <Screen>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+          <ActivityIndicator size="large" color={colors.green} />
+          <H1 size={26}>Đang tải dữ liệu từ máy của con…</H1>
+          <T size={18} color={colors.muted} style={{ textAlign: 'center' }}>
+            Cần có mạng (wifi hoặc 4G). Nếu chờ lâu, kiểm tra mạng rồi mở lại app.
+          </T>
+        </View>
+      </Screen>
+    );
+  }
   const call = m.call.toLowerCase();
 
   const slots = slotsForDay(data.medications, data.doseLogs, m.id, now, now, data.settings.lateMinutes);

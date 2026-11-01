@@ -1,7 +1,6 @@
 // Trên máy con: có máy mới xin vào gia đình (bố mẹ vừa nhập mã) → Đồng ý / Từ chối.
 import { useState } from 'react';
 import { View } from 'react-native';
-import { displayName } from '../domain/address';
 import { hm } from '../domain/time';
 import { notify } from '../services/dialog';
 import { useStore } from '../state/store';
@@ -16,7 +15,7 @@ export function JoinRequests() {
     <>
       {joinRequests.map((r) => {
         const m = data.members.find((x) => x.id === r.memberId);
-        const who = m ? displayName(m) : 'bố mẹ';
+        const who = m ? `${m.call.toLowerCase()} ${m.name}` : 'bố mẹ';
         const decide = async (ok: boolean) => {
           setBusy(r.uid);
           try {

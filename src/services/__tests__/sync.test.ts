@@ -171,6 +171,30 @@ describe('hai máy qua máy chủ', () => {
     await expect(la.apply(fid, [{ op: 'delete', coll: 'medications', id: 'x' }])).rejects.toThrow('permission-denied');
   });
 
+  it('app tắt giữa chừng (dữ liệu trên máy thiếu so với bản đã khớp) thì KHÔNG xóa gì trên máy chủ', async () => {
+    const { server, fid } = await setup();
+    // Máy bố mở lại app: bản đã khớp có bố + thuốc, nhưng dữ liệu trên máy chưa kịp lưu (rỗng).
+    const reopened = new Device(new MemorySync(server, 'uid-bo'), { ...emptyData(), role: 'parent', currentMemberId: 'bo' });
+    const writes: string[] = [];
+    const real = reopened.sync.apply.bind(reopened.sync);
+    reopened.sync.apply = async (f, w) => {
+      writes.push(...w.map((x) => x.op));
+      return real(f, w);
+    };
+    reopened.connect(fid, shared(withMed(emptyData())));
+    await reopened.engine!.flush();
+    expect(writes).not.toContain('delete');
+    expect(server.families.get(fid)!.colls.members.size).toBe(1);
+    expect(reopened.data.members.map((m) => m.name)).toEqual(['Hùng']);
+  });
+
+  it('người dùng bấm xóa thuốc thì vẫn xóa trên máy chủ', async () => {
+    const { child, server, fid } = await setup();
+    child.engine!['o'].canDelete = (c: string, id: string) => c === 'medications' && id === 'amlo';
+    await child.change((d) => ({ ...d, medications: [] }));
+    expect(server.families.get(fid)!.colls.medications.size).toBe(0);
+  });
+
   it('ghi lỗi thì gửi lại ở lần sau', async () => {
     const { parent } = await setup();
     const real = parent.sync.apply.bind(parent.sync);
