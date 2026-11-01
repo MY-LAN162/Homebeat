@@ -71,6 +71,9 @@ const fsGet = async (p) => (await fetch(`http://127.0.0.1:8080/v1/projects/demo-
   await step('Máy con: tạo gia đình và mã kết nối', async () => {
     await firstOpen(con); await con.getByText('Tôi là con, cháu').click();
     await con.getByLabel('Tên của bố mẹ').fill('Hùng'); await con.getByLabel('Tên của bạn').fill('Hà');
+    // Chưa có số điện thoại thì chưa tạo được mã (SOS phải gọi được cho ai đó).
+    if (await con.getByRole('button', { name: 'Tạo mã kết nối', exact: true }).isEnabled()) throw new Error('tạo được mã khi chưa có số điện thoại');
+    await con.getByLabel('Số điện thoại của bạn').fill('0901234567');
     await con.getByText('Tạo mã kết nối', { exact: true }).click();
     const el = con.getByText(/^\d{3} \d{3}$/); await el.waitFor({ timeout: 20000 }); code = (await el.textContent()).replace(' ', '');
     await con.getByText('Xong, vào trang chủ').click(); await vis(con, 'Bố mẹ hôm nay').waitFor();

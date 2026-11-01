@@ -115,7 +115,7 @@ export default function ParentHome() {
       {!!data.familyId && !data.demo && (
         <Btn variant="ghost" size={17} label={`${m.self} đổi điện thoại? Bấm vào đây`} onPress={() => router.push('/parent/devices')} />
       )}
-      <Btn variant="ghost" size={13} height={36} label="Đổi vai trò (bản thử)" onPress={() => { setRole(undefined); router.replace('/'); }} />
+      {(!data.familyId || data.demo) && <Btn variant="ghost" size={13} height={36} label="Đổi vai trò (bản thử)" onPress={() => { setRole(undefined); router.replace('/'); }} />}
     </Screen>
   );
 }

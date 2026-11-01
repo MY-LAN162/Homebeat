@@ -79,6 +79,10 @@ export default function ChildHome() {
 
       <JoinRequests />
 
+      {alerts.map((a, i) => (
+        <AlertRow key={`${a.kind}-${i}`} a={a} member={data.members.find((m) => m.id === a.memberId)} />
+      ))}
+
       {lowMeds.length > 0 && (
         <Card style={{ gap: 10, backgroundColor: colors.blueSoft }}>
           <T size={15} weight="700" color={colors.blueDark}>Sắp hết thuốc</T>
@@ -92,10 +96,6 @@ export default function ChildHome() {
           ))}
         </Card>
       )}
-
-      {alerts.map((a, i) => (
-        <AlertRow key={`${a.kind}-${i}`} a={a} member={data.members.find((m) => m.id === a.memberId)} />
-      ))}
 
       {data.members.map((m) => {
         const st = STATUS[memberStatus(memberAlerts(data, m, now))];

@@ -10,6 +10,12 @@ import type { CallName, SelfName } from '../../domain/types';
 import { useStore } from '../../state/store';
 import { colors } from '../../theme';
 
+/** Số điện thoại hợp lệ: 9–11 chữ số (cho phép +84, dấu cách, dấu chấm). */
+const validPhone = (p?: string) => {
+  const d = (p ?? '').replace(/^\+84/, '0').replace(/\D/g, '');
+  return d.length >= 9 && d.length <= 11;
+};
+
 const CALLS: CallName[] = ['Bố', 'Mẹ', 'Ông', 'Bà'];
 const SELVES: SelfName[] = ['Con', 'Cháu'];
 
@@ -26,11 +32,17 @@ export default function InviteScreen() {
 
   const preview = { call, self, name: name || '...' };
   const pairing = data.pairing && data.pairing.memberId === memberId ? data.pairing : undefined;
-  const canCreate = name.trim().length > 0 && (data.caregivers.length > 0 || myName.trim().length > 0);
+  // SOS cần gọi được cho ai đó: phải có ít nhất 1 người nhận cảnh báo có số điện thoại.
+  const needOwn = !data.caregivers.some((c) => validPhone(c.phone));
+  const phoneOk = validPhone(myPhone);
+  const canCreate = name.trim().length > 0 && (!needOwn || (myName.trim().length > 0 && phoneOk));
 
   const create = async () => {
     const m = addMember({ name: name.trim(), call, self, phone: phone.trim() });
-    if (!data.caregivers.length) upsertCaregiver({ name: myName.trim(), phone: myPhone.trim(), order: 1 });
+    if (needOwn) {
+      const order = data.caregivers.reduce((mx, c) => Math.max(mx, c.order), 0) + 1;
+      upsertCaregiver({ name: myName.trim(), phone: myPhone.trim(), order });
+    }
     setMemberId(m.id);
     await makeCode(m.id);
   };
@@ -81,11 +93,16 @@ export default function InviteScreen() {
             </View>
             <Field label={`Số điện thoại của ${call.toLowerCase()} (để gọi)`} value={phone} onChange={setPhone} keyboard="phone-pad" />
           </Card>
-          {!data.caregivers.length && (
+          {needOwn && (
             <Card style={{ gap: 12 }}>
               <T size={15} weight="700">Bạn (người nhận cảnh báo đầu tiên)</T>
               <Field label="Tên của bạn" value={myName} onChange={setMyName} placeholder="Ví dụ: Hà" />
               <Field label="Số điện thoại của bạn" value={myPhone} onChange={setMyPhone} keyboard="phone-pad" />
+              <T size={13} color={myPhone && !phoneOk ? colors.red : colors.muted}>
+                {myPhone && !phoneOk
+                  ? 'Số điện thoại chưa đúng (cần 9–11 chữ số).'
+                  : 'Bắt buộc: khi bố mẹ bấm SOS, máy sẽ gọi và nhắn tin cho bạn.'}
+              </T>
             </Card>
           )}
           <Btn label="Tạo mã kết nối" disabled={!canCreate} onPress={create} />
