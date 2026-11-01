@@ -1,0 +1,38 @@
+# Thư viện cài bằng npm
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Thư mục native sinh tự động (Continuous Native Generation)
+/ios
+/android
+
+# Khóa ký ứng dụng / chứng chỉ
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Biến môi trường (chứa khóa bí mật)
+.env
+.env*.local
+
+# Nhật ký / file tạm
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+*.tsbuildinfo
+coverage/
+
+# Hệ điều hành / trình soạn thảo
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
