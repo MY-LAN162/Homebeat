@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Back, Btn, Card, Field, H1, Screen, T } from '../../components/ui';
@@ -47,7 +48,7 @@ export default function VisitPrep() {
   if (!a) {
     return (
       <Screen>
-        <Back onPress={() => router.back()} />
+        <Back onPress={() => goBack('/child')} />
         <T size={16}>Không tìm thấy lịch khám này.</T>
       </Screen>
     );
@@ -61,7 +62,7 @@ export default function VisitPrep() {
 
   return (
     <Screen>
-      <Back onPress={() => router.back()} />
+      <Back onPress={() => goBack('/child')} />
       <H1 size={24}>Chuẩn bị đi khám</H1>
       <Card style={{ gap: 4, backgroundColor: colors.blue }}>
         <T size={13} weight="700" color="#CFE0F5">

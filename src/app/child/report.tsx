@@ -1,5 +1,6 @@
 // Bảng tóm tắt 30 ngày để đưa bác sĩ xem (hoặc gửi qua Zalo trước buổi khám).
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Share, View } from 'react-native';
 import { Back, Btn, Card, Chip, H1, Screen, T } from '../../components/ui';
@@ -58,7 +59,7 @@ export default function DoctorReportScreen() {
   if (!m) {
     return (
       <Screen>
-        <Back onPress={() => router.back()} />
+        <Back onPress={() => goBack('/child')} />
         <T size={16}>Chưa có ai trong gia đình.</T>
       </Screen>
     );
@@ -68,7 +69,7 @@ export default function DoctorReportScreen() {
 
   return (
     <Screen>
-      <Back onPress={() => router.back()} />
+      <Back onPress={() => goBack('/child')} />
       <H1 size={24}>Tình hình {days} ngày của {callName}</H1>
       <T size={14} color={colors.muted}>Đưa màn hình này cho bác sĩ xem, hoặc gửi trước qua Zalo.</T>
       {data.members.length > 1 && (

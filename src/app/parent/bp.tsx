@@ -1,4 +1,5 @@
-import { router } from 'expo-router';
+
+import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Back, Banner, Btn, H1, Screen, Stepper, T } from '../../components/ui';
@@ -20,7 +21,7 @@ export default function ParentBp() {
   return (
     <Screen>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Back onPress={() => router.back()} />
+        <Back onPress={() => goBack('/parent')} />
         <H1 size={26}>Huyết áp hôm nay</H1>
       </View>
       <T size={17} color={colors.muted}>{m.call} nhìn máy đo, bấm + hoặc − cho đúng 3 số.</T>
@@ -41,7 +42,7 @@ export default function ParentBp() {
         size={21}
         onPress={() => {
           addBp(m.id, sys, dia, pulse);
-          router.back();
+          goBack('/parent');
         }}
       />
     </Screen>

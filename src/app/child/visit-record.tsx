@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBack } from '../../services/nav';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { Back, Banner, Btn, Card, H1, Screen, T } from '../../components/ui';
@@ -33,7 +34,7 @@ export default function VisitRecord() {
   if (!a) {
     return (
       <Screen>
-        <Back onPress={() => router.back()} />
+        <Back onPress={() => goBack('/child')} />
         <T size={16}>Không tìm thấy lịch khám này.</T>
       </Screen>
     );
@@ -66,7 +67,7 @@ export default function VisitRecord() {
 
   return (
     <Screen>
-      <Back onPress={() => { stop(); router.back(); }} />
+      <Back onPress={() => { stop(); goBack('/child'); }} />
       <H1 size={24}>Ghi lại buổi khám</H1>
       <T size={15} color={colors.muted}>{a.title}{member ? ` · ${member.call.toLowerCase()} ${member.name}` : ''}</T>
 

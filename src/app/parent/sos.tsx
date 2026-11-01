@@ -1,7 +1,8 @@
 // SOS: đếm ngược 3 giây để kịp hủy, rồi ghi nhận SOS (máy con thấy qua đồng bộ), gọi người đầu tiên,
 // và cho gửi tin nhắn kèm vị trí. Mỗi dòng trạng thái chỉ ghi đúng điều đã xảy ra: không báo "đã gửi"
 // khi tin nhắn mới chỉ được mở ra.
-import { router } from 'expo-router';
+
+import { goBack } from '../../services/nav';
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { Btn, H1, Screen, T } from '../../components/ui';
@@ -138,7 +139,7 @@ export default function ParentSos() {
           cancelled.current = true;
           if (sentId) cancelSos(sentId);
           track('sos_cancelled');
-          router.back();
+          goBack('/parent');
         }}
       />
     </Screen>

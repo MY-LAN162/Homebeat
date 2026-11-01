@@ -258,8 +258,15 @@ export function Banner({ tone, children }: { tone: 'green' | 'amber' | 'blue' | 
 
 export function Back({ onPress, label = 'Quay lại' }: { onPress: () => void; label?: string }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.back}>
-      <Text style={{ fontSize: 26, color: colors.ink, marginTop: -2 }}>‹</Text>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [styles.back, { opacity: pressed ? 0.7 : 1 }]}
+    >
+      <Text style={{ fontSize: 26, color: colors.ink, marginTop: -3 }}>‹</Text>
+      <Text style={{ fontSize: 16, fontWeight: '600', color: colors.ink }}>{label}</Text>
     </Pressable>
   );
 }
@@ -272,7 +279,7 @@ const styles = StyleSheet.create({
   speak: { height: 52, paddingHorizontal: 18, borderRadius: 26, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
   hold: { height: 84, borderRadius: radius.lg, backgroundColor: colors.red, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   step: { width: 56, height: 56, borderRadius: 16, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  back: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  back: { height: 48, paddingLeft: 12, paddingRight: 16, borderRadius: 24, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, alignSelf: 'flex-start' },
 });
 
 export function Field({

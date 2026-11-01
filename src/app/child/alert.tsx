@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Linking, Platform, View } from 'react-native';
 import { Back, Banner, Btn, Card, H1, Screen, T } from '../../components/ui';
@@ -30,7 +31,7 @@ export default function AlertDetail() {
   if (!m) {
     return (
       <Screen>
-        <Back onPress={() => router.back()} />
+        <Back onPress={() => goBack('/child')} />
         <T size={16}>Không tìm thấy người này.</T>
       </Screen>
     );
@@ -52,12 +53,12 @@ export default function AlertDetail() {
 
   const close = () => {
     dismissAlert(alertKey(m.id, kind, now));
-    router.back();
+    goBack('/child');
   };
 
   return (
     <Screen bg={urgent ? colors.redSoft : colors.bg}>
-      <Back onPress={() => router.back()} />
+      <Back onPress={() => goBack('/child')} />
       <T size={14} weight="700" color={urgent ? colors.red : colors.amberDark}>
         {urgent ? 'KHẨN CẤP' : kind === 'no-signal' ? 'THÔNG BÁO' : 'CẦN CHÚ Ý'} · {hm(now)}
       </T>

@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBack } from '../../../services/nav';
 import { View } from 'react-native';
 import { Back, Btn, Card, H1, Screen, T } from '../../../components/ui';
 import { displayName } from '../../../domain/address';
@@ -46,7 +47,7 @@ export default function MemberDetail() {
   return (
     <Screen>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Back onPress={() => router.back()} />
+        <Back onPress={() => goBack('/child')} />
         <H1 size={24}>{displayName(m)}</H1>
         <View style={{ flex: 1 }} />
         {!!m.phone && <Btn label={`Gọi ${m.call.toLowerCase()}`} height={44} size={15} onPress={() => call(m.phone)} />}

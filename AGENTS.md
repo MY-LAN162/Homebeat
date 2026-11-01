@@ -1,3 +1,11 @@
+## Quy tắc làm việc với Lan (chủ dự án) — đọc trước tiên
+
+- **Mỗi yêu cầu của Lan: báo trước thời gian thực hiện ước tính** (vd "khoảng 10 phút", "khoảng 1 giờ") ngay khi bắt đầu, để Lan không phải chờ lâu mà không biết. Việc dài thì chia thành từng phần và báo thời gian từng phần; nếu thấy sẽ lâu hơn dự kiến thì báo lại ngay, kèm lý do.
+- Trả lời bằng tiếng Việt, gọi là "Lan".
+- Khi Lan **hỏi** ("sao lại…?", "có phải…?") thì chỉ giải thích, không tự sửa. Muốn đổi cách làm đã chốt thì hỏi trước.
+- Không bịa số liệu; chỗ nào chưa kiểm tra được thì nói rõ.
+- Ghi tài liệu dự án vào `README.md` (yêu cầu, chi phí, kết quả kiểm tra, việc còn lại).
+
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
 ## Expo has changed — do not trust your training data

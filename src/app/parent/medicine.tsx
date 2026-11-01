@@ -1,8 +1,9 @@
-import { router } from 'expo-router';
+
+import { goBack } from '../../services/nav';
 import { useEffect, useRef } from 'react';
 import { speak } from '../../services/speech';
 import { Image, View } from 'react-native';
-import { Btn, Card, H1, Screen, SpeakButton, T } from '../../components/ui';
+import { Back, Btn, Card, H1, Screen, SpeakButton, T } from '../../components/ui';
 import { medPrompt, tookLabel } from '../../domain/address';
 import { currentSlot, slotsForDay } from '../../domain/schedule';
 import { snooze } from '../../services/notifications';
@@ -35,7 +36,7 @@ export default function ParentMedicine() {
         <H1>Hôm nay {call} đã uống đủ thuốc</H1>
         <T size={18} color={colors.muted}>Không còn lần uống nào trong hôm nay.</T>
         <View style={{ flex: 1 }} />
-        <Btn label="Về trang chủ" height={72} size={22} onPress={() => router.back()} />
+        <Btn label="Về trang chủ" height={72} size={22} onPress={() => goBack('/parent')} />
       </Screen>
     );
   }
@@ -45,6 +46,7 @@ export default function ParentMedicine() {
 
   return (
     <Screen>
+      <Back onPress={() => goBack('/parent')} />
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <T size={56} weight="700" style={{ flex: 1, lineHeight: 64 }}>{slot.time}</T>
         <SpeakButton text={speech} />
@@ -82,7 +84,7 @@ export default function ParentMedicine() {
         onPress={() => {
           markSlot(slot, 'taken');
           track('dose_taken');
-          router.back();
+          goBack('/parent');
         }}
       />
       <Btn
@@ -93,7 +95,7 @@ export default function ParentMedicine() {
         onPress={() => {
           snooze(medPrompt(m), `${slot.time} · ${slot.pills} viên`, slot.time).catch(() => undefined);
           track('dose_snoozed');
-          router.back();
+          goBack('/parent');
         }}
       />
       <Btn
@@ -103,7 +105,7 @@ export default function ParentMedicine() {
         onPress={() => {
           markSlot(slot, 'skipped');
           track('dose_skipped');
-          router.back();
+          goBack('/parent');
         }}
       />
       <T size={15} color={colors.muted} style={{ textAlign: 'center' }}>

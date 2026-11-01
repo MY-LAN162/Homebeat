@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
+import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Btn, Chip, H1, Screen, T } from '../../components/ui';
+import { Back, Btn, Chip, H1, Screen, T } from '../../components/ui';
 import type { Mood } from '../../domain/types';
 import { useCurrentMember, useStore } from '../../state/store';
 import { colors } from '../../theme';
@@ -24,6 +25,7 @@ export default function ParentCheckin() {
 
   return (
     <Screen>
+      <Back onPress={() => goBack('/parent')} />
       <H1>Hôm nay {call} thấy trong người thế nào?</H1>
       <View style={{ gap: 10 }}>
         {MOODS.map((o) => {
@@ -65,7 +67,7 @@ export default function ParentCheckin() {
         onPress={() => {
           if (!mood) return;
           checkin(m.id, mood, sym);
-          router.back();
+          goBack('/parent');
         }}
       />
     </Screen>

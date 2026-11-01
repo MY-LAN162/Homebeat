@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Back, Banner, Btn, Card, Chip, H1, Screen, T } from '../../components/ui';
@@ -61,7 +62,7 @@ export default function ScanConfirm() {
   if (!draft || !member) {
     return (
       <Screen>
-        <Back onPress={() => router.back()} />
+        <Back onPress={() => goBack('/child')} />
         <T size={16}>Chưa có đơn thuốc nào để kiểm tra.</T>
         <Btn label="Quét đơn thuốc" onPress={() => router.replace('/child/scan')} />
       </Screen>
@@ -86,7 +87,7 @@ export default function ScanConfirm() {
 
   return (
     <Screen>
-      <Back onPress={() => router.back()} />
+      <Back onPress={() => goBack('/child')} />
       <H1 size={24}>Kiểm tra lại đơn thuốc</H1>
       <T size={16} color={colors.muted}>
         Máy đọc được <T size={16} weight="700">{items.length} loại thuốc</T>. Hãy so với đơn giấy trước khi lưu.

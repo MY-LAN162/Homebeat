@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Share, View } from 'react-native';
 import { notify } from '../../services/dialog';
@@ -48,7 +49,7 @@ export default function InviteScreen() {
   return (
     <Screen>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Back onPress={() => router.back()} />
+        <Back onPress={() => goBack('/')} />
         <T size={14} color={colors.muted} weight="600">Bước 2/3</T>
       </View>
       <H1 size={26}>Thêm bố hoặc mẹ</H1>

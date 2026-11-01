@@ -27,7 +27,8 @@ function RoleCard({ title, sub, onPress, strong }: { title: string; sub: string;
 }
 
 export default function RoleScreen() {
-  const { loadDemo } = useStore();
+  const { data, loadDemo, setRole } = useStore();
+  const hasFamily = data.members.length > 0;
   return (
     <Screen>
       <View style={{ height: 24 }} />
@@ -38,6 +39,15 @@ export default function RoleScreen() {
       <T size={20} weight="700" style={{ marginTop: 12 }}>
         Ai đang dùng điện thoại này?
       </T>
+      {hasFamily && (
+        <Btn
+          label={`Tiếp tục với gia đình đã có (${data.members.map((m) => m.call.toLowerCase()).join(', ')})`}
+          onPress={() => {
+            setRole('child');
+            router.replace('/child');
+          }}
+        />
+      )}
       <RoleCard strong title="Tôi là con, cháu" sub="Theo dõi, nhắc thuốc cho bố mẹ" onPress={() => router.push('/onboarding/invite')} />
       <RoleCard title="Tôi là bố, mẹ" sub="Con đã gửi mã kết nối cho tôi" onPress={() => router.push('/onboarding/pair')} />
       <View style={{ flex: 1 }} />

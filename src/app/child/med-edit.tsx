@@ -1,4 +1,5 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Switch, View } from 'react-native';
 import { confirm } from '../../services/dialog';
@@ -41,7 +42,7 @@ export default function MedEdit() {
       stockPills: Number.isFinite(stockN as number) ? stockN : undefined,
       photoUri: existing?.photoUri,
     });
-    router.back();
+    goBack('/child');
   };
 
   const allTimes = [...new Set([...PRESETS, ...times])].sort((a, b) => toMinutes(a) - toMinutes(b));
@@ -49,7 +50,7 @@ export default function MedEdit() {
   return (
     <Screen>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Back onPress={() => router.back()} />
+        <Back onPress={() => goBack('/child')} />
         <H1 size={24}>{existing ? 'Sửa thuốc' : 'Thêm thuốc'}</H1>
       </View>
       <Card style={{ gap: 12 }}>
@@ -98,7 +99,7 @@ export default function MedEdit() {
             confirm('Xóa thuốc này?', `${existing.name} sẽ không còn được nhắc nữa.`, 'Xóa').then((ok) => {
               if (!ok) return;
               removeMedication(existing.id);
-              router.back();
+              goBack('/child');
             })
           }
         />

@@ -4,6 +4,8 @@ import { colors } from '../../theme';
 export default function ChildLayout() {
   return (
     <Tabs
+      // "Quay lại" về đúng màn hình trước đó (mặc định của thanh tab là về tab đầu tiên).
+      backBehavior="history"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.green,

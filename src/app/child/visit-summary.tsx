@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Share, View } from 'react-native';
 import { notify } from '../../services/dialog';
@@ -27,7 +28,7 @@ export default function VisitSummaryScreen() {
   if (!a) {
     return (
       <Screen>
-        <Back onPress={() => router.back()} />
+        <Back onPress={() => goBack('/child')} />
         <T size={16}>Không tìm thấy lịch khám này.</T>
       </Screen>
     );
@@ -55,7 +56,7 @@ export default function VisitSummaryScreen() {
 
   return (
     <Screen>
-      <Back onPress={() => router.back()} />
+      <Back onPress={() => goBack('/child')} />
       <H1 size={24}>Tóm tắt buổi khám</H1>
       <T size={15} color={colors.muted}>
         {when} · {a.title}{member ? ` · ${member.call.toLowerCase()} ${member.name}` : ''}

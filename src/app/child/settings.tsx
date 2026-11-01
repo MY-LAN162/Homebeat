@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Pressable, Switch, View } from 'react-native';
 import { Back, Btn, Card, Chip, H1, Screen, T } from '../../components/ui';
@@ -42,7 +43,7 @@ export default function AlertSettings() {
   return (
     <Screen>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Back onPress={() => router.back()} />
+        <Back onPress={() => goBack('/child')} />
         <H1 size={22}>Khi nào báo cho con?</H1>
       </View>
       <T size={13} color={colors.muted}>Ngưỡng càng ngắn càng dễ báo nhầm.</T>

@@ -1,6 +1,7 @@
 // Mức sử dụng app (dùng khi thử với gia đình thật): tính năng nào được dùng, tính năng nào bỏ đó.
 // Số liệu chỉ nằm trên máy này; chỉ gửi đi khi người dùng tự bấm "Gửi".
-import { router } from 'expo-router';
+
+import { goBack } from '../../services/nav';
 import { useEffect, useState } from 'react';
 import { Share, View } from 'react-native';
 import { Back, Btn, Card, H1, Screen, T } from '../../components/ui';
@@ -39,7 +40,7 @@ export default function UsageScreen() {
 
   return (
     <Screen>
-      <Back onPress={() => router.back()} />
+      <Back onPress={() => goBack('/child')} />
       <H1 size={24}>Mức sử dụng app</H1>
       <T size={14} color={colors.muted}>
         Để biết tính năng nào thật sự có ích. Số liệu chỉ lưu trên máy này, không tự gửi đi đâu.

@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 import { notify } from '../../services/dialog';
@@ -55,7 +56,7 @@ export default function ScanRx() {
   return (
     <Screen>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Back onPress={() => router.back()} />
+        <Back onPress={() => goBack('/child')} />
       </View>
       <H1 size={24}>Quét đơn thuốc{member ? ` của ${member.call.toLowerCase()}` : ''}</H1>
       {data.members.length > 1 && (

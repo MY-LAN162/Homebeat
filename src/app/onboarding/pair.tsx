@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Back, Btn, H1, Screen, T } from '../../components/ui';
@@ -38,7 +39,7 @@ export default function PairScreen() {
 
   return (
     <Screen>
-      <Back onPress={() => router.back()} />
+      <Back onPress={() => goBack('/')} />
       <H1 size={30}>Nhập mã con gửi</H1>
       <T size={18} color={colors.muted}>Mã gồm 6 số, con gửi qua Zalo hoặc tin nhắn.</T>
 
