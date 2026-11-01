@@ -1,7 +1,9 @@
 import Tabs from 'expo-router/tabs';
+import { useStore } from '../../state/store';
 import { colors } from '../../theme';
 
 export default function ChildLayout() {
+  const k = useStore().data.textScale ?? 1;
   return (
     <Tabs
       // "Quay lại" về đúng màn hình trước đó (mặc định của thanh tab là về tab đầu tiên).
@@ -10,9 +12,9 @@ export default function ChildLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.green,
         tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontSize: 14, fontWeight: '700' },
+        tabBarLabelStyle: { fontSize: 14 * k, fontWeight: '700' },
         tabBarIconStyle: { display: 'none' },
-        tabBarStyle: { height: 64, backgroundColor: colors.white, borderTopColor: colors.line },
+        tabBarStyle: { height: 56 + 8 * k, backgroundColor: colors.white, borderTopColor: colors.line },
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >

@@ -35,7 +35,8 @@ function Group<V extends string | number>({
 }
 
 export default function AlertSettings() {
-  const { data, updateSettings } = useStore();
+  const { data, updateSettings, setTextScale } = useStore();
+  const scale = data.textScale ?? 1;
   const s = data.settings;
   const bpKey = `${s.bpSys}/${s.bpDia}`;
   const [pickTz, setPickTz] = useState(false);
@@ -44,9 +45,24 @@ export default function AlertSettings() {
     <Screen>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <Back onPress={() => goBack('/child')} />
-        <H1 size={22}>Khi nào báo cho con?</H1>
+        <H1 size={22}>Cài đặt</H1>
       </View>
-      <T size={13} color={colors.muted}>Ngưỡng càng ngắn càng dễ báo nhầm.</T>
+      <Card style={{ gap: 8 }}>
+        <T size={15} weight="700">Cỡ chữ trên máy này</T>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {[
+            { k: 1, label: 'Bình thường' },
+            { k: 1.15, label: 'Lớn' },
+            { k: 1.3, label: 'Rất lớn' },
+          ].map((o) => (
+            <View key={o.k} style={{ flex: 1 }}>
+              <Chip label={o.label} on={scale === o.k} onPress={() => setTextScale(o.k)} size={14} />
+            </View>
+          ))}
+        </View>
+        <T size={15} color={colors.muted}>Chữ mẫu: Bố Hùng chưa uống thuốc 12:00</T>
+      </Card>
+      <T size={13} weight="700" color={colors.muted}>KHI NÀO BÁO CHO CON? (ngưỡng càng ngắn càng dễ báo nhầm)</T>
       <Card style={{ gap: 8 }}>
         <T size={15} weight="700">Bố mẹ đang sống ở đâu?</T>
         <T size={13} color={colors.muted}>Giờ uống thuốc, giờ điểm danh, giờ ngủ tính theo giờ ở nơi này, kể cả khi bạn ở nước khác.</T>

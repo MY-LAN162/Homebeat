@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DialogHost } from '../components/DialogHost';
 import { NotificationBridge } from '../components/NotificationBridge';
+import { ScaledText } from '../components/ScaledText';
 import { UsageTracker } from '../components/UsageTracker';
 import { setupNotifications } from '../services/notifications';
 import { StoreProvider } from '../state/store';
@@ -16,9 +17,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StoreProvider>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
-        <DialogHost />
+        <ScaledText>
+          <StatusBar style="dark" />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
+          <DialogHost />
+        </ScaledText>
         <NotificationBridge />
         <UsageTracker />
       </StoreProvider>

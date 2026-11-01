@@ -152,6 +152,8 @@ export interface AppData {
   dismissed?: string[];
   /** Bố mẹ đã xem hướng dẫn lần đầu trên máy này. */
   guideSeen?: boolean;
+  /** Cỡ chữ trên máy này: 1 bình thường, 1.15 lớn, 1.3 rất lớn (không đồng bộ sang máy khác). */
+  textScale?: number;
 }
 
 export const DEFAULT_SETTINGS: AlertSettings = {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Animated,
   Easing,
@@ -15,6 +15,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
 import { speak } from '../services/speech';
+
+/** Cỡ chữ của máy này (1 = bình thường). Chọn trong Cài đặt › Cỡ chữ. */
+export const TextScale = createContext(1);
+const useK = () => useContext(TextScale);
 
 export function Screen({
   children,
@@ -42,8 +46,9 @@ export function Screen({
 }
 
 export function H1({ children, size = 28, color = colors.ink }: { children: ReactNode; size?: number; color?: string }) {
+  const k = useK();
   return (
-    <Text accessibilityRole="header" style={{ fontSize: size, lineHeight: size * 1.25, fontWeight: '700', color, fontFamily: 'serif' }}>
+    <Text accessibilityRole="header" style={{ fontSize: size * k, lineHeight: size * k * 1.25, fontWeight: '700', color, fontFamily: 'serif' }}>
       {children}
     </Text>
   );
@@ -62,7 +67,8 @@ export function T({
   weight?: TextStyle['fontWeight'];
   style?: StyleProp<TextStyle>;
 }) {
-  return <Text style={[{ fontSize: size, lineHeight: size * 1.45, color, fontWeight: weight }, style]}>{children}</Text>;
+  const k = useK();
+  return <Text style={[{ fontSize: size * k, lineHeight: size * k * 1.45, color, fontWeight: weight }, style]}>{children}</Text>;
 }
 
 export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
@@ -102,6 +108,7 @@ export function Btn({
   style?: StyleProp<ViewStyle>;
 }) {
   const v = VARIANTS[variant];
+  const k = useK();
   return (
     <Pressable
       accessibilityRole="button"
@@ -122,12 +129,13 @@ export function Btn({
       ]}
     >
       {icon}
-      <Text style={{ color: disabled ? colors.muted : v.fg, fontSize: size, fontWeight: '700', textAlign: 'center' }}>{label}</Text>
+      <Text style={{ color: disabled ? colors.muted : v.fg, fontSize: size * k, fontWeight: '700', textAlign: 'center' }}>{label}</Text>
     </Pressable>
   );
 }
 
 export function Chip({ label, on, onPress, size = 15 }: { label: string; on: boolean; onPress: () => void; size?: number }) {
+  const k = useK();
   return (
     <Pressable
       accessibilityRole="button"
@@ -135,7 +143,7 @@ export function Chip({ label, on, onPress, size = 15 }: { label: string; on: boo
       onPress={onPress}
       style={[styles.chip, { backgroundColor: on ? colors.green : colors.white, borderColor: on ? colors.green : colors.chipLine }]}
     >
-      <Text style={{ fontSize: size, fontWeight: '600', color: on ? colors.white : colors.ink }}>{label}</Text>
+      <Text style={{ fontSize: size * k, fontWeight: '600', color: on ? colors.white : colors.ink }}>{label}</Text>
     </Pressable>
   );
 }
@@ -257,6 +265,7 @@ export function Banner({ tone, children }: { tone: 'green' | 'amber' | 'blue' | 
 }
 
 export function Back({ onPress, label = 'Quay lại' }: { onPress: () => void; label?: string }) {
+  const k = useK();
   return (
     <Pressable
       accessibilityRole="button"
@@ -266,7 +275,7 @@ export function Back({ onPress, label = 'Quay lại' }: { onPress: () => void; l
       style={({ pressed }) => [styles.back, { opacity: pressed ? 0.7 : 1 }]}
     >
       <Text style={{ fontSize: 26, color: colors.ink, marginTop: -3 }}>‹</Text>
-      <Text style={{ fontSize: 16, fontWeight: '600', color: colors.ink }}>{label}</Text>
+      <Text style={{ fontSize: 16 * k, fontWeight: '600', color: colors.ink }}>{label}</Text>
     </Pressable>
   );
 }
@@ -295,6 +304,7 @@ export function Field({
   placeholder?: string;
   keyboard?: 'default' | 'phone-pad' | 'number-pad';
 }) {
+  const k = useK();
   return (
     <View style={{ gap: 6 }}>
       <T size={14} weight="600">{label}</T>
@@ -311,7 +321,7 @@ export function Field({
           borderColor: colors.chipLine,
           borderRadius: 12,
           paddingHorizontal: 14,
-          fontSize: 17,
+          fontSize: 17 * k,
           color: colors.ink,
           backgroundColor: colors.white,
         }}

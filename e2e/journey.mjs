@@ -137,8 +137,20 @@ p.on('pageerror', (e) => errs.push(e.message));
   });
   // Gia đình, cài đặt
   await step('Tab Gia đình', async () => { await tab('Gia đình'); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
-  await step('Gia đình › Cài đặt › Quay lại về Gia đình', async () => { await tap('Cài đặt cảnh báo'); await expectScreen('Khi nào báo cho con?'); await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
-  await step('Cài đặt › Mức sử dụng › Quay lại về Cài đặt', async () => { await tap('Cài đặt cảnh báo'); await tap('Mức sử dụng app (thử nghiệm)'); await expectScreen('Mức sử dụng app'); await back(); await expectScreen('Khi nào báo cho con?'); await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
+  await step('Gia đình › Cài đặt › Quay lại về Gia đình', async () => { await tap('Cài đặt (cảnh báo, cỡ chữ)'); await expectScreen('Cỡ chữ trên máy này'); await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
+  await step('Cài đặt › Mức sử dụng › Quay lại về Cài đặt', async () => { await tap('Cài đặt (cảnh báo, cỡ chữ)'); await tap('Mức sử dụng app (thử nghiệm)'); await expectScreen('Mức sử dụng app'); await back(); await expectScreen('Cỡ chữ trên máy này'); await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
+  await step('Cài đặt › chọn chữ "Rất lớn" thì chữ to lên, chọn lại "Bình thường"', async () => {
+    const size = () => p.evaluate(() => {
+      const e = [...document.querySelectorAll('div,span')].find((x) => x.childElementCount === 0 && x.textContent.startsWith('Chữ mẫu:') && x.getBoundingClientRect().width > 0 && document.elementFromPoint(x.getBoundingClientRect().left + 5, x.getBoundingClientRect().top + 5) === x);
+      return e ? parseFloat(getComputedStyle(e).fontSize) : 0;
+    });
+    await tap('Cài đặt (cảnh báo, cỡ chữ)'); await expectScreen('Cỡ chữ trên máy này');
+    const before = await size(); await tap('Rất lớn', { exact: true }); await p.waitForTimeout(300); const after = await size();
+    if (!(before > 0 && after >= before * 1.25)) throw new Error(`chữ không to lên (${before} → ${after})`);
+    await tap('Bình thường', { exact: true }); await p.waitForTimeout(300);
+    if ((await size()) !== before) throw new Error('chọn lại Bình thường không về cỡ cũ');
+    await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC');
+  });
   await step('Gia đình › + Thêm bố mẹ › Quay lại về Gia đình', async () => { await tap('+ Thêm bố, mẹ, ông, bà'); await expectScreen('Thêm bố hoặc mẹ'); await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
   await step('Gia đình › thêm người nhận cảnh báo có số', async () => {
     await tap('+ Thêm người nhận cảnh báo'); await p.getByRole('textbox', { name: 'Tên', exact: true }).fill('Cô Bảy'); await p.getByRole('textbox', { name: 'Số điện thoại', exact: true }).last().fill('0912345678');

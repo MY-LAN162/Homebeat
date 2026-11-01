@@ -78,7 +78,7 @@ export default function ChildFamily() {
         )}
       </Card>
 
-      <Btn variant="secondary" label="Cài đặt cảnh báo" onPress={() => router.push('/child/settings')} />
+      <Btn variant="secondary" label="Cài đặt (cảnh báo, cỡ chữ)" onPress={() => router.push('/child/settings')} />
 
       <T size={13} weight="700" color={colors.muted}>BẢN THỬ</T>
       <Card style={{ gap: 8 }}>
