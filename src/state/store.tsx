@@ -68,6 +68,7 @@ interface Store {
   updateSettings: (patch: Partial<AlertSettings>) => void;
   /** Con bấm "ổn rồi, tắt cảnh báo" (chỉ ẩn trong hôm nay, trên máy này). */
   dismissAlert: (key: string) => void;
+  markGuideSeen: () => void;
   loadDemo: () => void;
   reset: () => void;
 }
@@ -286,6 +287,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
           return { ...d, appointments: exists ? d.appointments.map((x) => (x.id === id ? next : x)) : [...d.appointments, next] };
         }),
       updateSettings: (patch) => update((d) => ({ ...d, settings: { ...d.settings, ...patch } })),
+      markGuideSeen: () => update((d) => ({ ...d, guideSeen: true })),
       dismissAlert: (key) => update((d) => ({ ...d, dismissed: [...(d.dismissed ?? []).slice(-50), key] })),
       loadDemo: () => setData({ ...demoData(new Date()), demo: true }),
       reset: () => {

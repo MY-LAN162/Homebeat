@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 import { Btn, H1, HoldButton, Screen, SpeakButton, T } from '../../components/ui';
 import { greeting, okLabel } from '../../domain/address';
@@ -11,6 +12,11 @@ import { colors } from '../../theme';
 export default function ParentHome() {
   const { data, now, checkin, setRole } = useStore();
   const m = useCurrentMember();
+  // Lần đầu mở: hiện hướng dẫn 3 bước.
+  const needGuide = !!m && !data.guideSeen;
+  useEffect(() => {
+    if (needGuide) router.push('/parent/guide');
+  }, [needGuide]);
   if (!m) return null;
   const call = m.call.toLowerCase();
 
@@ -90,6 +96,7 @@ export default function ParentHome() {
         hint="Giữ nút đến khi vạch đậm chạy hết (3 giây)"
         onComplete={() => router.push('/parent/sos')}
       />
+      <Btn variant="ghost" size={17} label="Xem lại hướng dẫn" onPress={() => router.push('/parent/guide')} />
       <Btn variant="ghost" size={13} height={36} label="Đổi vai trò (bản thử)" onPress={() => { setRole(undefined); router.replace('/'); }} />
     </Screen>
   );

@@ -150,6 +150,8 @@ export interface AppData {
   demo?: boolean;
   /** Cảnh báo con đã bấm "ổn rồi, tắt cảnh báo" (chỉ trên máy này). */
   dismissed?: string[];
+  /** Bố mẹ đã xem hướng dẫn lần đầu trên máy này. */
+  guideSeen?: boolean;
 }
 
 export const DEFAULT_SETTINGS: AlertSettings = {

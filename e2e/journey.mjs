@@ -145,7 +145,18 @@ p.on('pageerror', (e) => errs.push(e.message));
     await tap('Thêm', { exact: true }); await expectScreen('Cô Bảy');
   });
   // Màn hình bố mẹ
-  await step('Gia đình › Xem màn hình của bố', async () => { await tap(/Xem màn hình của bố/); await expectScreen('Con ơi, bố ổn'); });
+  await step('Gia đình › Xem màn hình của bố › hiện hướng dẫn lần đầu', async () => { await tap(/Xem màn hình của bố/); await expectScreen('Hướng dẫn · 1/3'); await expectScreen('Mỗi sáng, bấm nút trắng'); });
+  await step('Hướng dẫn: đi hết 3 bước', async () => {
+    await tap('Tiếp theo'); await expectScreen('Đến giờ uống thuốc, máy sẽ kêu');
+    await tap('Quay lại bước trước'); await expectScreen('Mỗi sáng, bấm nút trắng');
+    await tap('Tiếp theo'); await tap('Tiếp theo'); await expectScreen('Cần giúp gấp: giữ nút đỏ');
+    await tap('Đã hiểu, bắt đầu dùng'); await expectScreen('Con ơi, bố ổn');
+  });
+  await step('Hướng dẫn không tự hiện lại; xem lại được', async () => {
+    await p.reload(); await expectScreen('Con ơi, bố ổn', 15000);
+    if (await onScreen('Hướng dẫn · 1/3')) throw new Error('hướng dẫn hiện lại');
+    await tap('Xem lại hướng dẫn'); await expectScreen('Hướng dẫn · 1/3'); await tap('Bỏ qua hướng dẫn'); await expectScreen('Con ơi, bố ổn');
+  });
   await step('Bố: bấm "ổn"', async () => { await tap('Con ơi, bố ổn'); await expectScreen(/Đã báo cho các con lúc/); });
   await step('Bố › thuốc › "Bố đã uống" › về trang chủ bố', async () => { await tap(/Thuốc lần tới|Thuốc bây giờ|Đến giờ/); await expectScreen('Bố đã uống'); await tap('Bố đã uống'); await expectScreen('Con ơi, bố ổn'); });
   await step('Bố › kể con nghe › Quay lại', async () => { await tap(/Kể con nghe/); await expectScreen(/thấy thế nào|Hôm nay/); await back(); await expectScreen('Con ơi, bố ổn'); });
