@@ -3,10 +3,11 @@
 import { createPairing, checkCode } from '../domain/pairing';
 import { COLLECTIONS, type CollectionName, type RemoteSnapshot, type SyncWrite } from '../domain/syncdiff';
 import type { AlertSettings, Pairing, Role } from '../domain/types';
-import { SyncError, type DeviceInfo, type FamilySync, type JoinRequest } from './sync';
+import { SyncError, type DeviceInfo, type FamilyDevice, type FamilySync, type JoinRequest } from './sync';
 
 interface FamilyDoc {
   uids: string[];
+  owner: string;
   settings?: AlertSettings;
   colls: Record<CollectionName, Map<string, Record<string, unknown>>>;
   heartbeats: Map<string, { at: string; battery?: number }>;
@@ -69,7 +70,7 @@ export class MemorySync implements FamilySync {
   async createFamily() {
     const id = this.server.nextId('fam');
     const colls = Object.fromEntries(COLLECTIONS.map((c) => [c, new Map()])) as FamilyDoc['colls'];
-    this.server.families.set(id, { uids: [this.uid], colls, heartbeats: new Map(), devices: new Map(), requests: new Map() });
+    this.server.families.set(id, { uids: [this.uid], owner: this.uid, colls, heartbeats: new Map(), devices: new Map(), requests: new Map() });
     return id;
   }
 
@@ -141,6 +142,31 @@ export class MemorySync implements FamilySync {
     r.status = approve ? 'approved' : 'denied';
     if (approve) this.server.codes.delete(req.code);
     this.server.notifyRequests(familyId);
+  }
+
+  async listDevices(familyId: string): Promise<FamilyDevice[]> {
+    const f = this.server.family(familyId, this.uid);
+    return f.uids.map((uid) => ({
+      uid,
+      role: f.devices.get(uid)?.role,
+      memberId: f.devices.get(uid)?.memberId,
+      platform: f.devices.get(uid)?.platform,
+      owner: uid === f.owner,
+      me: uid === this.uid,
+    }));
+  }
+
+  async removeDevice(familyId: string, uid: string) {
+    const f = this.server.family(familyId, this.uid);
+    if (uid === f.owner || (this.uid !== f.owner && uid !== this.uid)) throw new Error('permission-denied');
+    f.uids = f.uids.filter((x) => x !== uid);
+    f.devices.delete(uid);
+  }
+
+  async transferOwner(familyId: string, uid: string) {
+    const f = this.server.family(familyId, this.uid);
+    if (this.uid !== f.owner || !f.uids.includes(uid)) throw new Error('permission-denied');
+    f.owner = uid;
   }
 
   async childPushTokens(familyId: string) {

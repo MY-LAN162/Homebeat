@@ -115,8 +115,25 @@ describe('vào gia đình bằng yêu cầu + đồng ý (không cần Cloud Fun
     await assertFails(getDocs(query(collection(as('la'), 'families'), where('uids', 'array-contains', 'con'))));
   });
 
-  test('bỏ bớt máy được, nhưng không được để gia đình trống', async () => {
-    await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { uids: arrayRemove('bo') }));
+  test('gỡ máy: chỉ chủ gỡ được máy khác; máy khác chỉ tự rời; chủ không tự gỡ mình', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'families', FAM), { uids: ['con', 'bo', 'em'] });
+      await setDoc(doc(ctx.firestore(), 'families', FAM, 'devices', 'em'), { role: 'child' });
+    });
+    await assertFails(updateDoc(doc(as('bo'), 'families', FAM), { uids: arrayRemove('em') }));
+    await assertFails(updateDoc(doc(as('bo'), 'families', FAM), { uids: arrayRemove('con') }));
+    await assertFails(deleteDoc(doc(as('bo'), 'families', FAM, 'devices', 'em')));
+    await assertFails(updateDoc(doc(as('con'), 'families', FAM), { uids: arrayRemove('con') }));
+    await assertSucceeds(deleteDoc(doc(as('con'), 'families', FAM, 'devices', 'em')));
+    await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { uids: arrayRemove('em') }));
+    await assertSucceeds(updateDoc(doc(as('bo'), 'families', FAM), { uids: arrayRemove('bo') }));
     await assertFails(updateDoc(doc(as('con'), 'families', FAM), { uids: [] }));
+  });
+
+  test('chuyển quyền chủ: chỉ chủ, chỉ cho máy đang trong gia đình', async () => {
+    await assertFails(updateDoc(doc(as('bo'), 'families', FAM), { ownerUid: 'bo' }));
+    await assertFails(updateDoc(doc(as('con'), 'families', FAM), { ownerUid: 'nguoiLa' }));
+    await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { ownerUid: 'bo' }));
+    await assertSucceeds(updateDoc(doc(as('bo'), 'families', FAM), { uids: arrayRemove('con') }));
   });
 });

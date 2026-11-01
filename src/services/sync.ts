@@ -40,6 +40,18 @@ export interface JoinRequest {
   at?: string;
 }
 
+/** Một máy trong gia đình. */
+export interface FamilyDevice {
+  uid: string;
+  role?: Role;
+  memberId?: string;
+  platform?: string;
+  /** Máy của người tạo gia đình (chủ): chỉ máy này gỡ được máy khác. */
+  owner: boolean;
+  /** Máy đang dùng. */
+  me: boolean;
+}
+
 export interface FamilySync {
   /** Đăng nhập (ẩn danh), trả về mã người dùng. Gọi nhiều lần vẫn là một người. */
   signIn(): Promise<string>;
@@ -66,6 +78,12 @@ export interface FamilySync {
   decideJoin(familyId: string, req: JoinRequest, approve: boolean): Promise<void>;
   /** Mã nhận thông báo đẩy của các máy con (để máy bố mẹ tự gửi cảnh báo, không cần máy chủ riêng). */
   childPushTokens(familyId: string): Promise<string[]>;
+  /** Danh sách máy trong gia đình. */
+  listDevices(familyId: string): Promise<FamilyDevice[]>;
+  /** Chủ gia đình gỡ một máy (máy mất, máy lạ), hoặc máy tự rời. */
+  removeDevice(familyId: string, uid: string): Promise<void>;
+  /** Chủ chuyển quyền chủ cho máy khác. */
+  transferOwner(familyId: string, uid: string): Promise<void>;
   /** Ghi các thay đổi lên máy chủ. */
   apply(familyId: string, writes: SyncWrite[]): Promise<void>;
   /** Máy bố mẹ báo "còn sống" (thời điểm, pin). */

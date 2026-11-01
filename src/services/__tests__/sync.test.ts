@@ -220,6 +220,15 @@ describe('hai máy qua máy chủ', () => {
     expect(await newPhone.restoreWithEmail('ha@example.com', 'matkhau123')).toEqual({ familyId: fid, role: 'child', memberId: undefined });
   });
 
+  it('gỡ máy: chỉ máy tạo gia đình gỡ được máy khác; máy bố không gỡ được máy con', async () => {
+    const { child, parent, fid } = await setup();
+    await expect(parent.sync.removeDevice(fid, 'uid-con')).rejects.toThrow('permission-denied');
+    const list = await child.sync.listDevices(fid);
+    expect(list.find((d) => d.me)?.owner).toBe(true);
+    await child.sync.removeDevice(fid, 'uid-bo');
+    expect((await child.sync.listDevices(fid)).map((d) => d.uid)).toEqual(['uid-con']);
+  });
+
   it('ghi lỗi thì gửi lại ở lần sau', async () => {
     const { parent } = await setup();
     const real = parent.sync.apply.bind(parent.sync);

@@ -150,6 +150,20 @@ const fsGet = async (p) => (await fetch(`http://127.0.0.1:8080/v1/projects/demo-
     await vis(moi2, 'Bố mẹ hôm nay').waitFor({ timeout: 15000 });
     await vis(moi2, /Bố Hùng ›/).waitFor({ timeout: 15000 });
   });
+  await step('Các máy trong gia đình: máy con (quản lý) thấy đủ máy, gỡ được máy mới', async () => {
+    await con.goto(URL + 'child/devices');
+    await vis(con, 'Máy của bố Hùng').waitFor({ timeout: 15000 });
+    await vis(con, /quản lý gia đình/).waitFor();
+    const before = (await fsGet('families')).documents[0].fields.uids.arrayValue.values.length;
+    await con.getByText('Gỡ máy này', { exact: true }).filter({ visible: true }).last().click();
+    await con.getByRole('button', { name: 'Gỡ', exact: true }).click();
+    for (let i = 0; i < 30; i++) {
+      const after = (await fsGet('families')).documents[0].fields.uids.arrayValue.values.length;
+      if (after === before - 1) return;
+      await con.waitForTimeout(300);
+    }
+    throw new Error('máy chưa bị gỡ trên máy chủ');
+  });
   await con.screenshot({ path: `${SHOTS}/s2-con-cuoi.png` });
   console.log(`\nKết quả: ${pass} đạt, ${fail} lỗi. Lỗi trang: ${errs.length ? errs.join(' | ') : 'không'}`);
   await b.close();

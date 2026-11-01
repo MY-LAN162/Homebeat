@@ -33,6 +33,7 @@ export default function ChildLayout() {
       <Tabs.Screen name="alert" options={{ href: null }} />
       <Tabs.Screen name="report" options={{ href: null }} />
       <Tabs.Screen name="usage" options={{ href: null }} />
+      <Tabs.Screen name="devices" options={{ href: null }} />
     </Tabs>
   );
 }

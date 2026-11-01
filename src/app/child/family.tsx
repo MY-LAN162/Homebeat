@@ -117,6 +117,7 @@ export default function ChildFamily() {
         </>
       )}
 
+      {connected && <Btn variant="secondary" label="Các máy trong gia đình" onPress={() => router.push('/child/devices')} />}
       <Btn variant="secondary" label="Cài đặt (cảnh báo, cỡ chữ)" onPress={() => router.push('/child/settings')} />
 
       <T size={13} weight="700" color={colors.muted}>{connected ? 'DỮ LIỆU TRÊN MÁY NÀY' : 'BẢN THỬ'}</T>

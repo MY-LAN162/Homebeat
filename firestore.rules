@@ -22,6 +22,16 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/families/$(familyId)/joinRequests/$(added[0]));
     }
     // Mã kết nối có 2 loại: role 'parent' (máy của bố/mẹ, kèm memberId) và 'child' (máy mới của con, memberId rỗng).
+    function removesAllowed() {
+      let removed = resource.data.uids.removeAll(request.resource.data.uids);
+      return resource.data.uids.hasAll(request.resource.data.uids)
+        && removed.size() >= 1
+        && !(resource.data.ownerUid in removed)
+        && (request.auth.uid == resource.data.ownerUid || removed == [request.auth.uid]);
+    }
+    function isOwner(familyId) {
+      return signedIn() && get(/databases/$(database)/documents/families/$(familyId)).data.ownerUid == request.auth.uid;
+    }
     function validCode(code, familyId, memberId, role) {
       let path = /databases/$(database)/documents/pairingCodes/$(code);
       let c = get(path).data;
@@ -38,14 +48,17 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.uids == [request.auth.uid];
-      // Người trong gia đình được: sửa cài đặt; thêm ĐÚNG MỘT máy đã gửi yêu cầu vào gia đình;
-      // hoặc bỏ bớt máy (vẫn phải còn ít nhất một người).
+      // Người trong gia đình được: sửa cài đặt; thêm ĐÚNG MỘT máy đã gửi yêu cầu vào gia đình.
+      // Gỡ máy: chỉ người tạo gia đình (chủ) gỡ được máy khác; máy khác chỉ tự rời được; chủ không tự gỡ mình.
+      // Chuyển quyền chủ: chỉ chủ, cho một máy đang trong gia đình.
       allow update: if isMember(familyId) && (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['settings'])
         || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uids']) && (
-          addsOneRequester(familyId)
-          || (resource.data.uids.hasAll(request.resource.data.uids) && request.resource.data.uids.size() >= 1)
+          addsOneRequester(familyId) || removesAllowed()
         ))
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerUid'])
+          && request.auth.uid == resource.data.ownerUid
+          && request.resource.data.ownerUid in resource.data.uids)
       );
       allow delete: if false;
 
@@ -63,7 +76,8 @@ service cloud.firestore {
       // Thông tin từng máy (vai trò, mã nhận thông báo): mỗi máy chỉ sửa của chính mình.
       match /devices/{uid} {
         allow read: if isMember(familyId);
-        allow write: if isMember(familyId) && uid == request.auth.uid
+        allow delete: if isMember(familyId) && (uid == request.auth.uid || isOwner(familyId));
+        allow create, update: if isMember(familyId) && uid == request.auth.uid
           && (!('role' in request.resource.data) || request.resource.data.role in ['child', 'parent']);
       }
       // Yêu cầu vào gia đình: máy mới tự tạo (phải có mã đúng, còn hạn); người trong gia đình

@@ -26,7 +26,7 @@ import { checkAndAlert } from '../services/checkAndAlert';
 import { sendPush } from '../services/push';
 import { BASE_KEY, DATA_KEY } from './keys';
 import { getPushToken, rescheduleMedReminders } from '../services/notifications';
-import { SyncError, type FamilySync, type JoinRequest } from '../services/sync';
+import { SyncError, type FamilyDevice, type FamilySync, type JoinRequest } from '../services/sync';
 import { SyncEngine } from '../services/syncEngine';
 
 const KEY = DATA_KEY;
@@ -65,6 +65,9 @@ interface Store {
   linkEmail: (email: string, password: string) => Promise<void>;
   /** Máy mới: đăng nhập email đã liên kết, lấy lại gia đình. Trả về false nếu không thấy gia đình. */
   restoreWithEmail: (email: string, password: string) => Promise<boolean>;
+  listDevices: () => Promise<FamilyDevice[]>;
+  removeDevice: (uid: string) => Promise<void>;
+  transferOwner: (uid: string) => Promise<void>;
   /** Bố mẹ hủy yêu cầu đang chờ (để nhập lại mã). */
   cancelJoin: () => void;
   /** Yêu cầu vào gia đình đang chờ con đồng ý (máy con). */
@@ -325,6 +328,18 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
           currentMemberId: r.role === 'parent' ? r.memberId : undefined,
         }));
         return true;
+      },
+      listDevices: async () => {
+        if (!sync || !data.familyId) return [];
+        return sync.listDevices(data.familyId);
+      },
+      removeDevice: async (uid) => {
+        if (!sync || !data.familyId) return;
+        await sync.removeDevice(data.familyId, uid);
+      },
+      transferOwner: async (uid) => {
+        if (!sync || !data.familyId) return;
+        await sync.transferOwner(data.familyId, uid);
       },
       cancelJoin: () => update((d) => ({ ...d, pendingJoin: undefined })),
       joinRequests: familyId ? joinRequests : [],

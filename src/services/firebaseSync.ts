@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApp, getApps, initializeApp, type FirebaseOptions } from 'firebase/app';
 import * as FirebaseAuth from 'firebase/auth';
 import {
+  arrayRemove,
   arrayUnion,
   collection,
   deleteDoc,
@@ -41,7 +42,7 @@ import {
   type SyncWrite,
 } from '../domain/syncdiff';
 import type { Pairing, Role } from '../domain/types';
-import { SyncError, type DeviceInfo, type FamilySync, type JoinRequest, type RedeemError } from './sync';
+import { SyncError, type DeviceInfo, type FamilyDevice, type FamilySync, type JoinRequest, type RedeemError } from './sync';
 
 /** Cấu hình lấy từ biến môi trường EXPO_PUBLIC_FIREBASE_* (file .env, xem .env.example). */
 export function firebaseConfig(): FirebaseOptions | undefined {
@@ -216,6 +217,32 @@ export class FirebaseSync implements FamilySync {
     if (approve) await updateDoc(fam, { uids: arrayUnion(req.uid) });
     await updateDoc(doc(fam, 'joinRequests', req.uid), { status: approve ? 'approved' : 'denied', decidedBy: uid, decidedAt: new Date().toISOString() });
     if (approve) await deleteDoc(doc(this.db, 'pairingCodes', req.code)).catch(() => undefined);
+  }
+
+  async listDevices(familyId: string): Promise<FamilyDevice[]> {
+    const me = await this.signIn();
+    const fam = (await getDoc(doc(this.db, 'families', familyId))).data() as { uids: string[]; ownerUid: string };
+    const devs = await getDocs(collection(this.db, 'families', familyId, 'devices'));
+    const info = new Map(devs.docs.map((d) => [d.id, d.data() as DeviceInfo]));
+    return fam.uids.map((uid) => ({
+      uid,
+      role: info.get(uid)?.role,
+      memberId: info.get(uid)?.memberId,
+      platform: info.get(uid)?.platform,
+      owner: uid === fam.ownerUid,
+      me: uid === me,
+    }));
+  }
+
+  async removeDevice(familyId: string, uid: string): Promise<void> {
+    await this.signIn();
+    await deleteDoc(doc(this.db, 'families', familyId, 'devices', uid)).catch(() => undefined);
+    await updateDoc(doc(this.db, 'families', familyId), { uids: arrayRemove(uid) });
+  }
+
+  async transferOwner(familyId: string, uid: string): Promise<void> {
+    await this.signIn();
+    await updateDoc(doc(this.db, 'families', familyId), { ownerUid: uid });
   }
 
   async childPushTokens(familyId: string): Promise<string[]> {
