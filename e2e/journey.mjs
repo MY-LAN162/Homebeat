@@ -1,0 +1,172 @@
+// Chạy thử app như người dùng thật (npm run e2e).
+// 1. Build bản web  2. Đóng gói thành trang dùng thử (giống Artifact)  3. Dựng máy chủ chỉ phục vụ 1 đường dẫn
+// (giống Artifact, đường dẫn khác trả "not found")  4. Bấm qua các màn hình, sau mỗi bước kiểm tra màn hình
+// ĐANG HIỆN trước mắt đúng như mong đợi (không chỉ "chữ có trong trang").
+//
+// Cần Playwright + Chromium: npm i -D playwright && npx playwright install chromium
+// Tùy chọn: --no-build (dùng bản build sẵn trong .e2e/), --headed (xem trình duyệt chạy).
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import http from 'node:http';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { makeTestPage } from '../scripts/make-test-page.mjs';
+
+const require = createRequire(import.meta.url);
+const { chromium } = require('playwright');
+const OUT = path.resolve('.e2e');
+const SHOTS = path.join(OUT, 'shots');
+const PAGE_PATH = '/x/artifact/page';
+const args = new Set(process.argv.slice(2));
+
+if (!args.has('--no-build')) {
+  console.log('Đang build bản web...');
+  fs.rmSync(path.join(OUT, 'web-demo'), { recursive: true, force: true });
+  execSync(`npx expo export -p web --output-dir ${path.join(OUT, 'web-demo')}`, { stdio: 'ignore', env: { ...process.env, EXPO_OFFLINE: '1' } });
+}
+const html = makeTestPage(OUT);
+const page = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body>${html}</body></html>`;
+const server = http.createServer((req, res) => {
+  if (req.url.split('?')[0] === PAGE_PATH) {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(page);
+  } else {
+    res.writeHead(404);
+    res.end('not found');
+  }
+});
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const URL = `http://127.0.0.1:${server.address().port}${PAGE_PATH}`;
+fs.rmSync(SHOTS, { recursive: true, force: true });
+fs.mkdirSync(SHOTS, { recursive: true });
+const SP = OUT;
+
+const b = await chromium.launch({ headless: !args.has('--headed') });
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'Asia/Ho_Chi_Minh' });
+const p = await ctx.newPage();
+// Giờ cố định 13:30 giờ Việt Nam để có cảnh báo trễ thuốc trong dữ liệu mẫu.
+await p.clock.install({ time: new Date('2026-11-01T13:30:00+07:00') });
+const errs = [];
+p.on('pageerror', (e) => errs.push(e.message));
+  let pass = 0, fail = 0, n = 0;
+
+  // Chữ có đang hiện thật không: nằm trong khung và không bị phần khác che.
+  const onScreen = (text) =>
+    p.evaluate((q) => {
+      const re = q.re ? new RegExp(q.re) : null;
+      const els = [...document.querySelectorAll('div,span,a,button,h1,h2')].filter((e) => e.childElementCount === 0 && e.textContent && (re ? re.test(e.textContent) : e.textContent.includes(q.s)));
+      return els.some((e) => {
+        let r = e.getBoundingClientRect();
+        if (r.width && (r.bottom < 0 || r.top > innerHeight)) { e.scrollIntoView({ block: 'center' }); r = e.getBoundingClientRect(); }
+        if (r.width === 0 || r.height === 0 || r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) return false;
+        const cx = Math.min(innerWidth - 1, Math.max(0, r.left + r.width / 2)), cy = Math.min(innerHeight - 1, Math.max(0, r.top + Math.min(r.height / 2, 10)));
+        const hit = document.elementFromPoint(cx, cy);
+        return !!hit && (hit === e || e.contains(hit) || hit.contains(e));
+      });
+    }, text instanceof RegExp ? { re: text.source } : { s: text });
+  const expectScreen = async (text, timeout = 8000) => {
+    const end = Date.now() + timeout;
+    while (Date.now() < end) { if (await onScreen(text)) return; await p.waitForTimeout(150); }
+    throw new Error(`không thấy "${text}" trên màn hình`);
+  };
+  // Tìm phần tử đang thật sự hiện (theo chữ hoặc theo nhãn), trả về tọa độ để bấm như người thật.
+  const findPoint = (q) =>
+    p.evaluate((q) => {
+      const re = q.re ? new RegExp(q.re) : null;
+      const match = (e) => {
+        if (q.label) return e.getAttribute('aria-label') === q.label;
+        if (e.childElementCount !== 0 || !e.textContent) return false;
+        const t = e.textContent.trim();
+        return re ? re.test(t) : q.exact ? t === q.s : t.includes(q.s);
+      };
+      const els = [...document.querySelectorAll(q.label ? '[aria-label]' : 'div,span,a,button')].filter(match);
+      for (const e of els.reverse()) {
+        let r = e.getBoundingClientRect();
+        if (r.width && (r.bottom < 0 || r.top > innerHeight - 4)) { e.scrollIntoView({ block: 'center' }); r = e.getBoundingClientRect(); }
+        if (!r.width || !r.height || r.bottom < 0 || r.top > innerHeight - 4 || r.right < 0 || r.left > innerWidth) continue;
+        const x = r.left + r.width / 2, y = r.top + Math.min(r.height / 2, 12);
+        const hit = document.elementFromPoint(x, y);
+        if (hit && (hit === e || e.contains(hit) || hit.contains(e))) return { x, y };
+      }
+      return null;
+    }, q);
+  const clickWhenVisible = async (q, what) => {
+    const end = Date.now() + 8000;
+    while (Date.now() < end) {
+      const pt = await findPoint(q);
+      if (pt) { await p.mouse.click(pt.x, pt.y); await p.waitForTimeout(250); return; }
+      await p.mouse.wheel(0, 250); await p.waitForTimeout(200);
+    }
+    throw new Error(`không bấm được "${what}"`);
+  };
+  const tap = (text, opts = {}) => clickWhenVisible(text instanceof RegExp ? { re: text.source } : { s: text, exact: !!opts.exact }, String(text));
+  const back = () => clickWhenVisible({ label: 'Quay lại' }, 'Quay lại');
+  const step = async (name, fn) => {
+    n++;
+    try { await fn(); pass++; console.log('OK  ', name); }
+    catch (e) { fail++; console.log('LỖI ', name, '→', e.message.split('\n')[0]); await p.screenshot({ path: `${SHOTS}/J${String(n).padStart(2, '0')}-LOI.png` }); }
+  };
+  const tab = async (t) => {
+    const pt = await p.evaluate((t) => {
+      const e = [...document.querySelectorAll('div,span')].filter((x) => x.childElementCount === 0 && x.textContent.trim() === t).find((x) => x.getBoundingClientRect().top > innerHeight - 80);
+      if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }, t);
+    if (!pt) throw new Error('không thấy tab ' + t);
+    await p.mouse.click(pt.x, pt.y); await p.waitForTimeout(250);
+  };
+
+  await step('mở trang dùng thử', async () => { await p.goto(URL); await expectScreen('Ai đang dùng điện thoại này?', 15000); });
+  await step('vào dữ liệu mẫu', async () => { await tap('Dùng thử với dữ liệu mẫu'); await expectScreen('Bố mẹ hôm nay'); });
+  // Trang chủ
+  await step('Trang chủ › cảnh báo › Quay lại', async () => { await tap('Xem chi tiết ›'); await expectScreen(/Hôm nay của/); await back(); await expectScreen('Bố mẹ hôm nay'); });
+  await step('Trang chủ › Bố Hùng › Quay lại', async () => { await tap(/Bố Hùng ›/); await expectScreen('Xem tình hình 30 ngày (đưa bác sĩ xem)'); await back(); await expectScreen('Bố mẹ hôm nay'); });
+  await step('Bố Hùng › Bảng 30 ngày › Quay lại về Bố Hùng', async () => { await tap(/Bố Hùng ›/); await tap('Xem tình hình 30 ngày (đưa bác sĩ xem)'); await expectScreen(/Tình hình 30 ngày/); await back(); await expectScreen('Xem tình hình 30 ngày (đưa bác sĩ xem)'); await back(); await expectScreen('Bố mẹ hôm nay'); });
+  // Thuốc
+  await step('Tab Thuốc', async () => { await tab('Thuốc'); await expectScreen('Thuốc của bố mẹ'); });
+  await step('Thuốc › Quét đơn › Quay lại về Thuốc', async () => { await tap('📷  Quét đơn thuốc'); await expectScreen('Thử với đơn thuốc mẫu'); await back(); await expectScreen('Thuốc của bố mẹ'); });
+  await step('Quét đơn › đơn mẫu › Quay lại về Quét đơn', async () => { await tap('📷  Quét đơn thuốc'); await tap('Thử với đơn thuốc mẫu'); await expectScreen('Kiểm tra lại đơn thuốc'); await back(); await expectScreen('Thử với đơn thuốc mẫu'); await back(); await expectScreen('Thuốc của bố mẹ'); });
+  await step('Thuốc › sửa thuốc › Quay lại về Thuốc', async () => { await tap(/^Aspirin/); await expectScreen('Xóa thuốc này'); await back(); await expectScreen('Thuốc của bố mẹ'); });
+  await step('Thuốc › + Thêm thuốc › Quay lại về Thuốc', async () => { await tap('+ Thêm thuốc'); await expectScreen(/Thêm thuốc|Tên thuốc/); await back(); await expectScreen('Thuốc của bố mẹ'); });
+  // Đi khám
+  await step('Tab Đi khám', async () => { await tab('Đi khám'); await expectScreen('Lịch đi khám'); });
+  await step('Đi khám › Chuẩn bị › Quay lại về Đi khám', async () => { await tap(/câu hỏi cho bác sĩ ›/); await expectScreen('Chuẩn bị đi khám'); await back(); await expectScreen('Lịch đi khám'); });
+  await step('Chuẩn bị › Ghi buổi khám › Quay lại về Chuẩn bị', async () => { await tap(/câu hỏi cho bác sĩ ›/); await tap('Bắt đầu buổi khám'); await expectScreen('Ghi lại buổi khám'); await back(); await expectScreen('Chuẩn bị đi khám'); });
+  await step('Chuẩn bị › Bảng 30 ngày › Quay lại về Chuẩn bị', async () => { await tap('Bảng huyết áp, uống thuốc 30 ngày cho bác sĩ'); await expectScreen(/Tình hình 30 ngày/); await back(); await expectScreen('Chuẩn bị đi khám'); await back(); await expectScreen('Lịch đi khám'); });
+  await step('Đi khám › + Thêm lịch › lưu', async () => {
+    await tap('+ Thêm lịch'); await p.getByLabel('Khám gì').fill('Khám mắt'); await p.getByLabel('Ngày (ngày/tháng)').fill('20/11');
+    await tap('Lưu lịch khám'); await expectScreen(/Khám mắt/);
+  });
+  // Gia đình, cài đặt
+  await step('Tab Gia đình', async () => { await tab('Gia đình'); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
+  await step('Gia đình › Cài đặt › Quay lại về Gia đình', async () => { await tap('Cài đặt cảnh báo'); await expectScreen('Khi nào báo cho con?'); await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
+  await step('Cài đặt › Mức sử dụng › Quay lại về Cài đặt', async () => { await tap('Cài đặt cảnh báo'); await tap('Mức sử dụng app (thử nghiệm)'); await expectScreen('Mức sử dụng app'); await back(); await expectScreen('Khi nào báo cho con?'); await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
+  await step('Gia đình › + Thêm bố mẹ › Quay lại về Gia đình', async () => { await tap('+ Thêm bố, mẹ, ông, bà'); await expectScreen('Thêm bố hoặc mẹ'); await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
+  await step('Gia đình › thêm người nhận cảnh báo có số', async () => {
+    await tap('+ Thêm người nhận cảnh báo'); await p.getByRole('textbox', { name: 'Tên', exact: true }).fill('Cô Bảy'); await p.getByRole('textbox', { name: 'Số điện thoại', exact: true }).last().fill('0912345678');
+    await tap('Thêm', { exact: true }); await expectScreen('Cô Bảy');
+  });
+  // Màn hình bố mẹ
+  await step('Gia đình › Xem màn hình của bố', async () => { await tap(/Xem màn hình của bố/); await expectScreen('Con ơi, bố ổn'); });
+  await step('Bố: bấm "ổn"', async () => { await tap('Con ơi, bố ổn'); await expectScreen(/Đã báo cho các con lúc/); });
+  await step('Bố › thuốc › "Bố đã uống" › về trang chủ bố', async () => { await tap(/Thuốc lần tới|Thuốc bây giờ|Đến giờ/); await expectScreen('Bố đã uống'); await tap('Bố đã uống'); await expectScreen('Con ơi, bố ổn'); });
+  await step('Bố › kể con nghe › Quay lại', async () => { await tap(/Kể con nghe/); await expectScreen(/thấy thế nào|Hôm nay/); await back(); await expectScreen('Con ơi, bố ổn'); });
+  await step('Bố › nhập huyết áp › lưu › về', async () => { await tap(/Kể con nghe/); await tap('Nhập huyết áp sáng nay'); await expectScreen(/Huyết áp/); await back(); await expectScreen(/thấy thế nào|Hôm nay/); await back(); await expectScreen('Con ơi, bố ổn'); });
+  await step('Bố › SOS bấm nhầm, hủy › về trang chủ bố', async () => {
+    const pt = await findPoint({ re: 'SOS · Gọi các con' }); if (!pt) throw new Error('không thấy nút SOS');
+    await p.mouse.move(pt.x, pt.y); await p.mouse.down(); await p.clock.runFor(3500); await p.mouse.up();
+    await expectScreen('SẮP GỬI SOS'); await tap('Bố bấm nhầm, hủy'); await expectScreen('Con ơi, bố ổn');
+  });
+  await step('Tải lại trang khi đang ở màn hình bố mẹ', async () => { await p.reload(); await expectScreen('Con ơi, bố ổn', 15000); });
+  await step('Bố › Đổi vai trò › về chọn vai trò', async () => { await tap('Đổi vai trò (bản thử)'); await expectScreen('Ai đang dùng điện thoại này?'); });
+  await step('Quay về màn hình con với gia đình đã có', async () => { await tap(/Tiếp tục với gia đình đã có/); await expectScreen('Bố mẹ hôm nay'); });
+  await step('Con thấy bố đã bấm "ổn" và uống thuốc 12:00', async () => {
+    await expectScreen(/^13:3\d · Khỏe$/); await expectScreen('2/3 lần');
+    if (await onScreen('Bố Hùng chưa uống thuốc 12:00')) throw new Error('vẫn báo bố chưa uống 12:00');
+  });
+  await step('Tải lại trang ở màn hình con: dữ liệu còn nguyên', async () => { await p.reload(); await expectScreen('2/3 lần', 15000); });
+
+console.log(`\nKết quả: ${pass} đạt, ${fail} lỗi. Lỗi trang: ${errs.length ? errs.join(' | ') : 'không'}`);
+if (fail) console.log(`Ảnh màn hình lúc lỗi: ${SHOTS}`);
+await b.close();
+server.close();
+process.exit(fail || errs.length ? 1 : 0);

@@ -112,7 +112,7 @@ Chạy thử lại theo **hành trình người dùng thật** (31 bước, mỗ
 | Nút Quay lại chỉ là "‹" | Người lớn tuổi không hiểu | Thành "‹ Quay lại" |
 | Đổi vai trò xong không về được màn hình con | Tưởng mất dữ liệu | Nút "Tiếp tục với gia đình đã có" |
 
-Làm lại trang dùng thử: `npx expo export -p web --output-dir <thư mục>/web-demo` rồi `python3 scripts/make-test-page.py <thư mục>`.
+Chạy thử tự động: `npm run e2e` (build bản web, tạo trang dùng thử, bấm qua 31 bước như người dùng; cần `npm i -D playwright && npx playwright install chromium` trên máy mới). Làm trang dùng thử: `npm run test-page` → `.e2e/artifact/an-tam.html`.
 
 ## Kiểm tra lần build này (1/11/2026, lần 2)
 

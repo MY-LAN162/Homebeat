@@ -40,7 +40,9 @@
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "export:web": "expo export -p web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "e2e": "node e2e/journey.mjs",
+    "test-page": "npx expo export -p web --output-dir .e2e/web-demo && node scripts/make-test-page.mjs .e2e"
   },
   "private": true,
   "jest": {
