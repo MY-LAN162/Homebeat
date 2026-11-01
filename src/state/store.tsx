@@ -57,6 +57,8 @@ interface Store {
   removeCaregiver: (id: string) => void;
   upsertMedication: (m: Omit<Medication, 'id'> & { id?: string }) => void;
   removeMedication: (id: string) => void;
+  /** Đã mua thêm thuốc: cộng thêm số viên còn lại. */
+  restock: (medId: string, pills: number) => void;
   markSlot: (slot: DoseSlot, status: 'taken' | 'skipped') => void;
   checkin: (memberId: string, mood: Mood, symptoms: string[]) => void;
   addBp: (memberId: string, sys: number, dia: number, pulse: number) => void;
@@ -165,7 +167,14 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
   }, [ready, sync, familyId, beatMember]);
 
   // Đặt lại nhắc thuốc khi lịch thuốc hoặc người dùng máy thay đổi.
-  const medKey = JSON.stringify([data.role, data.currentMemberId, data.medications.map((m) => [m.memberId, m.name, m.times])]);
+  // Gồm cả số lần đã ghi uống thuốc, để bấm "Đã uống" thì hủy các lần nhắc lại của lần đó.
+  const medKey = JSON.stringify([
+    data.role,
+    data.currentMemberId,
+    data.settings.lateMinutes,
+    data.medications.map((m) => [m.memberId, m.name, m.times]),
+    data.doseLogs.filter((l) => l.memberId === data.currentMemberId).length,
+  ]);
   useEffect(() => {
     if (!loaded.current) return;
     rescheduleMedReminders(data).catch(() => undefined);
@@ -243,6 +252,11 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
           if (!next.createdAt) delete next.createdAt;
           return { ...d, medications: exists ? d.medications.map((x) => (x.id === id ? next : x)) : [...d.medications, next] };
         }),
+      restock: (medId, pills) =>
+        update((d) => ({
+          ...d,
+          medications: d.medications.map((m) => (m.id === medId ? { ...m, stockPills: (m.stockPills ?? 0) + pills } : m)),
+        })),
       removeMedication: (id) => update((d) => ({ ...d, medications: d.medications.filter((m) => m.id !== id) })),
       markSlot: (slot, status) =>
         update((d) => ({

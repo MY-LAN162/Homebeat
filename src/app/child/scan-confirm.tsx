@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Back, Banner, Btn, Card, Chip, H1, Screen, T } from '../../components/ui';
 import { DAY_PARTS, findExisting, rxToMedication, type DayPart, type RxItem } from '../../domain/rx';
+import { track } from '../../services/usage';
 import { getRxDraft, setRxDraft } from '../../state/drafts';
 import { useStore } from '../../state/store';
 import { colors } from '../../theme';
@@ -79,6 +80,7 @@ export default function ScanConfirm() {
       upsertMedication(old ? { ...old, ...med, stockPills: med.stockPills ?? old.stockPills } : med);
     }
     setRxDraft(undefined);
+    track('scan_saved');
     router.replace('/child/meds');
   };
 

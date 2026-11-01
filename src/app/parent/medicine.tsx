@@ -1,15 +1,30 @@
 import { router } from 'expo-router';
+import { useEffect, useRef } from 'react';
+import { speak } from '../../services/speech';
 import { Image, View } from 'react-native';
 import { Btn, Card, H1, Screen, SpeakButton, T } from '../../components/ui';
 import { medPrompt, tookLabel } from '../../domain/address';
 import { currentSlot, slotsForDay } from '../../domain/schedule';
 import { snooze } from '../../services/notifications';
+import { track } from '../../services/usage';
 import { useCurrentMember, useStore } from '../../state/store';
 import { colors } from '../../theme';
 
 export default function ParentMedicine() {
   const { data, now, markSlot } = useStore();
   const m = useCurrentMember();
+  const spoken = useRef(false);
+  const auto = data.settings.autoSpeak !== false;
+  const call0 = m?.call.toLowerCase();
+  const slot0 = m ? currentSlot(slotsForDay(data.medications, data.doseLogs, m.id, now, now, data.settings.lateMinutes)) : undefined;
+  // Tự đọc to một lần khi mở màn hình (bật/tắt trong Cài đặt của con).
+  useEffect(() => {
+    if (!auto || spoken.current || !m || !slot0) return;
+    spoken.current = true;
+    const meal0 = slot0.meds.some((x) => x.afterMeal) ? 'Uống sau bữa ăn.' : '';
+    speak(`${medPrompt(m)}. ${slot0.meds.map((x) => `${x.name}, ${x.pillsPerDose} viên`).join('. ')}. ${meal0} Uống xong ${call0} bấm nút Đã uống nhé.`);
+    track('read_aloud');
+  }, [auto, m, slot0, call0]);
   if (!m) return null;
   const call = m.call.toLowerCase();
   const slot = currentSlot(slotsForDay(data.medications, data.doseLogs, m.id, now, now, data.settings.lateMinutes));
@@ -66,6 +81,7 @@ export default function ParentMedicine() {
         size={24}
         onPress={() => {
           markSlot(slot, 'taken');
+          track('dose_taken');
           router.back();
         }}
       />
@@ -75,7 +91,8 @@ export default function ParentMedicine() {
         height={64}
         size={20}
         onPress={() => {
-          snooze(medPrompt(m), `${slot.time} · ${slot.pills} viên`).catch(() => undefined);
+          snooze(medPrompt(m), `${slot.time} · ${slot.pills} viên`, slot.time).catch(() => undefined);
+          track('dose_snoozed');
           router.back();
         }}
       />
@@ -85,6 +102,7 @@ export default function ParentMedicine() {
         size={17}
         onPress={() => {
           markSlot(slot, 'skipped');
+          track('dose_skipped');
           router.back();
         }}
       />

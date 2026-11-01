@@ -4,6 +4,7 @@ import { Btn, H1, HoldButton, Screen, SpeakButton, T } from '../../components/ui
 import { greeting, okLabel } from '../../domain/address';
 import { currentSlot, slotsForDay } from '../../domain/schedule';
 import { dateKey, formatLongDate, formatShortDate, hm } from '../../domain/time';
+import { track } from '../../services/usage';
 import { useCurrentMember, useStore } from '../../state/store';
 import { colors } from '../../theme';
 
@@ -50,7 +51,7 @@ export default function ParentHome() {
             ? `Đã báo cho các ${m.self.toLowerCase()} lúc ${hm(new Date(todayCheckin.at))}`
             : `Bấm một lần để các ${m.self.toLowerCase()} biết hôm nay ${call} vẫn ổn`}
         </T>
-        <Btn variant="light" label={okLabel(m)} height={72} size={24} onPress={() => checkin(m.id, 'good', [])} />
+        <Btn variant="light" label={okLabel(m)} height={72} size={24} onPress={() => { checkin(m.id, 'good', []); track('checkin_ok'); }} />
       </View>
 
       <Pressable

@@ -97,9 +97,7 @@ export function adherence(
   let scheduled = 0;
   for (let i = 0; i < days; i++) {
     const day = addDays(now, -i);
-    const key = dateKey(day);
-    // Thuốc thêm sau ngày này thì ngày này chưa phải uống.
-    const active = meds.filter((m) => !m.createdAt || dateKey(new Date(m.createdAt)) <= key);
+    const active = activeMedsOn(meds, logs, memberId, dateKey(day));
     for (const slot of slotsForDay(active, logs, memberId, day, now, Number.MAX_SAFE_INTEGER)) {
       if (slot.status === 'upcoming') continue;
       scheduled += 1;
@@ -107,6 +105,20 @@ export function adherence(
     }
   }
   return { taken, scheduled };
+}
+
+/**
+ * Thuốc phải uống trong ngày `key` ("YYYY-MM-DD").
+ * Thuốc có ngày thêm: tính từ ngày đó. Thuốc nhập từ bản cũ (chưa có ngày thêm): tính từ ngày đầu tiên
+ * có nhật ký uống thuốc của người này, để không coi những ngày app chưa dùng là "quên thuốc".
+ */
+export function activeMedsOn(meds: Medication[], logs: DoseLog[], memberId: string, key: string): Medication[] {
+  let firstLog: string | undefined;
+  for (const l of logs) if (l.memberId === memberId && (!firstLog || l.date < firstLog)) firstLog = l.date;
+  return meds.filter((m) => {
+    if (m.createdAt) return dateKey(new Date(m.createdAt)) <= key;
+    return firstLog ? firstLog <= key : true;
+  });
 }
 
 /** Ghi nhận cả một giờ uống (mọi thuốc trong giờ đó). */

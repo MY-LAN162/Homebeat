@@ -3,7 +3,8 @@ import { Pressable, View } from 'react-native';
 import { Banner, Btn, Card, H1, Screen, T } from '../../components/ui';
 import { displayName } from '../../domain/address';
 import { alertKey, familyAlerts, memberAlerts, memberStatus, type FamilyAlert } from '../../domain/alerts';
-import { slotsForDay } from '../../domain/schedule';
+import { daysOfStock, slotsForDay } from '../../domain/schedule';
+import { Restock } from '../../components/Restock';
 import { dateKey, formatShortDate, hm } from '../../domain/time';
 import type { Member } from '../../domain/types';
 import { call } from '../../services/phone';
@@ -58,6 +59,9 @@ export default function ChildHome() {
     (a) => a.level !== 'info' && !data.dismissed?.includes(alertKey(a.memberId, a.kind, now)),
   );
   const today = dateKey(now);
+  const lowMeds = data.medications
+    .map((med) => ({ med, days: daysOfStock(med), who: data.members.find((x) => x.id === med.memberId)?.call.toLowerCase() ?? '' }))
+    .filter((x): x is { med: typeof x.med; days: number; who: string } => x.days != null && x.days <= 5);
   const me = [...data.caregivers].sort((a, b) => a.order - b.order)[0];
 
   return (
@@ -69,6 +73,20 @@ export default function ChildHome() {
         <Card>
           <T size={16} weight="700">Chưa có ai trong gia đình</T>
           <Btn label="Thêm bố hoặc mẹ" onPress={() => router.push('/onboarding/invite')} />
+        </Card>
+      )}
+
+      {lowMeds.length > 0 && (
+        <Card style={{ gap: 10, backgroundColor: colors.blueSoft }}>
+          <T size={15} weight="700" color={colors.blueDark}>Sắp hết thuốc</T>
+          {lowMeds.map(({ med, days, who }) => (
+            <View key={med.id} style={{ gap: 6 }}>
+              <T size={15} color={colors.blueDark}>
+                {med.name} của {who} · còn {days} ngày
+              </T>
+              <Restock med={med} />
+            </View>
+          ))}
         </Card>
       )}
 

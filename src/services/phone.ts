@@ -28,11 +28,17 @@ export function mapsLink(lat: number, lng: number): string {
   return `https://maps.google.com/?q=${lat.toFixed(6)},${lng.toFixed(6)}`;
 }
 
-/** Mở tin nhắn SMS soạn sẵn tới những người nhận cảnh báo. */
-export async function smsCaregivers(caregivers: Caregiver[], message: string): Promise<boolean> {
+/**
+ * Mở tin nhắn SMS soạn sẵn tới những người nhận cảnh báo.
+ * - 'sent': chắc chắn đã gửi (chỉ iPhone báo được);
+ * - 'opened': đã mở tin nhắn nhưng không biết đã bấm Gửi chưa (Android luôn như vậy);
+ * - 'cancelled': người dùng bỏ không gửi;
+ * - 'unavailable': không có số hoặc máy không gửi được tin nhắn.
+ */
+export async function smsCaregivers(caregivers: Caregiver[], message: string): Promise<'sent' | 'opened' | 'cancelled' | 'unavailable'> {
   const to = caregivers.map((c) => c.phone).filter(Boolean);
-  if (!to.length || Platform.OS === 'web') return false;
-  if (!(await SMS.isAvailableAsync())) return false;
-  await SMS.sendSMSAsync(to, message);
-  return true;
+  if (!to.length || Platform.OS === 'web') return 'unavailable';
+  if (!(await SMS.isAvailableAsync())) return 'unavailable';
+  const { result } = await SMS.sendSMSAsync(to, message);
+  return result === 'sent' ? 'sent' : result === 'cancelled' ? 'cancelled' : 'opened';
 }

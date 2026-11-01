@@ -5,6 +5,7 @@ import { notify } from '../../services/dialog';
 import { Back, Banner, Btn, Card, H1, Screen, T } from '../../components/ui';
 import { formatShortDate } from '../../domain/time';
 import { applyMedChange, summarizeVisit, summaryText } from '../../domain/visit';
+import { track } from '../../services/usage';
 import { useStore } from '../../state/store';
 import { colors } from '../../theme';
 
@@ -129,7 +130,7 @@ export default function VisitSummaryScreen() {
         <Btn
           variant="blue"
           label="Gửi cho cả nhà (Zalo, tin nhắn...)"
-          onPress={() => Share.share({ message: summaryText(a.title, when, s) }).catch(() => notify('Chưa gửi được', 'Thử lại sau nhé.'))}
+          onPress={() => Share.share({ message: summaryText(a.title, when, s) }).then(() => track('summary_shared')).catch(() => notify('Chưa gửi được', 'Thử lại sau nhé.'))}
         />
       )}
       <Btn variant="ghost" label="Sửa lời ghi" onPress={() => router.replace({ pathname: '/child/visit-record', params: { id: a.id } })} />

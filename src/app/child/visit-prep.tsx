@@ -111,6 +111,14 @@ export default function VisitPrep() {
         }}
       />
 
+      <Btn
+        variant="secondary"
+        label="Bảng huyết áp, uống thuốc 30 ngày cho bác sĩ"
+        height={48}
+        size={15}
+        onPress={() => router.push({ pathname: '/child/report', params: { memberId: a.memberId } })}
+      />
+
       <T size={17} weight="700">Nhớ mang theo</T>
       <Card style={{ gap: 0 }}>
         {(a.bring ?? BRING_LIST).map((b) => (

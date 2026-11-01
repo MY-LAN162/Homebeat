@@ -52,6 +52,14 @@ export default function MemberDetail() {
         {!!m.phone && <Btn label={`Gọi ${m.call.toLowerCase()}`} height={44} size={15} onPress={() => call(m.phone)} />}
       </View>
 
+      <Btn
+        variant="secondary"
+        label="Xem tình hình 30 ngày (đưa bác sĩ xem)"
+        height={48}
+        size={15}
+        onPress={() => router.push({ pathname: '/child/report', params: { memberId: m.id } })}
+      />
+
       <Card>
         <T size={16} weight="700">Hôm nay</T>
         {!items.length && <T size={14} color={colors.muted}>Chưa có hoạt động nào.</T>}

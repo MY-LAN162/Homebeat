@@ -11,11 +11,12 @@ Viết bằng **React Native (Expo SDK 57)**, chạy được trên cả Android
 **Trên máy của bố mẹ** (chạy độc lập, không cần internet):
 
 - **Xưng hô theo gia đình:** chọn bố/mẹ/ông/bà và con/cháu, ví dụ "Đến giờ uống thuốc rồi bà ơi", "Cháu ơi, bà ổn".
-- **Nhắc uống thuốc:** thông báo hằng ngày theo lịch. Có các nút "Đã uống", "Nhắc lại sau 15 phút", "Hết thuốc / không uống được", và tự trừ số viên còn lại.
+- **Nhắc uống thuốc:** thông báo hằng ngày theo lịch, có nút **"Đã uống" ngay trên thông báo** (bấm là ghi nhận). Bấm vào thông báo thì mở thẳng màn hình uống thuốc. Chưa bấm thì **tự nhắc lại 2 lần** (vd sau 10 và 20 phút) rồi mới báo con. Trong app có "Đã uống", "Nhắc lại sau 15 phút", "Hết thuốc / không uống được", tự trừ số viên còn lại.
+- **Tự đọc to** tên thuốc và số viên khi mở màn hình nhắc thuốc (con bật/tắt trong Cài đặt).
 - **Điểm danh:** bấm "ổn" mỗi ngày.
 - **Hỏi thăm sức khỏe:** chọn khỏe / hơi mệt / không khỏe, kèm triệu chứng.
 - **Nhập huyết áp:** dùng nút + / − cỡ lớn, so với mức con đã đặt.
-- **SOS:** giữ nút 3 giây (có vạch tiến trình), đếm ngược 3 giây để kịp hủy, rồi mở tin nhắn SMS soạn sẵn kèm link vị trí và gọi người nhận đầu tiên. Nếu chưa có số điện thoại nào, app báo rõ là "Chưa gửi được" và hiện nút gọi 115.
+- **SOS:** giữ nút 3 giây, đếm ngược 3 giây để kịp hủy, rồi ghi nhận SOS (máy con thấy qua đồng bộ), gọi người đầu tiên, có nút gửi tin nhắn kèm vị trí, gọi người tiếp theo, gọi 115. **Mỗi dòng trạng thái chỉ ghi điều đã thật sự xảy ra**: không báo "đã gửi" khi tin nhắn mới được mở ra.
 - **Đọc to:** đọc màn hình bằng giọng tiếng Việt.
 
 **Trên máy của con:**
@@ -23,6 +24,9 @@ Viết bằng **React Native (Expo SDK 57)**, chạy được trên cả Android
 - **Trang chủ gia đình:** cảnh báo trễ thuốc, chưa điểm danh, huyết áp cao, báo mệt, SOS, sắp hết thuốc.
 - **Chi tiết từng người:** dòng thời gian trong ngày và biểu đồ huyết áp.
 - **Tab Thuốc:** thêm, sửa, xóa thuốc, chọn giờ uống, nhập số viên còn lại, xem tỷ lệ uống đúng giờ trong 7 ngày.
+- **Sắp hết thuốc:** hiện ngay trên trang chủ của con, bấm "+30 viên / +60 viên" khi đã mua thêm.
+- **Tình hình 30 ngày cho bác sĩ:** huyết áp (biểu đồ, trung bình, cao nhất), tỷ lệ uống thuốc và thuốc hay bỏ lỡ, triệu chứng tự báo, thuốc đang dùng; chọn 7 / 30 / 90 ngày; gửi qua Zalo.
+- **Mức sử dụng app (thử nghiệm):** đếm ngay trên máy số lần dùng từng tính năng và tỷ lệ uống thuốc đúng giờ, để biết tính năng nào có ích khi thử với gia đình thật. Không tự gửi đi đâu; người dùng tự bấm "Gửi" nếu muốn.
 - **Quét đơn thuốc:** đọc chữ trên đơn, tách tên thuốc, hàm lượng, số viên, sáng/trưa/tối, sau ăn. Dòng chưa chắc được tô cam để con kiểm tra. Thuốc đã có thì cập nhật, không thêm trùng. Bản dùng thử nhận chữ gõ/dán hoặc đơn mẫu; bước chụp ảnh → chữ làm ở bản cài thật.
 - **Tab Đi khám:** lịch khám, người đưa đi.
 - **Chuẩn bị đi khám:** đếm ngày, câu hỏi cho bác sĩ (gợi ý từ nhật ký 7 ngày: huyết áp cao, quên thuốc, triệu chứng, nhiều loại thuốc; mỗi gợi ý ghi rõ lý do), danh sách đồ cần mang.
@@ -81,7 +85,33 @@ Trong lúc làm và dùng thử: 0đ (chạy bằng Firebase Emulator và bản 
 
 Ước tính (chưa đo thật): mỗi gia đình ~50 lượt ghi + ~100 lượt đọc/ngày, nên gói miễn phí đủ cho khoảng vài trăm gia đình. Nguồn giá: [Firebase pricing plans](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans), [Expo pricing](https://expo.dev/pricing). Giá có thể đổi, xem lại trang chính thức trước khi mua.
 
-## Kiểm tra lần build này (1/11/2026)
+## Rà lại tính năng: cái gì thật sự được dùng
+
+Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyên và mang lại giá trị rõ; không làm "cho đủ".
+
+| Mức dùng | Tính năng | Ghi chú |
+|---|---|---|
+| Hằng ngày (giá trị chính) | Nhắc thuốc, bấm "ổn", con xem tình hình | Đã rút việc ghi uống thuốc còn 1 bước (nút trên thông báo) và tự nhắc lại 2 lần |
+| Hiếm nhưng quan trọng nhất | SOS | Đã sửa để không báo sai trạng thái |
+| Hằng tháng | Sắp hết thuốc, chuẩn bị đi khám, bảng 30 ngày | Đã thêm nút "Đã mua thêm" và bảng 30 ngày cho bác sĩ |
+| Cần thử thật trước khi làm thêm | Quét đơn thuốc (đơn viết tay khó đọc), ghi âm và tóm tắt buổi khám (phòng khám ồn) | Chưa đầu tư thêm cho tới khi có số liệu từ "Mức sử dụng app" |
+| Không làm | Chat, gọi video (đã có Zalo), đếm bước, trò chơi, trợ lý AI trò chuyện | Dễ làm ra rồi bỏ đó |
+
+**Cách quyết định tiếp:** thử với 5–10 gia đình trong 2 tuần, xem màn hình *Mức sử dụng app* (tỷ lệ uống đúng giờ, số lần phải nhắc lại, màn hình nào không ai mở), rồi giữ, bỏ hoặc làm tiếp theo số liệu.
+
+## Kiểm tra lần build này (1/11/2026, lần 2)
+
+47 bài kiểm thử app + 5 logic máy chủ đạt; typecheck, lint sạch; đóng gói Android / iOS / web không lỗi; chạy thử 30 bước qua mọi màn hình (kể cả SOS, mua thêm thuốc, bảng 30 ngày), không có lỗi console.
+
+Lỗi phát hiện thêm và đã sửa:
+- **SOS có thể báo "Đã gửi"** khi tin nhắn mới chỉ được mở ra (cuộc gọi chen vào trước khi bấm Gửi).
+- **Bấm thông báo nhắc thuốc chỉ mở trang đầu**, chưa có nút "Đã uống" trên thông báo; không nhắc lại khi bố mẹ chưa bấm.
+- **Tỷ lệ uống thuốc 30 ngày ra 20%** vì tính cả những ngày app chưa dùng (thuốc nhập từ bản cũ): giờ chỉ tính từ ngày đầu có nhật ký → 90%.
+- Tab Thuốc còn dòng cũ "Quét đơn thuốc bằng AI: sẽ có ở bản sau" dù đã có nút Quét đơn: đã bỏ.
+
+Lưu ý: nút "Đã uống" trên thông báo, tự nhắc lại và tự đọc to chỉ chạy trên điện thoại thật (bản cài), không xem được trên trang dùng thử web. Logic đã có kiểm thử.
+
+## Kiểm tra lần build trước (1/11/2026, lần 1)
 
 **Đã chạy:** typecheck, lint, 41 bài kiểm thử app + 5 logic máy chủ + 5 luật bảo mật (trên Firestore Emulator), đóng gói Android / iOS / web không lỗi, chạy thử 25 bước qua mọi màn hình bằng trình duyệt cỡ điện thoại (không có lỗi console), chạy thử ghép 2 máy qua máy chủ thật (emulator).
 
@@ -105,7 +135,7 @@ Trong lúc làm và dùng thử: 0đ (chạy bằng Firebase Emulator và bản 
 - Gợi ý câu hỏi và dòng chưa chắc trên đơn thuốc đều ghi rõ lý do, để người dùng tự kiểm tra, không phải tin máy.
 - Các việc không hoàn tác được (xóa thuốc, xóa người, xóa dữ liệu) đều hỏi lại.
 
-**Nên làm thêm (chưa làm, cần Lan chốt):** chữ to hơn cho màn hình của con khi con cũng lớn tuổi (tùy chọn cỡ chữ); hướng dẫn lần đầu 3 bước cho bố mẹ; đọc to cả màn hình nhắc thuốc tự động khi mở.
+**Nên làm thêm (chưa làm, cần Lan chốt):** chữ to hơn cho màn hình của con khi con cũng lớn tuổi (tùy chọn cỡ chữ); hướng dẫn lần đầu 3 bước cho bố mẹ.
 
 ## Máy chủ đồng bộ
 
@@ -142,7 +172,7 @@ Giờ địa phương cho cảnh báo mặc định là giờ Việt Nam (đổi
 ## Kiểm tra
 
 ```bash
-npm test            # 41 bài kiểm thử: lịch thuốc, cảnh báo, xưng hô, mã kết nối, đồng bộ hai máy, đọc đơn thuốc, tóm tắt buổi khám, múi giờ
+npm test            # 47 bài kiểm thử: lịch thuốc, cảnh báo, xưng hô, mã kết nối, đồng bộ hai máy, đọc đơn thuốc, tóm tắt buổi khám, múi giờ
 npm --prefix functions test         # 5 bài kiểm thử logic máy chủ
 npm --prefix functions run test:rules   # 5 bài kiểm thử luật bảo mật (cần Java, chạy trên Firestore Emulator)
 npm run typecheck   # kiểm tra kiểu TypeScript

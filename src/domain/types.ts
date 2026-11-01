@@ -119,6 +119,8 @@ export interface AlertSettings {
    * kể cả khi con ở nước khác. Trống = theo giờ của điện thoại.
    */
   timeZone?: string;
+  /** Tự đọc to khi mở màn hình nhắc thuốc trên máy bố mẹ. Trống = bật. */
+  autoSpeak?: boolean;
 }
 
 export interface Pairing {

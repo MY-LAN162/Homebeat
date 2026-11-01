@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Banner, Btn, Card, Chip, H1, Screen, T } from '../../components/ui';
+import { Restock } from '../../components/Restock';
+import { Btn, Card, Chip, H1, Screen, T } from '../../components/ui';
 import { displayName } from '../../domain/address';
 import { adherence, daysOfStock } from '../../domain/schedule';
 import { useStore } from '../../state/store';
@@ -61,6 +62,7 @@ export default function ChildMeds() {
                   Còn {days} ngày{low ? ' · nên mua thêm' : ''}
                 </T>
               )}
+              {low && <Restock med={m} />}
             </Card>
           </Pressable>
         );
@@ -69,9 +71,6 @@ export default function ChildMeds() {
       {memberId && (
         <Btn label="+ Thêm thuốc" onPress={() => router.push({ pathname: '/child/med-edit', params: { memberId } })} />
       )}
-      <Banner tone="blue">
-        <T size={13} color={colors.blueDark}>Quét đơn thuốc bằng AI: sẽ có ở bản sau. Hiện nhập tay.</T>
-      </Banner>
     </Screen>
   );
 }

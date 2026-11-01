@@ -89,6 +89,18 @@ export default function AlertSettings() {
       />
       <Card style={{ flexDirection: 'row', alignItems: 'center' }}>
         <View style={{ flex: 1 }}>
+          <T size={15} weight="700">Tự đọc to khi đến giờ uống thuốc</T>
+          <T size={13} color={colors.muted}>Máy của bố mẹ đọc tên thuốc và số viên khi mở màn hình nhắc thuốc</T>
+        </View>
+        <Switch
+          accessibilityLabel="Tự đọc to khi đến giờ uống thuốc"
+          value={s.autoSpeak !== false}
+          onValueChange={(v) => updateSettings({ autoSpeak: v })}
+          trackColor={{ true: colors.green }}
+        />
+      </Card>
+      <Card style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{ flex: 1 }}>
           <T size={15} weight="700">Không tính giờ ngủ</T>
           <T size={13} color={colors.muted}>{s.sleepStart} – {s.sleepEnd} không báo mất tín hiệu</T>
         </View>
@@ -102,6 +114,7 @@ export default function AlertSettings() {
       <T size={12} color={colors.muted}>
         Mức huyết áp là ngưỡng để báo cho con, không phải chẩn đoán. Nên hỏi bác sĩ của bố mẹ để đặt cho phù hợp.
       </T>
+      <Btn variant="ghost" label="Mức sử dụng app (thử nghiệm)" height={44} size={15} onPress={() => router.push('/child/usage')} />
     </Screen>
   );
 }
