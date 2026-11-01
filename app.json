@@ -21,7 +21,15 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "co.keendigital.homebeat"
+      "package": "co.keendigital.homebeat",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "SCHEDULE_EXACT_ALARM",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -29,8 +37,27 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#1F6F5C",
+          "defaultChannel": "thuoc"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "An Tâm gửi vị trí của bố mẹ cho các con khi bấm SOS.",
+          "locationAlwaysAndWhenInUsePermission": false
+        }
+      ]
     ],
-    "scheme": "homebeat"
+    "scheme": "homebeat",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {}
   }
 }

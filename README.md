@@ -70,6 +70,30 @@ Quét mã QR bằng app **Expo Go** trên điện thoại. Nếu thông báo nh�
 
 Bản chạy trên trình duyệt (để xem nhanh giao diện): `npx expo start --web`.
 
+## Cài lên điện thoại thật (file APK cho Android)
+
+Đã cấu hình sẵn (`eas.json`, `app.json`): quyền thông báo, vị trí khi SOS, biểu tượng thông báo, kênh "Nhắc uống thuốc". Lan chỉ cần tài khoản Expo miễn phí (https://expo.dev/signup).
+
+```bash
+npx eas-cli@latest login
+```
+
+```bash
+npx eas-cli@latest init
+```
+
+(Lệnh `init` tạo dự án trên Expo và tự thêm mã dự án vào `app.json`. Cần mã này để máy con nhận được thông báo đẩy.)
+
+```bash
+npx eas-cli@latest build -p android --profile preview
+```
+
+Build chạy trên máy chủ của Expo khoảng 15–25 phút, xong sẽ có **link tải file APK**: gửi link qua Zalo, mở trên điện thoại Android, cho phép "cài ứng dụng không rõ nguồn" là cài được. Gói miễn phí của Expo có giới hạn số lần build mỗi tháng.
+
+- **Cấu hình Firebase** (khi đã có dự án Firebase): file `.env` không được gửi lên máy build, nên thêm từng biến bằng lệnh, ví dụ `npx eas-cli@latest env:create --environment preview --name EXPO_PUBLIC_FIREBASE_API_KEY --value <giá trị>` (làm tương tự cho các biến trong `.env.example`).
+- **iPhone:** cần tài khoản Apple Developer (khoảng 99 USD/năm) và đăng ký từng máy thử (`npx eas-cli@latest device:create`), rồi build với `-p ios`.
+- Đã thử sinh mã native Android (`expo prebuild`) với cấu hình này: thành công.
+
 ## Chi phí khi triển khai thật
 
 Trong lúc làm và dùng thử: 0đ (chạy bằng Firebase Emulator và bản web). Khi có người dùng thật:
