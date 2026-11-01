@@ -18,7 +18,7 @@ fs.mkdirSync(SHOTS, { recursive: true });
 if (!process.argv.includes('--no-build')) {
   console.log('Đang build bản web nối với emulator...');
   fs.rmSync(path.join(OUT, 'web'), { recursive: true, force: true });
-  execSync(`npx expo export -p web --output-dir ${path.join(OUT, 'web')}`, {
+  execSync(`npx expo export -p web --clear --output-dir ${path.join(OUT, 'web')}`, {
     stdio: 'ignore',
     env: {
       ...process.env,

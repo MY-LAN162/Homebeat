@@ -22,7 +22,7 @@ const args = new Set(process.argv.slice(2));
 if (!args.has('--no-build')) {
   console.log('Đang build bản web...');
   fs.rmSync(path.join(OUT, 'web-demo'), { recursive: true, force: true });
-  execSync(`npx expo export -p web --output-dir ${path.join(OUT, 'web-demo')}`, { stdio: 'ignore', env: { ...process.env, EXPO_OFFLINE: '1' } });
+  execSync(`npx expo export -p web --clear --output-dir ${path.join(OUT, 'web-demo')}`, { stdio: 'ignore', env: { ...process.env, EXPO_OFFLINE: '1' } });
 }
 const html = makeTestPage(OUT);
 const page = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body>${html}</body></html>`;

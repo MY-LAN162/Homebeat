@@ -47,3 +47,7 @@ ui-debug.log
 
 # Chạy thử tự động
 .e2e/
+
+# Cấu hình Firebase cho bản cài (repo công khai: không đưa lên GitHub)
+google-services.json
+GoogleService-Info.plist

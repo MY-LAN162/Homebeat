@@ -93,11 +93,41 @@ Tất cả miễn phí (Firebase gói Spark, thư viện mã nguồn mở). Đã
 
 **Còn lại / hạn chế đã biết:**
 
-- **App Check** (chặn công cụ giả mạo app gọi máy chủ, vd dò mã kết nối để đốt hạn mức miễn phí): thư viện Firebase JS đang dùng không hỗ trợ trên điện thoại ở gói miễn phí; cần chuyển sang React Native Firebase. Chờ Lan quyết.
+- **App Check** đã cài trong code (điện thoại: React Native Firebase với Play Integrity / App Attest; web: reCAPTCHA v3 tùy chọn). Còn chờ: Lan đăng ký app trong Firebase console và bật "Enforce" (xem mục *App Check* bên dưới); chưa chạy thử trên điện thoại thật.
 - `PRIVACY.md` là **bản nháp**, cần luật sư xem lại; điền email liên hệ trước khi phát hành.
 - Bản web (trang dùng thử) không mã hóa dữ liệu trên trình duyệt và không có khóa vân tay.
 - Nội dung thông báo (vd "Bố chưa uống thuốc 12:00") hiện trên màn hình khóa của máy con, theo cài đặt thông báo của điện thoại.
 - Khi bật Firebase thật: vào **Authentication › Sign-in method** bật **Anonymous** và **Email/Password**.
+
+## App Check (chỉ app thật mới gọi được máy chủ)
+
+Miễn phí. Chặn công cụ giả mạo app (vd dò mã kết nối liên tục để đốt hạn mức miễn phí, làm app ngừng chạy).
+
+Cách hoạt động trong code:
+- Điện thoại dùng **React Native Firebase** (`src/services/fbsdk.native.ts`): bản phát hành chứng thực bằng **Play Integrity** (Android) và **App Attest** (iPhone, tự lùi về DeviceCheck nếu máy cũ); bản thử nghiệm (development build) dùng mã debug.
+- Web dùng thư viện Firebase JavaScript (`src/services/fbsdk.ts`), App Check bằng reCAPTCHA v3 nếu có `EXPO_PUBLIC_RECAPTCHA_SITE_KEY` (tùy chọn, chỉ cần khi mở bản web cho người dùng thật).
+- Phần đồng bộ (`src/services/firebaseSync.ts`) dùng chung cho cả hai.
+
+Các bước Lan làm (một lần):
+
+1. Firebase console › Project settings › **Thêm app Android** (package `co.keendigital.homebeat`) và **app iOS** (bundle `co.keendigital.homebeat`); tải `google-services.json` và `GoogleService-Info.plist`.
+2. **Không đưa 2 file này lên GitHub** (repo công khai, đã có trong `.gitignore`). Đưa lên EAS dạng biến môi trường kiểu file:
+
+   ```bash
+   npx eas-cli@latest env:create --environment preview --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json
+   ```
+
+   ```bash
+   npx eas-cli@latest env:create --environment preview --name GOOGLE_SERVICE_INFO_PLIST --type file --value ./GoogleService-Info.plist
+   ```
+
+   (`app.config.js` tự đọc 2 biến này; build trên máy thì chỉ cần để 2 file ở thư mục gốc.)
+3. Lấy dấu vân tay chứng chỉ ký app Android (SHA-256): `npx eas-cli@latest credentials` › Android › xem "SHA256 Fingerprint". Thêm vào Firebase console › Project settings › app Android.
+4. Firebase console › **App Check** › đăng ký app Android với **Play Integrity**, app iOS với **App Attest** (bật thêm DeviceCheck).
+5. Bản development build: chạy app, xem log có dòng mã debug App Check, thêm mã đó trong App Check › Manage debug tokens (hoặc đặt sẵn `EXPO_PUBLIC_APPCHECK_DEBUG_TOKEN`).
+6. Chạy thử vài ngày, xem tab **Metrics** của App Check thấy yêu cầu "verified", rồi bấm **Enforce** cho **Cloud Firestore** và **Authentication**. Sau khi Enforce, công cụ giả mạo app sẽ bị chặn.
+
+Lưu ý: Expo Go không chạy được React Native Firebase; dùng bản cài (EAS build) như mục dưới.
 
 ## Cài lên điện thoại thật (file APK cho Android)
 

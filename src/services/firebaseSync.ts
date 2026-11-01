@@ -1,4 +1,5 @@
-// Đồng bộ bằng Firebase: Auth ẩn danh + Firestore + Cloud Functions (đổi mã kết nối).
+// Đồng bộ bằng Firebase: Auth (ẩn danh, email) + Firestore. Gọi Firebase qua lớp chuyển đổi ./fbsdk:
+// web dùng thư viện JavaScript, điện thoại dùng React Native Firebase (có App Check).
 //
 // Cấu trúc trên máy chủ (xem firestore.rules):
 //   families/{familyId}                 { ownerUid, uids[], settings, createdAt }
@@ -7,31 +8,6 @@
 //   families/{familyId}/heartbeats/{memberId}   { at, battery }
 //   families/{familyId}/devices/{uid}           { role, memberId, pushToken, platform }
 //   pairingCodes/{code}                 { familyId, memberId, expiresAt, createdBy }
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getApp, getApps, initializeApp, type FirebaseOptions } from 'firebase/app';
-import * as FirebaseAuth from 'firebase/auth';
-import {
-  arrayRemove,
-  arrayUnion,
-  collection,
-  deleteDoc,
-  getDoc,
-  getDocs,
-  limit,
-  updateDoc,
-  connectFirestoreEmulator,
-  doc,
-  type Firestore,
-  getFirestore,
-  initializeFirestore,
-  onSnapshot,
-  query,
-  serverTimestamp,
-  setDoc,
-  where,
-  writeBatch,
-} from 'firebase/firestore';
-import { connectFunctionsEmulator, type Functions, getFunctions } from 'firebase/functions';
 import { Platform } from 'react-native';
 import { createPairing } from '../domain/pairing';
 import {
@@ -43,69 +19,31 @@ import {
   type SyncWrite,
 } from '../domain/syncdiff';
 import type { Pairing, Role } from '../domain/types';
-import { SyncError, type DeviceInfo, type FamilyDevice, type FamilySync, type JoinRequest, type RedeemError } from './sync';
-
-/** Cấu hình lấy từ biến môi trường EXPO_PUBLIC_FIREBASE_* (file .env, xem .env.example). */
-export function firebaseConfig(): FirebaseOptions | undefined {
-  // Phải viết đầy đủ process.env.EXPO_PUBLIC_... thì Expo mới nhúng giá trị vào app lúc đóng gói.
-  const cfg: FirebaseOptions = {
-    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
-  };
-  return cfg.apiKey && cfg.projectId && cfg.appId ? cfg : undefined;
-}
-
-const REGION = process.env.EXPO_PUBLIC_FIREBASE_REGION || 'asia-southeast1';
-/** Ví dụ "192.168.1.10" để chạy với Firebase Emulator trên máy tính. */
-const EMULATOR_HOST = process.env.EXPO_PUBLIC_FIREBASE_EMULATOR_HOST;
-
-// getReactNativePersistence chỉ có trong bản React Native của firebase/auth (kiểu TS mặc định không có).
-type RNAuth = typeof FirebaseAuth & {
-  getReactNativePersistence?: (s: typeof AsyncStorage) => FirebaseAuth.Persistence;
-};
+import * as fb from './fbsdk';
+import { SyncError, type DeviceInfo, type FamilyDevice, type FamilySync, type JoinRequest } from './sync';
 
 /** Firestore chỉ nhận ghi tối đa 500 thao tác mỗi lần. */
 const BATCH_LIMIT = 450;
 
 export class FirebaseSync implements FamilySync {
-  private auth: FirebaseAuth.Auth;
-  private db: Firestore;
-  private fns: Functions;
+  private auth: fb.FbAuth;
+  private db: fb.FbDb;
 
-  constructor(options: FirebaseOptions) {
-    const first = getApps().length === 0;
-    const app = first ? initializeApp(options) : getApp();
-    const A = FirebaseAuth as RNAuth;
-    if (first && Platform.OS !== 'web' && A.getReactNativePersistence) {
-      this.auth = A.initializeAuth(app, { persistence: A.getReactNativePersistence(AsyncStorage) });
-    } else {
-      this.auth = A.getAuth(app);
-    }
-    this.db = first
-      ? initializeFirestore(app, { ignoreUndefinedProperties: true, experimentalAutoDetectLongPolling: true })
-      : getFirestore(app);
-    this.fns = getFunctions(app, REGION);
-    if (first && EMULATOR_HOST) {
-      A.connectAuthEmulator(this.auth, `http://${EMULATOR_HOST}:9099`, { disableWarnings: true });
-      connectFirestoreEmulator(this.db, EMULATOR_HOST, 8080);
-      connectFunctionsEmulator(this.fns, EMULATOR_HOST, 5001);
-    }
+  constructor(core: { auth: fb.FbAuth; db: fb.FbDb }) {
+    this.auth = core.auth;
+    this.db = core.db;
   }
 
   async signIn(): Promise<string> {
     await this.auth.authStateReady();
-    const user = this.auth.currentUser ?? (await FirebaseAuth.signInAnonymously(this.auth)).user;
+    const user = this.auth.currentUser ?? (await fb.signInAnonymously(this.auth)).user;
     return user.uid;
   }
 
   async createFamily(): Promise<string> {
     const uid = await this.signIn();
-    const ref = doc(collection(this.db, 'families'));
-    await setDoc(ref, { ownerUid: uid, uids: [uid], createdAt: serverTimestamp() });
+    const ref = fb.doc(fb.collection(this.db, 'families'));
+    await fb.setDoc(ref, { ownerUid: uid, uids: [uid], createdAt: fb.serverTimestamp() });
     return ref.id;
   }
 
@@ -115,14 +53,14 @@ export class FirebaseSync implements FamilySync {
     for (let i = 0; i < 5; i++) {
       const p = createPairing(memberId, new Date());
       try {
-        await setDoc(doc(this.db, 'pairingCodes', p.code), {
+        await fb.setDoc(fb.doc(this.db, 'pairingCodes', p.code), {
           familyId,
           memberId,
           role,
           expiresAt: p.expiresAt,
           expiresAtMs: new Date(p.expiresAt).getTime(),
           createdBy: uid,
-          createdAt: serverTimestamp(),
+          createdAt: fb.serverTimestamp(),
         });
         return p;
       } catch (e) {
@@ -138,17 +76,21 @@ export class FirebaseSync implements FamilySync {
     const uid = await this.signIn();
     let info: { familyId: string; memberId: string; expiresAtMs: number; role?: Role } | undefined;
     try {
-      const snap = await getDoc(doc(this.db, 'pairingCodes', c));
+      const snap = await fb.getDoc(fb.doc(this.db, 'pairingCodes', c));
       info = snap.data() as typeof info;
     } catch (e) {
+      console.warn('[An Tâm] Không đọc được mã kết nối:', (e as { code?: string }).code, (e as Error).message);
       // Mã hết hạn thì luật không cho đọc → báo như mã sai/hết hạn, không phải lỗi mạng.
       if ((e as { code?: string }).code === 'permission-denied') throw new SyncError('wrong');
       throw new SyncError('network', (e as Error).message);
     }
-    if (!info) throw new SyncError('wrong');
+    if (!info) {
+      console.warn('[An Tâm] Không có mã kết nối này trên máy chủ:', c);
+      throw new SyncError('wrong');
+    }
     if (info.expiresAtMs < Date.now()) throw new SyncError('expired');
     try {
-      await setDoc(doc(this.db, 'families', info.familyId, 'joinRequests', uid), {
+      await fb.setDoc(fb.doc(this.db, 'families', info.familyId, 'joinRequests', uid), {
         uid,
         code: c,
         memberId: info.memberId,
@@ -171,18 +113,18 @@ export class FirebaseSync implements FamilySync {
   async linkEmail(email: string, password: string): Promise<void> {
     await this.signIn();
     const user = this.auth.currentUser!;
-    await FirebaseAuth.linkWithCredential(user, FirebaseAuth.EmailAuthProvider.credential(email.trim(), password));
+    await fb.linkWithCredential(user, fb.EmailAuthProvider.credential(email.trim(), password));
   }
 
   async restoreWithEmail(email: string, password: string) {
     // Đăng nhập lại đúng tài khoản cũ (cùng mã người dùng) nên vẫn còn trong gia đình.
     await this.auth.authStateReady();
-    const cred = await FirebaseAuth.signInWithEmailAndPassword(this.auth, email.trim(), password);
+    const cred = await fb.signInWithEmailAndPassword(this.auth, email.trim(), password);
     const uid = cred.user.uid;
-    const qs = await getDocs(query(collection(this.db, 'families'), where('uids', 'array-contains', uid), limit(1)));
+    const qs = await fb.getDocs(fb.query(fb.collection(this.db, 'families'), fb.where('uids', 'array-contains', uid), fb.limit(1)));
     const fam = qs.docs[0];
     if (!fam) return undefined;
-    const dev = (await getDoc(doc(this.db, 'families', fam.id, 'devices', uid))).data() as { role?: Role; memberId?: string } | undefined;
+    const dev = (await fb.getDoc(fb.doc(this.db, 'families', fam.id, 'devices', uid))).data() as { role?: Role; memberId?: string } | undefined;
     return { familyId: fam.id, role: dev?.role ?? 'child', memberId: dev?.memberId };
   }
 
@@ -191,8 +133,8 @@ export class FirebaseSync implements FamilySync {
     let stopped = false;
     void this.signIn().then((uid) => {
       if (stopped) return;
-      unsub = onSnapshot(
-        doc(this.db, 'families', familyId, 'joinRequests', uid),
+      unsub = fb.onSnapshot(
+        fb.doc(this.db, 'families', familyId, 'joinRequests', uid),
         (s) => onStatus(s.exists() ? (s.data() as JoinRequest).status : 'gone'),
         (e) => console.warn('[An Tâm] Không theo dõi được yêu cầu kết nối:', e.message),
       );
@@ -204,8 +146,8 @@ export class FirebaseSync implements FamilySync {
   }
 
   subscribeJoinRequests(familyId: string, onList: (list: JoinRequest[]) => void): () => void {
-    return onSnapshot(
-      query(collection(this.db, 'families', familyId, 'joinRequests'), where('status', '==', 'pending')),
+    return fb.onSnapshot(
+      fb.query(fb.collection(this.db, 'families', familyId, 'joinRequests'), fb.where('status', '==', 'pending')),
       (qs) => onList(qs.docs.map((d) => d.data() as JoinRequest)),
       (e) => console.warn('[An Tâm] Không nghe được yêu cầu kết nối:', e.message),
     );
@@ -213,36 +155,36 @@ export class FirebaseSync implements FamilySync {
 
   async decideJoin(familyId: string, req: JoinRequest, approve: boolean): Promise<void> {
     const uid = await this.signIn();
-    const fam = doc(this.db, 'families', familyId);
+    const fam = fb.doc(this.db, 'families', familyId);
     // Thêm vào gia đình trước (luật kiểm tra máy đó đã gửi yêu cầu), rồi mới ghi kết quả.
-    if (approve) await updateDoc(fam, { uids: arrayUnion(req.uid) });
-    await updateDoc(doc(fam, 'joinRequests', req.uid), { status: approve ? 'approved' : 'denied', decidedBy: uid, decidedAt: new Date().toISOString() });
-    if (approve) await deleteDoc(doc(this.db, 'pairingCodes', req.code)).catch(() => undefined);
+    if (approve) await fb.updateDoc(fam, { uids: fb.arrayUnion(req.uid) });
+    await fb.updateDoc(fb.doc(fam, 'joinRequests', req.uid), { status: approve ? 'approved' : 'denied', decidedBy: uid, decidedAt: new Date().toISOString() });
+    if (approve) await fb.deleteDoc(fb.doc(this.db, 'pairingCodes', req.code)).catch(() => undefined);
   }
 
   async deleteFamily(familyId: string): Promise<void> {
     await this.signIn();
-    const fam = doc(this.db, 'families', familyId);
+    const fam = fb.doc(this.db, 'families', familyId);
     const refs = [];
     for (const coll of [...COLLECTIONS, 'heartbeats', 'joinRequests', 'devices']) {
-      const qs = await getDocs(collection(fam, coll));
+      const qs = await fb.getDocs(fb.collection(fam, coll));
       refs.push(...qs.docs.map((d) => d.ref));
     }
-    const codes = await getDocs(query(collection(this.db, 'pairingCodes'), where('familyId', '==', familyId)));
+    const codes = await fb.getDocs(fb.query(fb.collection(this.db, 'pairingCodes'), fb.where('familyId', '==', familyId)));
     refs.push(...codes.docs.map((d) => d.ref));
     for (let i = 0; i < refs.length; i += BATCH_LIMIT) {
-      const batch = writeBatch(this.db);
+      const batch = fb.writeBatch(this.db);
       for (const r of refs.slice(i, i + BATCH_LIMIT)) batch.delete(r);
       await batch.commit();
     }
     // Xóa hồ sơ gia đình sau cùng (cần còn là thành viên để xóa các phần trên).
-    await deleteDoc(fam);
+    await fb.deleteDoc(fam);
   }
 
   async listDevices(familyId: string): Promise<FamilyDevice[]> {
     const me = await this.signIn();
-    const fam = (await getDoc(doc(this.db, 'families', familyId))).data() as { uids: string[]; ownerUid: string };
-    const devs = await getDocs(collection(this.db, 'families', familyId, 'devices'));
+    const fam = (await fb.getDoc(fb.doc(this.db, 'families', familyId))).data() as { uids: string[]; ownerUid: string };
+    const devs = await fb.getDocs(fb.collection(this.db, 'families', familyId, 'devices'));
     const info = new Map(devs.docs.map((d) => [d.id, d.data() as DeviceInfo]));
     return fam.uids.map((uid) => ({
       uid,
@@ -256,29 +198,29 @@ export class FirebaseSync implements FamilySync {
 
   async removeDevice(familyId: string, uid: string): Promise<void> {
     await this.signIn();
-    await deleteDoc(doc(this.db, 'families', familyId, 'devices', uid)).catch(() => undefined);
-    await updateDoc(doc(this.db, 'families', familyId), { uids: arrayRemove(uid) });
+    await fb.deleteDoc(fb.doc(this.db, 'families', familyId, 'devices', uid)).catch(() => undefined);
+    await fb.updateDoc(fb.doc(this.db, 'families', familyId), { uids: fb.arrayRemove(uid) });
   }
 
   async transferOwner(familyId: string, uid: string): Promise<void> {
     await this.signIn();
-    await updateDoc(doc(this.db, 'families', familyId), { ownerUid: uid });
+    await fb.updateDoc(fb.doc(this.db, 'families', familyId), { ownerUid: uid });
   }
 
   async childPushTokens(familyId: string): Promise<string[]> {
-    const qs = await getDocs(query(collection(this.db, 'families', familyId, 'devices'), where('role', '==', 'child')));
+    const qs = await fb.getDocs(fb.query(fb.collection(this.db, 'families', familyId, 'devices'), fb.where('role', '==', 'child')));
     return qs.docs.map((d) => d.get('pushToken') as string | undefined).filter((t): t is string => !!t);
   }
 
   async apply(familyId: string, writes: SyncWrite[]): Promise<void> {
     if (!writes.length) return;
-    const fam = doc(this.db, 'families', familyId);
+    const fam = fb.doc(this.db, 'families', familyId);
     for (let i = 0; i < writes.length; i += BATCH_LIMIT) {
-      const batch = writeBatch(this.db);
+      const batch = fb.writeBatch(this.db);
       for (const w of writes.slice(i, i + BATCH_LIMIT)) {
         if (w.op === 'settings') batch.set(fam, { settings: w.data }, { merge: true });
-        else if (w.op === 'set') batch.set(doc(fam, w.coll, w.id), w.data);
-        else batch.delete(doc(fam, w.coll, w.id));
+        else if (w.op === 'set') batch.set(fb.doc(fam, w.coll, w.id), w.data);
+        else batch.delete(fb.doc(fam, w.coll, w.id));
       }
       await batch.commit();
     }
@@ -286,7 +228,7 @@ export class FirebaseSync implements FamilySync {
 
   async heartbeat(familyId: string, memberId: string, battery?: number): Promise<void> {
     const uid = await this.signIn();
-    await setDoc(doc(this.db, 'families', familyId, 'heartbeats', memberId), {
+    await fb.setDoc(fb.doc(this.db, 'families', familyId, 'heartbeats', memberId), {
       at: new Date().toISOString(),
       battery,
       uid,
@@ -295,9 +237,9 @@ export class FirebaseSync implements FamilySync {
 
   async registerDevice(familyId: string, info: DeviceInfo): Promise<void> {
     const uid = await this.signIn();
-    await setDoc(
-      doc(this.db, 'families', familyId, 'devices', uid),
-      { ...info, platform: info.platform ?? Platform.OS, updatedAt: serverTimestamp() },
+    await fb.setDoc(
+      fb.doc(this.db, 'families', familyId, 'devices', uid),
+      { ...info, platform: info.platform ?? Platform.OS, updatedAt: fb.serverTimestamp() },
       { merge: true },
     );
   }
@@ -307,12 +249,12 @@ export class FirebaseSync implements FamilySync {
     onData: (snap: RemoteSnapshot, pending: boolean) => void,
     onError?: (e: Error) => void,
   ): () => void {
-    const fam = doc(this.db, 'families', familyId);
+    const fam = fb.doc(this.db, 'families', familyId);
     const err = (e: Error) => onError?.(e);
     const unsubs: (() => void)[] = [];
 
     unsubs.push(
-      onSnapshot(
+      fb.onSnapshot(
         fam,
         (s) => {
           const settings = s.data()?.settings;
@@ -323,8 +265,8 @@ export class FirebaseSync implements FamilySync {
     );
     for (const coll of CONFIG_COLLECTIONS) {
       unsubs.push(
-        onSnapshot(
-          collection(fam, coll),
+        fb.onSnapshot(
+          fb.collection(fam, coll),
           (qs) => onData({ [coll]: qs.docs.map((d) => d.data()) } as RemoteSnapshot, qs.metadata.hasPendingWrites),
           err,
         ),
@@ -333,16 +275,16 @@ export class FirebaseSync implements FamilySync {
     const since = new Date(Date.now() - EVENT_DAYS * 86400_000).toISOString();
     for (const coll of EVENT_COLLECTIONS) {
       unsubs.push(
-        onSnapshot(
-          query(collection(fam, coll), where('at', '>=', since)),
+        fb.onSnapshot(
+          fb.query(fb.collection(fam, coll), fb.where('at', '>=', since)),
           (qs) => onData({ [coll]: qs.docs.map((d) => d.data()) } as RemoteSnapshot, qs.metadata.hasPendingWrites),
           err,
         ),
       );
     }
     unsubs.push(
-      onSnapshot(
-        collection(fam, 'heartbeats'),
+      fb.onSnapshot(
+        fb.collection(fam, 'heartbeats'),
         (qs) => {
           const heartbeats: NonNullable<RemoteSnapshot['heartbeats']> = {};
           for (const d of qs.docs) {
@@ -358,29 +300,13 @@ export class FirebaseSync implements FamilySync {
   }
 }
 
-/** Đổi mã lỗi của Cloud Functions sang lý do hiển thị cho bố mẹ. */
-export function redeemReason(code: string | undefined): RedeemError {
-  switch (code) {
-    case 'functions/invalid-argument':
-      return 'format';
-    case 'functions/not-found':
-      return 'wrong';
-    case 'functions/failed-precondition':
-      return 'expired';
-    case 'functions/resource-exhausted':
-      return 'too-many';
-    default:
-      return 'network';
-  }
-}
-
 let instance: FirebaseSync | undefined;
 
 /** Bản đồng bộ dùng trong app, hoặc undefined khi chưa cấu hình Firebase (chạy một máy). */
 export function getFamilySync(): FamilySync | undefined {
   if (instance) return instance;
-  const cfg = firebaseConfig();
-  if (!cfg) return undefined;
-  instance = new FirebaseSync(cfg);
+  const core = fb.initFirebase();
+  if (!core) return undefined;
+  instance = new FirebaseSync(core);
   return instance;
 }
