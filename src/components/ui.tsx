@@ -297,12 +297,15 @@ export function Field({
   onChange,
   placeholder,
   keyboard,
+  secure,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-  keyboard?: 'default' | 'phone-pad' | 'number-pad';
+  keyboard?: 'default' | 'phone-pad' | 'number-pad' | 'email-address';
+  /** Ẩn chữ khi gõ (mật khẩu). */
+  secure?: boolean;
 }) {
   const k = useK();
   return (
@@ -315,6 +318,9 @@ export function Field({
         placeholder={placeholder}
         placeholderTextColor={colors.muted}
         keyboardType={keyboard ?? 'default'}
+        secureTextEntry={secure}
+        autoCapitalize={secure || keyboard === 'email-address' ? 'none' : 'sentences'}
+        autoCorrect={!(secure || keyboard === 'email-address')}
         style={{
           height: 50,
           borderWidth: 1.5,

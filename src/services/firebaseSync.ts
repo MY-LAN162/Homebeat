@@ -16,6 +16,7 @@ import {
   deleteDoc,
   getDoc,
   getDocs,
+  limit,
   updateDoc,
   connectFirestoreEmulator,
   doc,
@@ -39,7 +40,7 @@ import {
   type RemoteSnapshot,
   type SyncWrite,
 } from '../domain/syncdiff';
-import type { Pairing } from '../domain/types';
+import type { Pairing, Role } from '../domain/types';
 import { SyncError, type DeviceInfo, type FamilySync, type JoinRequest, type RedeemError } from './sync';
 
 /** Cấu hình lấy từ biến môi trường EXPO_PUBLIC_FIREBASE_* (file .env, xem .env.example). */
@@ -106,7 +107,7 @@ export class FirebaseSync implements FamilySync {
     return ref.id;
   }
 
-  async createPairingCode(familyId: string, memberId: string): Promise<Pairing> {
+  async createPairingCode(familyId: string, memberId: string, role: Role = 'parent'): Promise<Pairing> {
     const uid = await this.signIn();
     // Mã trùng với mã đang có thì máy chủ từ chối (luật chỉ cho tạo mới) → thử mã khác.
     for (let i = 0; i < 5; i++) {
@@ -115,6 +116,7 @@ export class FirebaseSync implements FamilySync {
         await setDoc(doc(this.db, 'pairingCodes', p.code), {
           familyId,
           memberId,
+          role,
           expiresAt: p.expiresAt,
           expiresAtMs: new Date(p.expiresAt).getTime(),
           createdBy: uid,
@@ -128,11 +130,11 @@ export class FirebaseSync implements FamilySync {
     throw new Error('Không tạo được mã kết nối');
   }
 
-  async requestJoin(code: string): Promise<{ familyId: string; memberId: string }> {
+  async requestJoin(code: string): Promise<{ familyId: string; memberId: string; role: Role }> {
     const c = code.replace(/\s/g, '');
     if (!/^\d{6}$/.test(c)) throw new SyncError('format');
     const uid = await this.signIn();
-    let info: { familyId: string; memberId: string; expiresAtMs: number } | undefined;
+    let info: { familyId: string; memberId: string; expiresAtMs: number; role?: Role } | undefined;
     try {
       const snap = await getDoc(doc(this.db, 'pairingCodes', c));
       info = snap.data() as typeof info;
@@ -148,6 +150,7 @@ export class FirebaseSync implements FamilySync {
         uid,
         code: c,
         memberId: info.memberId,
+        role: info.role ?? 'parent',
         status: 'pending',
         device: Platform.OS === 'ios' ? 'iPhone' : Platform.OS === 'android' ? 'Điện thoại Android' : 'Trình duyệt',
         at: new Date().toISOString(),
@@ -155,7 +158,30 @@ export class FirebaseSync implements FamilySync {
     } catch (e) {
       throw new SyncError((e as { code?: string }).code === 'permission-denied' ? 'expired' : 'network', (e as Error).message);
     }
-    return { familyId: info.familyId, memberId: info.memberId };
+    return { familyId: info.familyId, memberId: info.memberId, role: info.role ?? 'parent' };
+  }
+
+  async linkedEmail(): Promise<string | undefined> {
+    await this.signIn();
+    return this.auth.currentUser?.email ?? undefined;
+  }
+
+  async linkEmail(email: string, password: string): Promise<void> {
+    await this.signIn();
+    const user = this.auth.currentUser!;
+    await FirebaseAuth.linkWithCredential(user, FirebaseAuth.EmailAuthProvider.credential(email.trim(), password));
+  }
+
+  async restoreWithEmail(email: string, password: string) {
+    // Đăng nhập lại đúng tài khoản cũ (cùng mã người dùng) nên vẫn còn trong gia đình.
+    await this.auth.authStateReady();
+    const cred = await FirebaseAuth.signInWithEmailAndPassword(this.auth, email.trim(), password);
+    const uid = cred.user.uid;
+    const qs = await getDocs(query(collection(this.db, 'families'), where('uids', 'array-contains', uid), limit(1)));
+    const fam = qs.docs[0];
+    if (!fam) return undefined;
+    const dev = (await getDoc(doc(this.db, 'families', fam.id, 'devices', uid))).data() as { role?: Role; memberId?: string } | undefined;
+    return { familyId: fam.id, role: dev?.role ?? 'child', memberId: dev?.memberId };
   }
 
   watchJoinRequest(familyId: string, onStatus: (s: JoinRequest['status'] | 'gone') => void): () => void {

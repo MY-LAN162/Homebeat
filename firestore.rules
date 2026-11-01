@@ -21,12 +21,15 @@ service cloud.firestore {
         && added.size() == 1
         && exists(/databases/$(database)/documents/families/$(familyId)/joinRequests/$(added[0]));
     }
-    function validCode(code, familyId, memberId) {
+    // Mã kết nối có 2 loại: role 'parent' (máy của bố/mẹ, kèm memberId) và 'child' (máy mới của con, memberId rỗng).
+    function validCode(code, familyId, memberId, role) {
       let path = /databases/$(database)/documents/pairingCodes/$(code);
+      let c = get(path).data;
       return exists(path)
-        && get(path).data.familyId == familyId
-        && get(path).data.memberId == memberId
-        && get(path).data.expiresAtMs > request.time.toMillis();
+        && c.familyId == familyId
+        && c.memberId == memberId
+        && c.get('role', 'parent') == role
+        && c.expiresAtMs > request.time.toMillis();
     }
 
     match /families/{familyId} {
@@ -69,7 +72,8 @@ service cloud.firestore {
         allow create: if signedIn() && request.auth.uid == uid
           && request.resource.data.uid == uid
           && request.resource.data.status == 'pending'
-          && validCode(request.resource.data.code, familyId, request.resource.data.memberId);
+          && request.resource.data.role in ['parent', 'child']
+          && validCode(request.resource.data.code, familyId, request.resource.data.memberId, request.resource.data.role);
         allow read: if signedIn() && (request.auth.uid == uid || isMember(familyId));
         allow update: if isMember(familyId)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'decidedAt', 'decidedBy'])
@@ -86,6 +90,7 @@ service cloud.firestore {
       allow create: if code.matches('^[0-9]{6}$')
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.expiresAtMs is int
+        && request.resource.data.get('role', 'parent') in ['parent', 'child']
         && isMember(request.resource.data.familyId);
       allow get: if signedIn() && resource.data.expiresAtMs > request.time.toMillis();
       allow delete: if isMember(resource.data.familyId);

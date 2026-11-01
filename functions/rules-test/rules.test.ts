@@ -1,7 +1,7 @@
 // Kiểm thử luật bảo mật Firestore (firestore.rules) trên Firestore Emulator.
 // Chạy: npm run test:rules (trong thư mục functions; cần Java và firebase-tools).
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { arrayRemove, arrayUnion, deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { after, before, beforeEach, describe, test } from 'node:test';
@@ -73,7 +73,7 @@ describe('vào gia đình bằng yêu cầu + đồng ý (không cần Cloud Fun
     env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'pairingCodes', c), { familyId: FAM, memberId: 'me', expiresAt: future(), expiresAtMs: futureMs(), createdBy: 'con', ...extra });
     });
-  const req = (uid: string, code: string, memberId = 'me') => ({ uid, code, memberId, status: 'pending', device: 'iPhone' });
+  const req = (uid: string, code: string, memberId = 'me', role = 'parent') => ({ uid, code, memberId, role, status: 'pending', device: 'iPhone' });
 
   test('máy mới gửi yêu cầu khi có mã đúng; mã sai / hết hạn / sai người thì không', async () => {
     await seedCode('111111');
@@ -97,6 +97,22 @@ describe('vào gia đình bằng yêu cầu + đồng ý (không cần Cloud Fun
     await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { uids: arrayUnion('meThu') }));
     await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM, 'joinRequests', 'meThu'), { status: 'approved', decidedBy: 'con' }));
     await assertSucceeds(getDoc(doc(as('meThu'), 'families', FAM)));
+  });
+
+  test('mã cho máy mới của con: xin vào đúng vai trò; mã máy bố mẹ không dùng để vào làm máy con', async () => {
+    await seedCode('444444', { memberId: '', role: 'child' });
+    await seedCode('555555');
+    await assertSucceeds(setDoc(doc(as('conMoi'), 'families', FAM, 'joinRequests', 'conMoi'), req('conMoi', '444444', '', 'child')));
+    await assertFails(setDoc(doc(as('x2'), 'families', FAM, 'joinRequests', 'x2'), req('x2', '444444', '', 'parent')));
+    await assertFails(setDoc(doc(as('x3'), 'families', FAM, 'joinRequests', 'x3'), req('x3', '555555', 'me', 'child')));
+    await assertFails(setDoc(doc(as('x4'), 'families', FAM, 'joinRequests', 'x4'), req('x4', '444444', '', 'admin')));
+    // Máy bố mẹ (đã trong gia đình) đồng ý máy mới của con được.
+    await assertSucceeds(updateDoc(doc(as('bo'), 'families', FAM), { uids: arrayUnion('conMoi') }));
+  });
+
+  test('tìm lại gia đình của mình (sau khi đăng nhập email) được, gia đình người khác thì không', async () => {
+    await assertSucceeds(getDocs(query(collection(as('con'), 'families'), where('uids', 'array-contains', 'con'))));
+    await assertFails(getDocs(query(collection(as('la'), 'families'), where('uids', 'array-contains', 'con'))));
   });
 
   test('bỏ bớt máy được, nhưng không được để gia đình trống', async () => {

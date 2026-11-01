@@ -195,6 +195,31 @@ describe('hai máy qua máy chủ', () => {
     expect(server.families.get(fid)!.colls.medications.size).toBe(0);
   });
 
+  it('con đổi điện thoại: máy bố mẹ tạo mã, máy mới xin vào, bố mẹ Đồng ý → máy mới thấy dữ liệu', async () => {
+    const { server, fid, parent } = await setup();
+    const code = await parent.sync.createPairingCode(fid, '', 'child');
+    const newPhone = new Device(new MemorySync(server, 'uid-con-may-moi'));
+    const res = await newPhone.sync.requestJoin(code.code);
+    expect(res.role).toBe('child');
+    let pending: JoinRequest[] = [];
+    parent.sync.subscribeJoinRequests(fid, (l) => (pending = l));
+    expect(pending[0].role).toBe('child');
+    await parent.sync.decideJoin(fid, pending[0], true);
+    newPhone.data = { ...newPhone.data, role: 'child' };
+    newPhone.connect(fid, shared(emptyData()));
+    expect(newPhone.data.members.map((m) => m.name)).toEqual(['Hùng']);
+  });
+
+  it('khôi phục bằng email đã liên kết: máy mới vào lại đúng gia đình, đúng vai trò', async () => {
+    const { server, fid, child } = await setup();
+    await child.sync.registerDevice(fid, { role: 'child' });
+    await child.sync.linkEmail('ha@example.com', 'matkhau123');
+    expect(await child.sync.linkedEmail()).toBe('ha@example.com');
+    const newPhone = new MemorySync(server, 'uid-tam');
+    await expect(newPhone.restoreWithEmail('ha@example.com', 'sai-mat-khau')).rejects.toThrow();
+    expect(await newPhone.restoreWithEmail('ha@example.com', 'matkhau123')).toEqual({ familyId: fid, role: 'child', memberId: undefined });
+  });
+
   it('ghi lỗi thì gửi lại ở lần sau', async () => {
     const { parent } = await setup();
     const real = parent.sync.apply.bind(parent.sync);

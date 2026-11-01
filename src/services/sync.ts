@@ -29,7 +29,10 @@ export interface DeviceInfo {
 /** Yêu cầu vào gia đình của một máy mới (máy bố mẹ), chờ người trong gia đình đồng ý. */
 export interface JoinRequest {
   uid: string;
+  /** Máy xin vào làm máy của bố/mẹ nào ('' nếu là máy của con). */
   memberId: string;
+  /** 'parent': máy của bố/mẹ; 'child': máy mới của con (vd đổi điện thoại). */
+  role: Role;
   code: string;
   status: 'pending' | 'approved' | 'denied';
   /** "iPhone", "Điện thoại Android"... */
@@ -42,13 +45,19 @@ export interface FamilySync {
   signIn(): Promise<string>;
   /** Máy con tạo gia đình mới, trả về mã gia đình. */
   createFamily(): Promise<string>;
-  /** Máy con tạo mã 6 số cho một bố/mẹ. */
-  createPairingCode(familyId: string, memberId: string): Promise<Pairing>;
+  /** Tạo mã 6 số: cho máy của một bố/mẹ (role 'parent'), hoặc cho máy mới của con (role 'child', memberId ''). */
+  createPairingCode(familyId: string, memberId: string, role?: Role): Promise<Pairing>;
   /**
    * Máy bố mẹ nhập mã 6 số: gửi yêu cầu vào gia đình (chưa vào ngay, chờ con bấm Đồng ý).
    * Lỗi thì ném SyncError ('format' | 'wrong' | 'expired' | 'network').
    */
-  requestJoin(code: string): Promise<{ familyId: string; memberId: string }>;
+  requestJoin(code: string): Promise<{ familyId: string; memberId: string; role: Role }>;
+  /** Email đã liên kết với tài khoản của máy này (để khôi phục khi đổi máy), nếu có. */
+  linkedEmail(): Promise<string | undefined>;
+  /** Liên kết email + mật khẩu với tài khoản hiện tại. Lỗi thì ném Error với code của Firebase. */
+  linkEmail(email: string, password: string): Promise<void>;
+  /** Máy mới: đăng nhập bằng email đã liên kết, tìm lại gia đình. undefined nếu không thấy gia đình nào. */
+  restoreWithEmail(email: string, password: string): Promise<{ familyId: string; role: Role; memberId?: string } | undefined>;
   /** Máy bố mẹ theo dõi yêu cầu của mình. 'gone' = yêu cầu đã bị xóa. Trả về hàm hủy. */
   watchJoinRequest(familyId: string, onStatus: (s: JoinRequest['status'] | 'gone') => void): () => void;
   /** Máy con nghe các yêu cầu đang chờ. Trả về hàm hủy. */

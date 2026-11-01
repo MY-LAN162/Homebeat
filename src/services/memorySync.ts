@@ -2,7 +2,7 @@
 // (mô phỏng hai máy: con và bố mẹ, dùng chung một "máy chủ").
 import { createPairing, checkCode } from '../domain/pairing';
 import { COLLECTIONS, type CollectionName, type RemoteSnapshot, type SyncWrite } from '../domain/syncdiff';
-import type { AlertSettings, Pairing } from '../domain/types';
+import type { AlertSettings, Pairing, Role } from '../domain/types';
 import { SyncError, type DeviceInfo, type FamilySync, type JoinRequest } from './sync';
 
 interface FamilyDoc {
@@ -20,7 +20,8 @@ type Listener = (snap: RemoteSnapshot, pending: boolean) => void;
 
 export class MemoryServer {
   families = new Map<string, FamilyDoc>();
-  codes = new Map<string, Pairing & { familyId: string }>();
+  codes = new Map<string, Pairing & { familyId: string; role: Role }>();
+  accounts = new Map<string, { uid: string; password: string }>();
   listeners = new Map<string, Set<Listener>>();
   reqListeners = new Map<string, Set<() => void>>();
 
@@ -72,10 +73,10 @@ export class MemorySync implements FamilySync {
     return id;
   }
 
-  async createPairingCode(familyId: string, memberId: string) {
+  async createPairingCode(familyId: string, memberId: string, role: Role = 'parent') {
     this.server.family(familyId, this.uid);
     const p = createPairing(memberId, this.server.now());
-    this.server.codes.set(p.code, { ...p, familyId });
+    this.server.codes.set(p.code, { ...p, familyId, role });
     return p;
   }
 
@@ -85,9 +86,31 @@ export class MemorySync implements FamilySync {
     const res = checkCode(c, p, this.server.now());
     if (!res.ok) throw new SyncError(res.reason);
     const f = this.server.families.get(p!.familyId)!;
-    f.requests.set(this.uid, { uid: this.uid, code: c, memberId: res.memberId, status: 'pending', device: 'Máy thử' });
+    f.requests.set(this.uid, { uid: this.uid, code: c, memberId: res.memberId, role: p!.role, status: 'pending', device: 'Máy thử' });
     this.server.notifyRequests(p!.familyId);
-    return { familyId: p!.familyId, memberId: res.memberId };
+    return { familyId: p!.familyId, memberId: res.memberId, role: p!.role };
+  }
+
+  async linkedEmail() {
+    return [...this.server.accounts.entries()].find(([, a]) => a.uid === this.uid)?.[0];
+  }
+
+  async linkEmail(email: string, password: string) {
+    if (this.server.accounts.has(email)) throw Object.assign(new Error('email-already-in-use'), { code: 'auth/email-already-in-use' });
+    this.server.accounts.set(email, { uid: this.uid, password });
+  }
+
+  async restoreWithEmail(email: string, password: string) {
+    const a = this.server.accounts.get(email);
+    if (!a || a.password !== password) throw Object.assign(new Error('invalid-credential'), { code: 'auth/invalid-credential' });
+    this.uid = a.uid;
+    for (const [id, f] of this.server.families) {
+      if (f.uids.includes(a.uid)) {
+        const dev = f.devices.get(a.uid);
+        return { familyId: id, role: dev?.role ?? ('child' as Role), memberId: dev?.memberId };
+      }
+    }
+    return undefined;
   }
 
   watchJoinRequest(familyId: string, onStatus: (s: JoinRequest['status'] | 'gone') => void) {

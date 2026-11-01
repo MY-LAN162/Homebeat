@@ -58,6 +58,13 @@ interface Store {
   newPairing: (memberId: string) => Promise<void>;
   /** Bố mẹ nhập mã. Chưa có máy chủ: kiểm tra với mã đã tạo trên chính máy này. */
   pair: (code: string) => Promise<PairResult>;
+  /** Tạo mã cho máy mới của con (đổi điện thoại, thêm người nhà). Cần đã kết nối máy chủ. */
+  newChildPairing: () => Promise<void>;
+  /** Email đã liên kết để khôi phục khi đổi máy. */
+  linkedEmail: () => Promise<string | undefined>;
+  linkEmail: (email: string, password: string) => Promise<void>;
+  /** Máy mới: đăng nhập email đã liên kết, lấy lại gia đình. Trả về false nếu không thấy gia đình. */
+  restoreWithEmail: (email: string, password: string) => Promise<boolean>;
   /** Bố mẹ hủy yêu cầu đang chờ (để nhập lại mã). */
   cancelJoin: () => void;
   /** Yêu cầu vào gia đình đang chờ con đồng ý (máy con). */
@@ -166,7 +173,15 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
         const fresh = emptyData();
         baseRef.current = shared(fresh);
         AsyncStorage.setItem(BASE_KEY, JSON.stringify(baseRef.current)).catch(() => undefined);
-        setData((d) => ({ ...fresh, textScale: d.textScale, role: 'parent', familyId: pending.familyId, currentMemberId: pending.memberId }));
+        const role = pending.role ?? 'parent';
+        setData((d) => ({
+          ...fresh,
+          textScale: d.textScale,
+          consentAt: d.consentAt,
+          role,
+          familyId: pending.familyId,
+          currentMemberId: role === 'parent' ? pending.memberId : undefined,
+        }));
       } else if (st === 'denied' || st === 'gone') {
         setData((d) => (d.pendingJoin ? { ...d, pendingJoin: { ...d.pendingJoin, denied: true } } : d));
       }
@@ -276,12 +291,40 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
         if (!/^\d{6}$/.test(code.replace(/\s/g, ''))) return { ok: false, reason: 'format' };
         try {
           // Gửi yêu cầu, chờ con bấm Đồng ý (xem hiệu ứng theo dõi pendingJoin bên dưới).
-          const { familyId: fid, memberId } = await sync.requestJoin(code);
-          update((d) => ({ ...d, pendingJoin: { familyId: fid, memberId, at: new Date().toISOString() } }));
+          const { familyId: fid, memberId, role } = await sync.requestJoin(code);
+          update((d) => ({ ...d, pendingJoin: { familyId: fid, memberId, role, at: new Date().toISOString() } }));
           return { ok: true, memberId, pending: true };
         } catch (e) {
           return { ok: false, reason: e instanceof SyncError ? e.reason : 'network' };
         }
+      },
+      newChildPairing: async () => {
+        if (!sync || !data.familyId || data.demo) throw new Error('Cần kết nối với máy chủ trước');
+        const p = await sync.createPairingCode(data.familyId, '', 'child');
+        update((d) => ({ ...d, childPairing: p }));
+      },
+      linkedEmail: async () => (sync ? sync.linkedEmail() : undefined),
+      linkEmail: async (email, password) => {
+        if (!sync) throw new Error('Chưa kết nối máy chủ');
+        await sync.linkEmail(email, password);
+      },
+      restoreWithEmail: async (email, password) => {
+        if (!sync) throw new Error('Chưa kết nối máy chủ');
+        const r = await sync.restoreWithEmail(email, password);
+        if (!r) return false;
+        const fresh = emptyData();
+        baseRef.current = shared(fresh);
+        await AsyncStorage.setItem(BASE_KEY, JSON.stringify(baseRef.current)).catch(() => undefined);
+        setData((d) => ({
+          ...fresh,
+          textScale: d.textScale,
+          consentAt: d.consentAt,
+          guideSeen: true,
+          role: r.role,
+          familyId: r.familyId,
+          currentMemberId: r.role === 'parent' ? r.memberId : undefined,
+        }));
+        return true;
       },
       cancelJoin: () => update((d) => ({ ...d, pendingJoin: undefined })),
       joinRequests: familyId ? joinRequests : [],
@@ -289,7 +332,12 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
         if (!sync || !data.familyId) return;
         await sync.decideJoin(data.familyId, req, approve);
         // Mã đã dùng thì bỏ khỏi máy (máy chủ cũng đã xóa), để con tạo mã mới khi cần.
-        if (approve) update((d) => (d.pairing?.code === req.code ? { ...d, pairing: undefined } : d));
+        if (approve)
+          update((d) => ({
+            ...d,
+            pairing: d.pairing?.code === req.code ? undefined : d.pairing,
+            childPairing: d.childPairing?.code === req.code ? undefined : d.childPairing,
+          }));
       },
       setCurrentMember: (id) => update((d) => ({ ...d, currentMemberId: id })),
       upsertCaregiver: (c) =>

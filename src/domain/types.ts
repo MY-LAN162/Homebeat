@@ -155,7 +155,11 @@ export interface AppData {
   /** Cỡ chữ trên máy này: 1 bình thường, 1.15 lớn, 1.3 rất lớn (không đồng bộ sang máy khác). */
   textScale?: number;
   /** Máy bố mẹ đã gửi yêu cầu vào gia đình, đang chờ con bấm Đồng ý. */
-  pendingJoin?: { familyId: string; memberId: string; at: string; denied?: boolean };
+  pendingJoin?: { familyId: string; memberId: string; role?: Role; at: string; denied?: boolean };
+  /** Mã kết nối cho máy mới của con (vd đổi điện thoại), khác với mã cho máy bố mẹ. */
+  childPairing?: Pairing;
+  /** Lúc người dùng đồng ý chính sách quyền riêng tư trên máy này (ISO). */
+  consentAt?: string;
   /** Những gì người dùng đã bấm xóa trên máy này, dạng "medications/<id>" (để chỉ xóa đúng chúng trên máy chủ). */
   deleted?: string[];
 }

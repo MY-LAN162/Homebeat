@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
+import { JoinRequests } from '../../components/JoinRequests';
 import { Btn, H1, HoldButton, Screen, SpeakButton, T } from '../../components/ui';
 import { greeting, okLabel } from '../../domain/address';
 import { currentSlot, slotsForDay } from '../../domain/schedule';
@@ -63,6 +64,8 @@ export default function ParentHome() {
         <SpeakButton text={speech} />
       </View>
 
+      <JoinRequests big />
+
       <View style={{ backgroundColor: colors.green, borderRadius: 22, padding: 20, gap: 14 }}>
         <T size={20} weight="600" color={colors.white}>
           {todayCheckin
@@ -109,6 +112,9 @@ export default function ParentHome() {
         onComplete={() => router.push('/parent/sos')}
       />
       <Btn variant="ghost" size={17} label="Xem lại hướng dẫn" onPress={() => router.push('/parent/guide')} />
+      {!!data.familyId && !data.demo && (
+        <Btn variant="ghost" size={17} label={`${m.self} đổi điện thoại? Bấm vào đây`} onPress={() => router.push('/parent/devices')} />
+      )}
       <Btn variant="ghost" size={13} height={36} label="Đổi vai trò (bản thử)" onPress={() => { setRole(undefined); router.replace('/'); }} />
     </Screen>
   );

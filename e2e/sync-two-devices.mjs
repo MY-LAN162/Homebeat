@@ -112,6 +112,44 @@ const fsGet = async (p) => (await fetch(`http://127.0.0.1:8080/v1/projects/demo-
     const fam = (await fsGet('families')).documents[0];
     if (fam.fields.uids.arrayValue.values.length !== 2) throw new Error('máy lạ đã vào gia đình');
   });
+  const moi = await mk(), moi2 = await mk();
+  for (const [n, p] of [['máy mới', moi], ['máy mới 2', moi2]]) p.on('pageerror', (e) => errs.push(`${n}: ${e.message}`));
+  await step('Con đổi điện thoại: máy bố tạo mã cho máy mới của con', async () => {
+    await vis(bo, /đổi điện thoại\? Bấm vào đây/i).click();
+    await vis(bo, 'Tạo mã cho máy mới của con').click();
+    const el = bo.getByText(/^\d{3} \d{3}$/).filter({ visible: true }).first(); await el.waitFor({ timeout: 15000 });
+    code = (await el.textContent()).replace(' ', '');
+  });
+  await step('Máy mới: "Lấy lại gia đình" → nhập mã → chờ đồng ý', async () => {
+    await moi.goto(URL); await vis(moi, 'Đổi điện thoại? Lấy lại gia đình đã có').click();
+    await vis(moi, 'Nhập mã').click(); await enterCode(moi, code);
+    await vis(moi, 'Đã gửi yêu cầu kết nối').waitFor({ timeout: 15000 });
+  });
+  await step('Máy bố thấy "Có máy mới xin vào gia đình" → Đồng ý → máy mới vào màn hình con', async () => {
+    await vis(bo, 'Có máy mới xin vào gia đình (máy của con, cháu)').waitFor({ timeout: 15000 });
+    await bo.getByText('Đồng ý', { exact: true }).filter({ visible: true }).last().click();
+    await vis(moi, 'Bố mẹ hôm nay').waitFor({ timeout: 15000 });
+    await vis(moi, /Bố Hùng ›/).waitFor({ timeout: 15000 });
+  });
+  await step('Máy con liên kết email trong Cài đặt', async () => {
+    await con.goto(URL + 'child/settings');
+    await vis(con, 'Bảo vệ khi đổi điện thoại').waitFor({ timeout: 15000 });
+    await con.getByRole('textbox', { name: 'Email', exact: true }).fill('ha@example.com');
+    await con.getByRole('textbox', { name: 'Mật khẩu (ít nhất 8 ký tự)', exact: true }).fill('matkhau123');
+    await con.getByRole('textbox', { name: 'Nhập lại mật khẩu', exact: true }).fill('matkhau123');
+    await vis(con, 'Liên kết email').click();
+    await vis(con, /Đã liên kết email ha@example.com/).waitFor({ timeout: 15000 });
+  });
+  await step('Máy mới 2: đăng nhập email sai mật khẩu bị từ chối; đúng thì vào lại gia đình', async () => {
+    await moi2.goto(URL); await vis(moi2, 'Đổi điện thoại? Lấy lại gia đình đã có').click();
+    await moi2.getByRole('textbox', { name: 'Email', exact: true }).fill('ha@example.com');
+    await moi2.getByRole('textbox', { name: 'Mật khẩu', exact: true }).fill('saimatkhau');
+    await vis(moi2, 'Đăng nhập').click(); await vis(moi2, 'Email hoặc mật khẩu chưa đúng.').waitFor({ timeout: 15000 });
+    await moi2.getByRole('textbox', { name: 'Mật khẩu', exact: true }).fill('matkhau123');
+    await vis(moi2, 'Đăng nhập').click();
+    await vis(moi2, 'Bố mẹ hôm nay').waitFor({ timeout: 15000 });
+    await vis(moi2, /Bố Hùng ›/).waitFor({ timeout: 15000 });
+  });
   await con.screenshot({ path: `${SHOTS}/s2-con-cuoi.png` });
   console.log(`\nKết quả: ${pass} đạt, ${fail} lỗi. Lỗi trang: ${errs.length ? errs.join(' | ') : 'không'}`);
   await b.close();

@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
 import { goBack } from '../../services/nav';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, Switch, View } from 'react-native';
-import { Back, Btn, Card, Chip, H1, Screen, T } from '../../components/ui';
+import { Back, Btn, Card, Chip, Field, H1, Screen, T } from '../../components/ui';
+import { authErrorText } from '../../services/authErrors';
 import { deviceTimeZone, TIME_ZONES, zoneLabel } from '../../domain/tz';
 import { useStore } from '../../state/store';
 import { colors } from '../../theme';
@@ -34,8 +35,60 @@ function Group<V extends string | number>({
   );
 }
 
+/** Liên kết email để đổi điện thoại vẫn lấy lại được gia đình (miễn phí). */
+function AccountCard() {
+  const { linkedEmail, linkEmail } = useStore();
+  const [email, setEmail] = useState<string>();
+  const [form, setForm] = useState({ email: '', pass: '', pass2: '' });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string>();
+  useEffect(() => {
+    linkedEmail().then(setEmail).catch(() => undefined);
+  }, [linkedEmail]);
+  const ok = /^\S+@\S+\.\S+$/.test(form.email.trim()) && form.pass.length >= 8 && form.pass === form.pass2;
+  return (
+    <Card style={{ gap: 8 }}>
+      <T size={15} weight="700">Bảo vệ khi đổi điện thoại</T>
+      {email ? (
+        <T size={14} color={colors.greenDark}>✓ Đã liên kết email {email}. Đổi máy thì chọn “Lấy lại gia đình đã có” rồi đăng nhập email này.</T>
+      ) : (
+        <>
+          <T size={13} color={colors.muted}>
+            Liên kết email và mật khẩu để khi đổi máy hoặc cài lại app vẫn vào lại được gia đình. Không liên kết thì cần người nhà tạo mã cho máy mới.
+          </T>
+          <Field label="Email" value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} keyboard="email-address" placeholder="ten@gmail.com" />
+          <Field label="Mật khẩu (ít nhất 8 ký tự)" value={form.pass} onChange={(v) => setForm((f) => ({ ...f, pass: v }))} secure />
+          <Field label="Nhập lại mật khẩu" value={form.pass2} onChange={(v) => setForm((f) => ({ ...f, pass2: v }))} secure />
+          {form.pass2.length > 0 && form.pass !== form.pass2 && <T size={13} color={colors.red}>Hai mật khẩu chưa giống nhau.</T>}
+          {err && <T size={14} color={colors.red} weight="600">{err}</T>}
+          <Btn
+            variant="secondary"
+            height={44}
+            size={15}
+            label={busy ? 'Đang liên kết...' : 'Liên kết email'}
+            disabled={!ok || busy}
+            onPress={async () => {
+              setBusy(true);
+              setErr(undefined);
+              try {
+                await linkEmail(form.email, form.pass);
+                setEmail(form.email.trim());
+              } catch (e) {
+                setErr(authErrorText((e as { code?: string }).code));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          />
+        </>
+      )}
+    </Card>
+  );
+}
+
 export default function AlertSettings() {
-  const { data, updateSettings, setTextScale } = useStore();
+  const { data, updateSettings, setTextScale, syncEnabled } = useStore();
+  const connected = syncEnabled && !!data.familyId && !data.demo;
   const scale = data.textScale ?? 1;
   const s = data.settings;
   const bpKey = `${s.bpSys}/${s.bpDia}`;
@@ -47,6 +100,7 @@ export default function AlertSettings() {
         <Back onPress={() => goBack('/child')} />
         <H1 size={22}>Cài đặt</H1>
       </View>
+      {connected && <AccountCard />}
       <Card style={{ gap: 8 }}>
         <T size={15} weight="700">Cỡ chữ trên máy này</T>
         <View style={{ flexDirection: 'row', gap: 6 }}>

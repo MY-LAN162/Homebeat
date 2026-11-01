@@ -11,7 +11,7 @@ import { useStore } from '../../state/store';
 import { colors } from '../../theme';
 
 export default function ChildFamily() {
-  const { data, newPairing, upsertCaregiver, removeCaregiver, updateMember, setRole, setCurrentMember, loadDemo, reset, syncEnabled, now } = useStore();
+  const { data, newPairing, upsertCaregiver, removeCaregiver, updateMember, setRole, setCurrentMember, loadDemo, reset, syncEnabled, now, newChildPairing } = useStore();
   const [adding, setAdding] = useState(false);
   const [cName, setCName] = useState('');
   const [cPhone, setCPhone] = useState('');
@@ -19,6 +19,7 @@ export default function ChildFamily() {
   const caregivers = [...data.caregivers].sort((a, b) => a.order - b.order);
   // Đã nối máy chủ với gia đình thật: ẩn các nút chỉ dùng để thử (đổi vai trò, nạp dữ liệu mẫu).
   const connected = syncEnabled && !!data.familyId && !data.demo;
+  const childCode = data.childPairing && new Date(data.childPairing.expiresAt) > now ? data.childPairing : undefined;
 
   return (
     <Screen>
@@ -91,6 +92,30 @@ export default function ChildFamily() {
           <Btn variant="ghost" label="+ Thêm người nhận cảnh báo" onPress={() => setAdding(true)} />
         )}
       </Card>
+
+      {connected && (
+        <>
+          <T size={13} weight="700" color={colors.muted}>MÁY CỦA CON, CHÁU</T>
+          <Card style={{ gap: 8 }}>
+            <T size={14} color={colors.muted}>
+              Bạn đổi điện thoại, hoặc anh chị em muốn cùng theo dõi? Tạo mã, nhập trên máy mới (mục “Đổi điện thoại? Lấy lại gia đình đã có”), rồi bấm Đồng ý ở đây.
+            </T>
+            {childCode && (
+              <View style={{ gap: 2 }}>
+                <T size={15} weight="700" color={colors.green}>Mã cho máy mới: {formatCode(childCode.code)}</T>
+                <T size={13} color={colors.muted}>Hết hạn {hm(new Date(childCode.expiresAt))} {formatShortDate(new Date(childCode.expiresAt))}</T>
+              </View>
+            )}
+            <Btn
+              variant="secondary"
+              label={childCode ? 'Tạo mã khác' : 'Tạo mã cho máy mới'}
+              height={44}
+              size={14}
+              onPress={() => newChildPairing().catch(() => notify('Chưa tạo được mã', 'Kiểm tra kết nối mạng rồi thử lại.'))}
+            />
+          </Card>
+        </>
+      )}
 
       <Btn variant="secondary" label="Cài đặt (cảnh báo, cỡ chữ)" onPress={() => router.push('/child/settings')} />
 
