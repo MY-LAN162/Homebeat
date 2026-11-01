@@ -1,22 +1,53 @@
 // Đồng bộ dữ liệu giữa máy của bố mẹ và máy của con.
 //
-// TRẠNG THÁI: CHƯA LÀM. Bản hiện tại lưu dữ liệu trên từng máy, nên:
-//  - Máy bố mẹ: nhắc thuốc, điểm danh, SOS (gọi điện + SMS kèm vị trí) chạy được độc lập.
-//  - Máy con: chưa nhận được dữ liệu thật từ máy bố mẹ. Phải nối máy chủ thì mới theo dõi từ xa được.
+// - Bản cài thật: src/services/firebaseSync.ts (Firebase Auth ẩn danh + Firestore + Cloud Functions).
+// - Bản trong bộ nhớ để kiểm thử: src/services/memorySync.ts.
+// - SyncEngine (src/services/syncEngine.ts) nối FamilySync với kho dữ liệu của app.
 //
-// Bước tiếp theo: cài một FamilySync dùng máy chủ (ví dụ Firebase Firestore + Cloud Messaging,
-// hoặc Supabase), rồi gọi nó từ src/state/store.tsx thay cho AsyncStorage.
-import type { AppData, BpReading, Checkin, DoseLog, SosEvent } from '../domain/types';
+// Chưa điền cấu hình Firebase (.env) thì app chạy như trước: chỉ lưu trên máy.
+import type { RemoteSnapshot, SyncWrite } from '../domain/syncdiff';
+import type { Pairing, Role } from '../domain/types';
+
+/** Lỗi khi bố mẹ nhập mã kết nối. */
+export type RedeemError = 'format' | 'wrong' | 'expired' | 'too-many' | 'network';
+
+export class SyncError extends Error {
+  constructor(public reason: RedeemError, message?: string) {
+    super(message ?? reason);
+  }
+}
+
+export interface DeviceInfo {
+  role: Role;
+  /** Máy bố mẹ: bố/mẹ nào dùng máy này. */
+  memberId?: string;
+  /** Mã nhận thông báo đẩy (Expo push token). Máy con cần để nhận cảnh báo. */
+  pushToken?: string;
+  platform?: string;
+}
 
 export interface FamilySync {
-  /** Đăng nhập / tạo gia đình, trả về mã gia đình. */
-  connect(familyId?: string): Promise<string>;
-  /** Đổi mã 6 số lấy quyền vào gia đình (máy bố mẹ). */
+  /** Đăng nhập (ẩn danh), trả về mã người dùng. Gọi nhiều lần vẫn là một người. */
+  signIn(): Promise<string>;
+  /** Máy con tạo gia đình mới, trả về mã gia đình. */
+  createFamily(): Promise<string>;
+  /** Máy con tạo mã 6 số cho một bố/mẹ. */
+  createPairingCode(familyId: string, memberId: string): Promise<Pairing>;
+  /** Máy bố mẹ đổi mã 6 số lấy quyền vào gia đình. Lỗi thì ném SyncError. */
   redeemPairingCode(code: string): Promise<{ familyId: string; memberId: string }>;
-  /** Đẩy sự kiện từ máy bố mẹ lên. */
-  pushEvent(e: { kind: 'dose'; log: DoseLog } | { kind: 'checkin'; c: Checkin } | { kind: 'bp'; r: BpReading } | { kind: 'sos'; e: SosEvent }): Promise<void>;
-  /** Máy bố mẹ báo "còn sống" định kỳ (pin, thời điểm). */
-  heartbeat(memberId: string, battery?: number): Promise<void>;
-  /** Máy con nghe thay đổi của cả gia đình. Trả về hàm hủy. */
-  subscribe(onData: (data: Partial<AppData>) => void): () => void;
+  /** Ghi các thay đổi lên máy chủ. */
+  apply(familyId: string, writes: SyncWrite[]): Promise<void>;
+  /** Máy bố mẹ báo "còn sống" (thời điểm, pin). */
+  heartbeat(familyId: string, memberId: string, battery?: number): Promise<void>;
+  /** Ghi thông tin máy này (vai trò, mã nhận thông báo). */
+  registerDevice(familyId: string, info: DeviceInfo): Promise<void>;
+  /**
+   * Nghe thay đổi của cả gia đình. `pending` = bản này còn thay đổi của chính máy chưa lên tới máy chủ.
+   * Trả về hàm hủy.
+   */
+  subscribe(
+    familyId: string,
+    onData: (snap: RemoteSnapshot, pending: boolean) => void,
+    onError?: (e: Error) => void,
+  ): () => void;
 }

@@ -129,6 +129,10 @@ export interface AppData {
   appointments: Appointment[];
   settings: AlertSettings;
   pairing?: Pairing;
+  /** Mã gia đình trên máy chủ đồng bộ. Chưa có = chỉ lưu trên máy. */
+  familyId?: string;
+  /** Đang xem dữ liệu mẫu: không bao giờ gửi lên máy chủ. */
+  demo?: boolean;
 }
 
 export const DEFAULT_SETTINGS: AlertSettings = {

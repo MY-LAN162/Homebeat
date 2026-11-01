@@ -30,7 +30,9 @@ export default function ChildFamily() {
             {p ? (
               <T size={15} weight="700" color={colors.green}>Mã kết nối: {formatCode(p.code)}</T>
             ) : (
-              <Btn variant="secondary" label="Tạo mã kết nối mới" height={44} size={14} onPress={() => newPairing(m.id)} />
+              <Btn variant="secondary" label="Tạo mã kết nối mới" height={44} size={14} onPress={() =>
+                  newPairing(m.id).catch(() => Alert.alert('Chưa tạo được mã', 'Kiểm tra kết nối mạng rồi thử lại.'))
+                } />
             )}
           </Card>
         );

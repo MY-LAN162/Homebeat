@@ -47,7 +47,7 @@ function Stat({ label, value, warn }: { label: string; value: string; warn?: boo
 }
 
 export default function ChildHome() {
-  const { data, now } = useStore();
+  const { data, now, syncError } = useStore();
   const alerts = familyAlerts(data, now).filter((a) => a.level !== 'info');
   const today = dateKey(now);
   const me = [...data.caregivers].sort((a, b) => a.order - b.order)[0];
@@ -103,11 +103,21 @@ export default function ChildHome() {
         );
       })}
 
-      <Banner tone="blue">
-        <T size={13} color={colors.blueDark}>
-          Bản thử: dữ liệu đang lưu trên máy này. Khi nối máy chủ, thông tin từ máy của bố mẹ sẽ tự cập nhật ở đây.
-        </T>
-      </Banner>
+      {!data.familyId || data.demo ? (
+        <Banner tone="blue">
+          <T size={13} color={colors.blueDark}>
+            Bản thử: dữ liệu đang lưu trên máy này. Khi nối máy chủ, thông tin từ máy của bố mẹ sẽ tự cập nhật ở đây.
+          </T>
+        </Banner>
+      ) : (
+        syncError && (
+          <Banner tone="blue">
+            <T size={13} color={colors.blueDark}>
+              Chưa cập nhật được từ máy chủ. Kiểm tra kết nối mạng.
+            </T>
+          </Banner>
+        )
+      )}
     </Screen>
   );
 }

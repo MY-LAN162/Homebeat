@@ -22,7 +22,10 @@ export function formatCode(code: string): string {
   return code.length === 6 ? `${code.slice(0, 3)} ${code.slice(3)}` : code;
 }
 
-export type PairResult = { ok: true; memberId: string } | { ok: false; reason: 'format' | 'wrong' | 'expired' };
+export type PairResult =
+  | { ok: true; memberId: string }
+  /** too-many: nhập sai quá nhiều lần; network: không gọi được máy chủ. */
+  | { ok: false; reason: 'format' | 'wrong' | 'expired' | 'too-many' | 'network' };
 
 export function checkCode(input: string, pairing: Pairing | undefined, now: Date): PairResult {
   const code = input.replace(/\s/g, '');

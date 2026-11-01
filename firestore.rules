@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// Luật bảo mật cho An Tâm.
+// Chỉ người trong gia đình (uid có trong families/{id}.uids) mới đọc / ghi được dữ liệu gia đình đó.
+// Người vào gia đình bằng mã 6 số qua Cloud Function redeemPairingCode (máy chủ thêm uid), không tự thêm được.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isMember(familyId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/families/$(familyId))
+        && request.auth.uid in get(/databases/$(database)/documents/families/$(familyId)).data.uids;
+    }
+
+    match /families/{familyId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.uids;
+      // Tạo gia đình mới: chỉ có chính mình trong danh sách.
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.uids == [request.auth.uid];
+      // Người trong gia đình chỉ được sửa cài đặt cảnh báo, không sửa danh sách người.
+      allow update: if isMember(familyId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['settings']);
+      allow delete: if false;
+
+      // Dữ liệu gia đình: người, người nhận cảnh báo, thuốc, lịch khám, sự kiện.
+      match /{coll}/{docId} {
+        allow read, write: if isMember(familyId)
+          && coll in ['members', 'caregivers', 'medications', 'appointments',
+                      'doseLogs', 'checkins', 'bpReadings', 'sosEvents'];
+      }
+      // Nhịp "còn sống" của máy bố mẹ.
+      match /heartbeats/{memberId} {
+        allow read: if isMember(familyId);
+        allow write: if isMember(familyId) && request.resource.data.uid == request.auth.uid;
+      }
+      // Thông tin từng máy (vai trò, mã nhận thông báo): mỗi máy chỉ sửa của chính mình.
+      match /devices/{uid} {
+        allow read: if isMember(familyId);
+        allow write: if isMember(familyId) && uid == request.auth.uid
+          && (!('role' in request.resource.data) || request.resource.data.role in ['child', 'parent']);
+      }
+      // sentAlerts: chỉ máy chủ dùng (chống gửi trùng).
+    }
+
+    // Mã kết nối 6 số: người trong gia đình tạo; không ai đọc được (máy chủ kiểm tra hộ).
+    // Tạo đè mã đang có bị tính là sửa → bị từ chối, app tự thử mã khác.
+    match /pairingCodes/{code} {
+      allow create: if code.matches('^[0-9]{6}$')
+        && request.resource.data.createdBy == request.auth.uid
+        && isMember(request.resource.data.familyId);
+    }
+
+    // pairingAttempts: chỉ máy chủ dùng (giới hạn số lần nhập mã).
+  }
+}

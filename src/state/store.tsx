@@ -1,7 +1,9 @@
-// Kho dữ liệu của app. Hiện lưu trên máy (AsyncStorage).
-// Khi có máy chủ đồng bộ, thay `storage` bằng một FamilySync (xem src/services/sync.ts).
+// Kho dữ liệu của app. Luôn lưu trên máy (AsyncStorage) để chạy được khi mất mạng.
+// Khi đã cấu hình Firebase (.env) và gia đình đã có mã trên máy chủ (familyId),
+// mọi thay đổi được gửi lên máy chủ và nhận về qua SyncEngine (src/services/syncEngine.ts).
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { AppState } from 'react-native';
 import { checkCode, createPairing, type PairResult } from '../domain/pairing';
 import { consumeStock, logSlot, type DoseSlot } from '../domain/schedule';
 import { demoData } from '../domain/seed';
@@ -16,9 +18,20 @@ import type {
   Role,
 } from '../domain/types';
 import { emptyData } from '../domain/types';
-import { rescheduleMedReminders } from '../services/notifications';
+import { emptyShared, mergeRemote, shared, type SharedData } from '../domain/syncdiff';
+import { getFamilySync } from '../services/firebaseSync';
+import { getPushToken, rescheduleMedReminders } from '../services/notifications';
+import { SyncError, type FamilySync } from '../services/sync';
+import { SyncEngine } from '../services/syncEngine';
 
 const KEY = 'homebeat:data:v1';
+/** Bản dữ liệu máy chủ đã xác nhận (mốc so sánh khi gửi thay đổi). */
+const BASE_KEY = 'homebeat:synced:v1';
+/** Máy bố mẹ báo "còn sống" mỗi 15 phút khi đang mở app. */
+const HEARTBEAT_MS = 15 * 60_000;
+
+/** Mốc cho gia đình mới tạo: chưa có gì trên máy chủ, cài đặt cảnh báo luôn được gửi lên. */
+const freshBase = (): SharedData => emptyShared({} as AppData['settings']);
 
 let counter = 0;
 export const newId = (prefix: string) => `${prefix}_${Date.now().toString(36)}_${(counter++).toString(36)}`;
@@ -27,13 +40,18 @@ interface Store {
   ready: boolean;
   data: AppData;
   now: Date;
+  /** Đã cấu hình máy chủ đồng bộ (Firebase) chưa. */
+  syncEnabled: boolean;
+  /** Lỗi đồng bộ gần nhất (để hiện cho người dùng). */
+  syncError?: string;
   setRole: (role: Role | undefined) => void;
   /** Con tạo gia đình: thêm bố/mẹ đầu tiên và tạo mã kết nối. */
   addMember: (m: Omit<Member, 'id'>) => Member;
   updateMember: (id: string, patch: Partial<Member>) => void;
-  newPairing: (memberId: string) => void;
-  /** Bố mẹ nhập mã. Bản chạy một máy: kiểm tra với mã đã tạo trên chính máy này. */
-  pair: (code: string) => PairResult;
+  /** Tạo mã kết nối. Có máy chủ: tạo gia đình (nếu chưa có) và mã trên máy chủ. Lỗi thì ném lỗi. */
+  newPairing: (memberId: string) => Promise<void>;
+  /** Bố mẹ nhập mã. Chưa có máy chủ: kiểm tra với mã đã tạo trên chính máy này. */
+  pair: (code: string) => Promise<PairResult>;
   setCurrentMember: (id: string) => void;
   upsertCaregiver: (c: Omit<Caregiver, 'id'> & { id?: string }) => void;
   removeCaregiver: (id: string) => void;
@@ -52,16 +70,21 @@ interface Store {
 
 const Ctx = createContext<Store | null>(null);
 
-export function StoreProvider({ children }: { children: ReactNode }) {
+export function StoreProvider({ children, sync = getFamilySync() }: { children: ReactNode; sync?: FamilySync }) {
   const [data, setData] = useState<AppData>(emptyData);
   const [ready, setReady] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const [syncError, setSyncError] = useState<string>();
   const loaded = useRef(false);
+  const baseRef = useRef<SharedData | undefined>(undefined);
+  const engineRef = useRef<SyncEngine | undefined>(undefined);
+  const dataRef = useRef(data);
 
   useEffect(() => {
-    AsyncStorage.getItem(KEY)
-      .then((raw) => {
+    Promise.all([AsyncStorage.getItem(KEY), AsyncStorage.getItem(BASE_KEY)])
+      .then(([raw, base]) => {
         if (raw) setData({ ...emptyData(), ...(JSON.parse(raw) as AppData) });
+        if (base) baseRef.current = JSON.parse(base) as SharedData;
       })
       .catch(() => undefined)
       .finally(() => {
@@ -73,9 +96,71 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    dataRef.current = data;
     if (!loaded.current) return;
     AsyncStorage.setItem(KEY, JSON.stringify(data)).catch(() => undefined);
+    engineRef.current?.push(shared(data));
   }, [data]);
+
+  // Nối máy chủ khi gia đình đã có mã trên máy chủ.
+  const familyId = sync && !data.demo ? data.familyId : undefined;
+  useEffect(() => {
+    if (!ready || !sync || !familyId) return;
+    const engine = new SyncEngine({
+      sync,
+      familyId,
+      base: baseRef.current ?? freshBase(),
+      onRemote: (snap) => {
+        setSyncError(undefined);
+        setData((d) => mergeRemote(d, snap));
+      },
+      saveAcked: (b) => {
+        baseRef.current = b;
+        AsyncStorage.setItem(BASE_KEY, JSON.stringify(b)).catch(() => undefined);
+      },
+      onError: (e) => setSyncError(e.message),
+    });
+    let stopped = false;
+    sync
+      .signIn()
+      .then(() => {
+        if (stopped) return;
+        engineRef.current = engine;
+        // Gửi những gì trên máy còn khác máy chủ (gia đình mới tạo, sửa khi mất mạng rồi tắt app...).
+        engine.start(shared(dataRef.current));
+      })
+      .catch((e: Error) => setSyncError(e.message));
+    return () => {
+      stopped = true;
+      engine.stop();
+      if (engineRef.current === engine) engineRef.current = undefined;
+    };
+  }, [ready, sync, familyId]);
+
+  // Ghi thông tin máy (vai trò, mã nhận thông báo đẩy) để máy chủ biết gửi cảnh báo cho ai.
+  useEffect(() => {
+    if (!ready || !sync || !familyId || !data.role) return;
+    const role = data.role;
+    const memberId = role === 'parent' ? data.currentMemberId : undefined;
+    getPushToken()
+      .catch(() => undefined)
+      .then((pushToken) => sync.registerDevice(familyId, { role, memberId, pushToken }))
+      .catch(() => undefined);
+  }, [ready, sync, familyId, data.role, data.currentMemberId]);
+
+  // Máy bố mẹ báo "còn sống": khi mở app, khi quay lại app và mỗi 15 phút.
+  const beatMember = data.role === 'parent' ? data.currentMemberId : undefined;
+  useEffect(() => {
+    if (!ready || !sync || !familyId || !beatMember) return;
+    const beat = () => sync.heartbeat(familyId, beatMember).catch(() => undefined);
+    beat();
+    const t = setInterval(beat, HEARTBEAT_MS);
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && beat());
+    return () => {
+      clearInterval(t);
+      sub.remove();
+    };
+  }, [ready, sync, familyId, beatMember]);
 
   // Đặt lại nhắc thuốc khi lịch thuốc hoặc người dùng máy thay đổi.
   const medKey = JSON.stringify([data.role, data.currentMemberId, data.medications.map((m) => [m.memberId, m.name, m.times])]);
@@ -93,6 +178,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ready,
       data,
       now,
+      syncEnabled: !!sync,
+      syncError,
       setRole: (role) => update((d) => ({ ...d, role })),
       addMember: (m) => {
         const member: Member = { ...m, id: newId('m') };
@@ -101,11 +188,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       updateMember: (id, patch) =>
         update((d) => ({ ...d, members: d.members.map((m) => (m.id === id ? { ...m, ...patch } : m)) })),
-      newPairing: (memberId) => update((d) => ({ ...d, pairing: createPairing(memberId, new Date()) })),
-      pair: (code) => {
-        const res = checkCode(code, data.pairing, new Date());
-        if (res.ok) update((d) => ({ ...d, role: 'parent', currentMemberId: res.memberId }));
-        return res;
+      newPairing: async (memberId) => {
+        if (!sync || data.demo) {
+          update((d) => ({ ...d, pairing: createPairing(memberId, new Date()) }));
+          return;
+        }
+        await sync.signIn();
+        let fid = data.familyId;
+        if (!fid) {
+          fid = await sync.createFamily();
+          baseRef.current = freshBase();
+          await AsyncStorage.removeItem(BASE_KEY).catch(() => undefined);
+          const created = fid;
+          update((d) => ({ ...d, familyId: created }));
+        }
+        const pairing = await sync.createPairingCode(fid, memberId);
+        update((d) => ({ ...d, pairing }));
+      },
+      pair: async (code) => {
+        if (!sync) {
+          const res = checkCode(code, data.pairing, new Date());
+          if (res.ok) update((d) => ({ ...d, role: 'parent', currentMemberId: res.memberId }));
+          return res;
+        }
+        if (!/^\d{6}$/.test(code.replace(/\s/g, ''))) return { ok: false, reason: 'format' };
+        try {
+          const { familyId: fid, memberId } = await sync.redeemPairingCode(code);
+          // Máy bố mẹ bắt đầu từ dữ liệu của gia đình trên máy chủ, bỏ dữ liệu cũ trên máy (vd dữ liệu mẫu).
+          const fresh = emptyData();
+          baseRef.current = shared(fresh);
+          await AsyncStorage.setItem(BASE_KEY, JSON.stringify(baseRef.current)).catch(() => undefined);
+          setData({ ...fresh, role: 'parent', familyId: fid, currentMemberId: memberId });
+          return { ok: true, memberId };
+        } catch (e) {
+          return { ok: false, reason: e instanceof SyncError ? e.reason : 'network' };
+        }
       },
       setCurrentMember: (id) => update((d) => ({ ...d, currentMemberId: id })),
       upsertCaregiver: (c) =>
@@ -152,10 +269,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return { ...d, appointments: exists ? d.appointments.map((x) => (x.id === id ? next : x)) : [...d.appointments, next] };
         }),
       updateSettings: (patch) => update((d) => ({ ...d, settings: { ...d.settings, ...patch } })),
-      loadDemo: () => setData(demoData(new Date())),
-      reset: () => setData(emptyData()),
+      loadDemo: () => setData({ ...demoData(new Date()), demo: true }),
+      reset: () => {
+        baseRef.current = undefined;
+        AsyncStorage.removeItem(BASE_KEY).catch(() => undefined);
+        setData(emptyData());
+      },
     };
-  }, [data, now, ready, update]);
+  }, [data, now, ready, update, sync, syncError]);
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }

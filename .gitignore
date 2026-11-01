@@ -36,3 +36,11 @@ coverage/
 Thumbs.db
 .idea/
 .vscode/
+
+# Firebase
+functions/node_modules/
+functions/lib/
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log

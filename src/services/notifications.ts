@@ -1,4 +1,5 @@
 // Nhắc uống thuốc bằng thông báo cục bộ trên máy của bố mẹ (không cần internet).
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { medPrompt } from '../domain/address';
@@ -7,6 +8,8 @@ import type { AppData } from '../domain/types';
 import { toMinutes } from '../domain/time';
 
 const CHANNEL = 'thuoc';
+/** Kênh cho cảnh báo máy chủ gửi về máy con (phải trùng channelId trong functions/src/push.ts). */
+export const ALERT_CHANNEL = 'canh-bao';
 const supported = Platform.OS !== 'web';
 
 export function setupNotifications() {
@@ -26,7 +29,27 @@ export function setupNotifications() {
       vibrationPattern: [0, 400, 200, 400],
       sound: 'default',
     }).catch(() => undefined);
+    Notifications.setNotificationChannelAsync(ALERT_CHANNEL, {
+      name: 'Cảnh báo về bố mẹ',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 600, 200, 600],
+      sound: 'default',
+    }).catch(() => undefined);
   }
+}
+
+/**
+ * Mã nhận thông báo đẩy của máy này (Expo push token), để máy chủ gửi cảnh báo cho con.
+ * Cần mã dự án EAS (app.json › extra.eas.projectId) và đã cho phép thông báo. Thiếu thì trả undefined.
+ */
+export async function getPushToken(): Promise<string | undefined> {
+  if (!supported) return undefined;
+  if (!(await hasPermission())) return undefined;
+  const projectId =
+    (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId ??
+    Constants.easConfig?.projectId;
+  if (!projectId) return undefined;
+  return (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 }
 
 export async function askPermission(): Promise<boolean> {

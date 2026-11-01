@@ -27,13 +27,23 @@ Viết bằng **React Native (Expo SDK 57)**, chạy được trên cả Android
 - **Tab Gia đình:** người được chăm sóc, mã kết nối 6 số, thứ tự người nhận cảnh báo (kể cả hàng xóm, chỉ báo khi SOS).
 - **Cài đặt cảnh báo:** ngưỡng trễ thuốc, giờ điểm danh, mức huyết áp, bỏ qua giờ ngủ.
 
+**Máy chủ đồng bộ (Firebase)** — code đã xong, cần tạo dự án Firebase để chạy thật (xem mục *Máy chủ đồng bộ* bên dưới):
+
+- **Ghép máy bằng mã 6 số:** con tạo mã trên máy mình, bố mẹ nhập mã trên máy bố mẹ. Mã dùng 1 lần, hết hạn sau 24 giờ, nhập sai quá 5 lần trong 10 phút thì phải chờ.
+- **Đồng bộ hai chiều:** con nhập thuốc, lịch khám, người nhận cảnh báo, cài đặt → máy bố mẹ nhận. Bố mẹ uống thuốc, điểm danh, đo huyết áp, bấm SOS → máy con thấy ngay.
+- **Mất mạng vẫn chạy:** dữ liệu vẫn lưu trên máy; có mạng lại thì tự gửi phần còn thiếu.
+- **Nhịp "còn sống":** máy bố mẹ báo lên máy chủ khi mở app và 15 phút một lần khi đang mở.
+- **Thông báo đẩy cho con:** SOS gửi ngay; trễ thuốc, chưa điểm danh, huyết áp cao, báo "không khỏe" thì máy chủ kiểm tra 5 phút một lần và gửi (mỗi cảnh báo 1 lần/ngày).
+- Chưa điền cấu hình Firebase thì app chạy như cũ (chỉ lưu trên máy).
+
 ### Chưa làm
 
-1. **Máy chủ đồng bộ.** Đây là việc quan trọng nhất. Hiện dữ liệu chỉ lưu trên từng máy, nên máy của con chưa nhận được dữ liệu thật từ máy bố mẹ. Giao diện đồng bộ đã định nghĩa sẵn ở `src/services/sync.ts`; cần cài bằng Firebase hoặc Supabase, cùng thông báo đẩy cho con.
-2. **Mã kết nối giữa hai máy.** Phụ thuộc vào máy chủ ở mục 1. Hiện mã chỉ dùng được trên chính máy đã tạo mã (để thử).
-3. **Cảnh báo "không di chuyển / mất tín hiệu".** Logic đã có (`src/domain/alerts.ts`), nhưng cần máy chủ và nhịp báo định kỳ từ máy bố mẹ.
-4. **Các tính năng AI** (đã có thiết kế, chưa lập trình): quét đơn thuốc, gợi ý câu hỏi cho bác sĩ, ghi âm và tóm tắt buổi khám.
-5. **Chụp ảnh viên thuốc.** Trường `photoUri` đã có, còn thiếu màn hình chụp ảnh.
+1. **Tạo dự án Firebase thật** và điền cấu hình (xem bên dưới). Cần mã dự án EAS để máy con nhận được thông báo đẩy.
+2. **Cảnh báo "mất tín hiệu" qua thông báo đẩy.** Máy bố mẹ hiện chỉ báo "còn sống" khi đang mở app, nên máy chủ CHƯA gửi loại cảnh báo này (tránh báo nhầm). Cần thêm chạy nền trên máy bố mẹ. Trong app của con, dòng "Mất tín hiệu" vẫn hiện theo `lastSeenAt`.
+3. **Nhiều con cùng theo dõi một gia đình.** Hiện mỗi gia đình do một máy con tạo; chưa có cách mời thêm máy con khác.
+4. **Pin máy bố mẹ:** trường `battery` đã có nhưng chưa đọc pin (cần thêm `expo-battery`).
+5. **Các tính năng AI** (đã có thiết kế, chưa lập trình): quét đơn thuốc, gợi ý câu hỏi cho bác sĩ, ghi âm và tóm tắt buổi khám.
+6. **Chụp ảnh viên thuốc.** Trường `photoUri` đã có, còn thiếu màn hình chụp ảnh.
 
 Ở chế độ thử, có thể xem cả hai vai trò trên một máy: chọn **Dùng thử với dữ liệu mẫu**, rồi vào **Gia đình › Xem màn hình của bố**.
 
@@ -48,10 +58,44 @@ Quét mã QR bằng app **Expo Go** trên điện thoại. Nếu thông báo nh�
 
 Bản chạy trên trình duyệt (để xem nhanh giao diện): `npx expo start --web`.
 
+## Máy chủ đồng bộ
+
+Cấu trúc:
+
+| File | Việc |
+|---|---|
+| `src/domain/syncdiff.ts` | Phần thuần: tính cần ghi gì lên máy chủ, gộp dữ liệu máy chủ về máy |
+| `src/services/sync.ts` | Giao diện `FamilySync` |
+| `src/services/firebaseSync.ts` | Cài `FamilySync` bằng Firebase (Auth ẩn danh, Firestore, Cloud Functions) |
+| `src/services/syncEngine.ts` | Nối kho dữ liệu của app với máy chủ |
+| `src/services/memorySync.ts` | Máy chủ giả trong bộ nhớ, dùng cho kiểm thử |
+| `firestore.rules` | Luật bảo mật: chỉ người trong gia đình đọc/ghi được |
+| `functions/` | Cloud Functions: đổi mã kết nối, gửi SOS, kiểm tra cảnh báo định kỳ |
+
+Các bước chạy thật:
+
+1. Tạo dự án ở [Firebase console](https://console.firebase.google.com), gói **Blaze** (Cloud Functions cần gói này).
+2. Bật **Authentication › Anonymous**, tạo **Firestore** (khu vực `asia-southeast1`).
+3. Thêm **Web app**, chép cấu hình vào file `.env` (mẫu ở `.env.example`).
+4. Cài công cụ và triển khai luật + functions:
+
+   ```bash
+   npm --prefix functions install
+   npx firebase-tools login
+   npx firebase-tools use --add
+   npx firebase-tools deploy --only firestore,functions
+   ```
+
+5. Thông báo đẩy cho con: tạo dự án EAS (`npx eas-cli@latest init`, sẽ thêm `extra.eas.projectId` vào `app.json`) và dùng bản development build.
+
+Giờ địa phương cho cảnh báo mặc định là giờ Việt Nam (đổi bằng biến `APP_TZ` của functions).
+
 ## Kiểm tra
 
 ```bash
-npm test            # 18 bài kiểm thử cho lịch thuốc, cảnh báo, xưng hô, mã kết nối
+npm test            # 29 bài kiểm thử: lịch thuốc, cảnh báo, xưng hô, mã kết nối, đồng bộ hai máy
+npm --prefix functions test         # 5 bài kiểm thử logic máy chủ
+npm --prefix functions run test:rules   # 5 bài kiểm thử luật bảo mật (cần Java, chạy trên Firestore Emulator)
 npm run typecheck   # kiểm tra kiểu TypeScript
 npx expo lint
 ```

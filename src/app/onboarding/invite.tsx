@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Share, View } from 'react-native';
+import { Alert, Share, View } from 'react-native';
 import { Back, Btn, Card, Chip, Field, H1, Screen, T } from '../../components/ui';
 import { medPrompt, okLabel } from '../../domain/address';
 import { formatCode } from '../../domain/pairing';
@@ -12,7 +12,7 @@ const CALLS: CallName[] = ['Bố', 'Mẹ', 'Ông', 'Bà'];
 const SELVES: SelfName[] = ['Con', 'Cháu'];
 
 export default function InviteScreen() {
-  const { data, addMember, upsertCaregiver, newPairing, setRole } = useStore();
+  const { data, addMember, upsertCaregiver, newPairing, setRole, syncEnabled } = useStore();
   const [name, setName] = useState('');
   const [call, setCall] = useState<CallName>('Bố');
   const [self, setSelf] = useState<SelfName>('Con');
@@ -20,16 +20,28 @@ export default function InviteScreen() {
   const [myName, setMyName] = useState('');
   const [myPhone, setMyPhone] = useState('');
   const [memberId, setMemberId] = useState<string>();
+  const [busy, setBusy] = useState(false);
 
   const preview = { call, self, name: name || '...' };
   const pairing = data.pairing && data.pairing.memberId === memberId ? data.pairing : undefined;
   const canCreate = name.trim().length > 0 && (data.caregivers.length > 0 || myName.trim().length > 0);
 
-  const create = () => {
+  const create = async () => {
     const m = addMember({ name: name.trim(), call, self, phone: phone.trim() });
     if (!data.caregivers.length) upsertCaregiver({ name: myName.trim(), phone: myPhone.trim(), order: 1 });
-    newPairing(m.id);
     setMemberId(m.id);
+    await makeCode(m.id);
+  };
+
+  const makeCode = async (id: string) => {
+    setBusy(true);
+    try {
+      await newPairing(id);
+    } catch {
+      Alert.alert('Chưa tạo được mã', 'Kiểm tra kết nối mạng rồi bấm "Tạo lại mã".');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -84,6 +96,9 @@ export default function InviteScreen() {
               {pairing ? formatCode(pairing.code) : '...'}
             </T>
             <T size={13} color={colors.muted}>Hết hạn sau 24 giờ</T>
+            {!pairing && !busy && memberId && (
+              <Btn variant="secondary" label="Tạo lại mã" onPress={() => makeCode(memberId)} style={{ alignSelf: 'stretch' }} />
+            )}
             <Btn
               variant="blue"
               label="Gửi mã (Zalo, tin nhắn...)"
@@ -95,7 +110,9 @@ export default function InviteScreen() {
             />
           </Card>
           <T size={14} color={colors.muted}>
-            Bản hiện tại chưa có máy chủ đồng bộ: mã chỉ dùng được trên chính máy này (để thử). Khi có máy chủ, bố mẹ nhập mã trên máy của mình.
+            {syncEnabled
+              ? 'Cài An Tâm trên máy của bố mẹ, chọn "Tôi là bố, mẹ" rồi nhập mã này.'
+              : 'Chưa cấu hình máy chủ đồng bộ: mã chỉ dùng được trên chính máy này (để thử).'}
           </T>
           <View style={{ flex: 1 }} />
           <Btn

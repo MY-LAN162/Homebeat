@@ -5,12 +5,21 @@ import { Back, Btn, H1, Screen, T } from '../../components/ui';
 import { useStore } from '../../state/store';
 import { colors } from '../../theme';
 
+const PAIR_ERRORS = {
+  format: 'Mã chưa đúng. Bố mẹ kiểm tra lại với con nhé.',
+  wrong: 'Mã chưa đúng. Bố mẹ kiểm tra lại với con nhé.',
+  expired: 'Mã đã hết hạn. Nhờ con tạo mã mới.',
+  'too-many': 'Nhập sai nhiều lần quá. Chờ 10 phút rồi thử lại nhé.',
+  network: 'Chưa kết nối được. Bố mẹ kiểm tra mạng (wifi, 4G) rồi thử lại.',
+} as const;
+
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'del'];
 
 export default function PairScreen() {
   const { pair } = useStore();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
 
   const press = (k: string) => {
     setError(undefined);
@@ -19,15 +28,12 @@ export default function PairScreen() {
     else setCode((c) => (c.length < 6 ? c + k : c));
   };
 
-  const submit = () => {
-    const r = pair(code);
+  const submit = async () => {
+    setBusy(true);
+    const r = await pair(code);
+    setBusy(false);
     if (r.ok) router.replace('/onboarding/permissions');
-    else
-      setError(
-        r.reason === 'expired'
-          ? 'Mã đã hết hạn. Nhờ con tạo mã mới.'
-          : 'Mã chưa đúng. Bố mẹ kiểm tra lại với con nhé.',
-      );
+    else setError(PAIR_ERRORS[r.reason]);
   };
 
   return (
@@ -89,8 +95,8 @@ export default function PairScreen() {
       )}
       <View style={{ flex: 1 }} />
       <Btn
-        label={code.length === 6 ? 'Kết nối với con' : `Còn ${6 - code.length} số nữa`}
-        disabled={code.length < 6}
+        label={busy ? 'Đang kết nối...' : code.length === 6 ? 'Kết nối với con' : `Còn ${6 - code.length} số nữa`}
+        disabled={code.length < 6 || busy}
         height={72}
         size={22}
         onPress={submit}
