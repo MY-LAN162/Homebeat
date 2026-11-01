@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Share, View } from 'react-native';
+import { Share, View } from 'react-native';
+import { notify } from '../../services/dialog';
 import { Back, Btn, Card, Chip, Field, H1, Screen, T } from '../../components/ui';
 import { medPrompt, okLabel } from '../../domain/address';
 import { formatCode } from '../../domain/pairing';
@@ -38,7 +39,7 @@ export default function InviteScreen() {
     try {
       await newPairing(id);
     } catch {
-      Alert.alert('Chưa tạo được mã', 'Kiểm tra kết nối mạng rồi bấm "Tạo lại mã".');
+      notify('Chưa tạo được mã', 'Kiểm tra kết nối mạng rồi bấm "Tạo lại mã".');
     } finally {
       setBusy(false);
     }

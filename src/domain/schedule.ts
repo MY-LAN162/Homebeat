@@ -97,7 +97,10 @@ export function adherence(
   let scheduled = 0;
   for (let i = 0; i < days; i++) {
     const day = addDays(now, -i);
-    for (const slot of slotsForDay(meds, logs, memberId, day, now, Number.MAX_SAFE_INTEGER)) {
+    const key = dateKey(day);
+    // Thuốc thêm sau ngày này thì ngày này chưa phải uống.
+    const active = meds.filter((m) => !m.createdAt || dateKey(new Date(m.createdAt)) <= key);
+    for (const slot of slotsForDay(active, logs, memberId, day, now, Number.MAX_SAFE_INTEGER)) {
       if (slot.status === 'upcoming') continue;
       scheduled += 1;
       if (slot.status === 'taken') taken += 1;

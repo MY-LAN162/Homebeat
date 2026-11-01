@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
+import { confirm, notify } from '../../services/dialog';
 import { Btn, Card, Field, H1, Screen, T } from '../../components/ui';
 import { displayName } from '../../domain/address';
 import { formatCode } from '../../domain/pairing';
@@ -31,7 +32,7 @@ export default function ChildFamily() {
               <T size={15} weight="700" color={colors.green}>Mã kết nối: {formatCode(p.code)}</T>
             ) : (
               <Btn variant="secondary" label="Tạo mã kết nối mới" height={44} size={14} onPress={() =>
-                  newPairing(m.id).catch(() => Alert.alert('Chưa tạo được mã', 'Kiểm tra kết nối mạng rồi thử lại.'))
+                  newPairing(m.id).catch(() => notify('Chưa tạo được mã', 'Kiểm tra kết nối mạng rồi thử lại.'))
                 } />
             )}
           </Card>
@@ -50,7 +51,9 @@ export default function ChildFamily() {
               <T size={15} weight="700">{c.name}</T>
               <T size={13} color={colors.muted}>{c.phone || 'Chưa có số'}{c.sosOnly ? ' · chỉ khi SOS' : ''}</T>
             </View>
-            <Btn variant="ghost" label="Bỏ" height={36} size={13} onPress={() => removeCaregiver(c.id)} />
+            <Btn variant="ghost" label="Bỏ" height={36} size={13} onPress={() =>
+              confirm(`Bỏ ${c.name}?`, `${c.name} sẽ không nhận cảnh báo nữa.`, 'Bỏ').then((ok) => ok && removeCaregiver(c.id))
+            } />
           </View>
         ))}
         {adding ? (
@@ -101,10 +104,11 @@ export default function ChildFamily() {
           size={14}
           label="Xóa toàn bộ dữ liệu"
           onPress={() =>
-            Alert.alert('Xóa toàn bộ dữ liệu?', 'Không khôi phục được.', [
-              { text: 'Hủy', style: 'cancel' },
-              { text: 'Xóa', style: 'destructive', onPress: () => { reset(); router.replace('/'); } },
-            ])
+            confirm('Xóa toàn bộ dữ liệu?', 'Không khôi phục được.', 'Xóa').then((ok) => {
+              if (!ok) return;
+              reset();
+              router.replace('/');
+            })
           }
         />
       </Card>

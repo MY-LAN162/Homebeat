@@ -3,6 +3,7 @@ import { displayName } from './address';
 import { daysOfStock, slotsForDay } from './schedule';
 import type { AppData, Member } from './types';
 import { atTime, dateKey, formatDuration, inWindow } from './time';
+import { toZone } from './tz';
 
 export type AlertLevel = 'urgent' | 'warn' | 'info';
 
@@ -16,18 +17,24 @@ export interface FamilyAlert {
   detail?: string;
 }
 
+/** Mã để ghi nhớ cảnh báo con đã tắt trong ngày. */
+export const alertKey = (memberId: string, kind: AlertKind, now: Date) => `${dateKey(now)}_${memberId}_${kind}`;
+
 const LEVEL_ORDER: Record<AlertLevel, number> = { urgent: 0, warn: 1, info: 2 };
 
 export function isBpHigh(sys: number, dia: number, s: { bpSys: number; bpDia: number }): boolean {
   return sys >= s.bpSys || dia >= s.bpDia;
 }
 
-export function memberAlerts(data: AppData, member: Member, now: Date): FamilyAlert[] {
+export function memberAlerts(data: AppData, member: Member, realNow: Date): FamilyAlert[] {
   const s = data.settings;
+  // Giờ ở nơi bố mẹ sống (con có thể ở nước khác).
+  const now = toZone(realNow, s.timeZone);
+  const local = (iso: string) => toZone(new Date(iso), s.timeZone);
   const today = dateKey(now);
   const name = displayName(member);
   const out: FamilyAlert[] = [];
-  const isToday = (iso: string) => dateKey(new Date(iso)) === today;
+  const isToday = (iso: string) => dateKey(local(iso)) === today;
 
   const sos = data.sosEvents.filter((e) => e.memberId === member.id && !e.cancelled && isToday(e.at));
   if (sos.length) {
@@ -37,7 +44,7 @@ export function memberAlerts(data: AppData, member: Member, now: Date): FamilyAl
       level: 'urgent',
       kind: 'sos',
       title: `${name} bấm SOS`,
-      detail: `Lúc ${new Date(last.at).toTimeString().slice(0, 5)}`,
+      detail: `Lúc ${local(last.at).toTimeString().slice(0, 5)}`,
     });
   }
 
@@ -87,7 +94,7 @@ export function memberAlerts(data: AppData, member: Member, now: Date): FamilyAl
   }
 
   if (member.lastSeenAt) {
-    const mins = (now.getTime() - new Date(member.lastSeenAt).getTime()) / 60000;
+    const mins = (realNow.getTime() - new Date(member.lastSeenAt).getTime()) / 60000;
     const sleeping = s.excludeSleep && inWindow(now, s.sleepStart, s.sleepEnd);
     if (mins >= s.stillHours * 60 && !sleeping) {
       out.push({

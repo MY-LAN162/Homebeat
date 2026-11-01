@@ -21,6 +21,12 @@ export default function ChildLayout() {
       <Tabs.Screen name="member/[id]" options={{ href: null }} />
       <Tabs.Screen name="med-edit" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen name="scan" options={{ href: null }} />
+      <Tabs.Screen name="scan-confirm" options={{ href: null }} />
+      <Tabs.Screen name="visit-prep" options={{ href: null }} />
+      <Tabs.Screen name="visit-record" options={{ href: null }} />
+      <Tabs.Screen name="visit-summary" options={{ href: null }} />
+      <Tabs.Screen name="alert" options={{ href: null }} />
     </Tabs>
   );
 }

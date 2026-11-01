@@ -1,6 +1,7 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
-import { Banner, Btn, Card, Chip, Field, H1, Screen, T } from '../../components/ui';
+import { Pressable, View } from 'react-native';
+import { Btn, Card, Chip, Field, H1, Screen, T } from '../../components/ui';
 import { displayName } from '../../domain/address';
 import { formatShortDate, hm, isValidTime } from '../../domain/time';
 import { useStore } from '../../state/store';
@@ -24,7 +25,8 @@ export default function ChildVisits() {
   const [day, setDay] = useState('');
   const [time, setTime] = useState('08:00');
   const [companion, setCompanion] = useState('');
-  const [memberId, setMemberId] = useState(data.members[0]?.id);
+  const [picked, setMemberId] = useState<string>();
+  const memberId = picked ?? data.members[0]?.id;
 
   const list = [...data.appointments].sort((a, b) => a.at.localeCompare(b.at));
   const upcoming = list.filter((a) => new Date(a.at) >= now);
@@ -77,7 +79,8 @@ export default function ChildVisits() {
         const d = new Date(a.at);
         const days = Math.ceil((d.getTime() - now.getTime()) / 86400_000);
         return (
-          <Card key={a.id} style={{ flexDirection: 'row', gap: 14, alignItems: 'center', borderWidth: days <= 7 ? 2 : 0, borderColor: colors.blue }}>
+          <Pressable key={a.id} accessibilityRole="button" accessibilityLabel={`${a.title}. Chuẩn bị đi khám`} onPress={() => router.push({ pathname: '/child/visit-prep', params: { id: a.id } })}>
+          <Card style={{ flexDirection: 'row', gap: 14, alignItems: 'center', borderWidth: days <= 7 ? 2 : 0, borderColor: colors.blue }}>
             <View style={{ width: 60, height: 60, borderRadius: 12, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' }}>
               <T size={20} weight="700" color={colors.white}>{d.getDate()}/{d.getMonth() + 1}</T>
             </View>
@@ -86,24 +89,30 @@ export default function ChildVisits() {
               <T size={13} color={colors.muted}>
                 {formatShortDate(d)} {hm(d)}{a.companion ? ` · ${a.companion} đưa đi` : ' · chưa có người đưa đi'} · còn {days} ngày
               </T>
+              <T size={14} weight="700" color={colors.blue}>
+                {a.questions.length ? `${a.questions.length} câu hỏi cho bác sĩ` : 'Chuẩn bị câu hỏi'} ›
+              </T>
             </View>
           </Card>
+          </Pressable>
         );
       })}
 
       {!!past.length && <T size={13} weight="700" color={colors.muted}>ĐÃ KHÁM</T>}
       {past.map((a) => (
-        <Card key={a.id}>
-          <T size={15} weight="700">{a.title} · {name(a.memberId)}</T>
-          <T size={13} color={colors.muted}>{formatShortDate(new Date(a.at))}</T>
-        </Card>
+        <Pressable
+          key={a.id}
+          accessibilityRole="button"
+          onPress={() => router.push({ pathname: a.transcript ? '/child/visit-summary' : '/child/visit-prep', params: { id: a.id } })}
+        >
+          <Card>
+            <T size={15} weight="700">{a.title} · {name(a.memberId)}</T>
+            <T size={13} color={colors.muted}>{formatShortDate(new Date(a.at))}</T>
+            <T size={14} weight="700" color={colors.green}>{a.transcript ? 'Xem tóm tắt buổi khám ›' : 'Ghi lại buổi khám ›'}</T>
+          </Card>
+        </Pressable>
       ))}
 
-      <Banner tone="blue">
-        <T size={13} color={colors.blueDark}>
-          Chuẩn bị câu hỏi, ghi âm và tóm tắt buổi khám bằng AI: sẽ có ở bản sau.
-        </T>
-      </Banner>
     </Screen>
   );
 }

@@ -64,6 +64,8 @@ interface Store {
   cancelSos: (id: string) => void;
   upsertAppointment: (a: Omit<Appointment, 'id'> & { id?: string }) => void;
   updateSettings: (patch: Partial<AlertSettings>) => void;
+  /** Con bấm "ổn rồi, tắt cảnh báo" (chỉ ẩn trong hôm nay, trên máy này). */
+  dismissAlert: (key: string) => void;
   loadDemo: () => void;
   reset: () => void;
 }
@@ -237,7 +239,8 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
         update((d) => {
           const id = m.id ?? newId('t');
           const exists = d.medications.some((x) => x.id === id);
-          const next = { ...m, id } as Medication;
+          const next = { ...m, id, createdAt: m.createdAt ?? (exists ? undefined : new Date().toISOString()) } as Medication;
+          if (!next.createdAt) delete next.createdAt;
           return { ...d, medications: exists ? d.medications.map((x) => (x.id === id ? next : x)) : [...d.medications, next] };
         }),
       removeMedication: (id) => update((d) => ({ ...d, medications: d.medications.filter((m) => m.id !== id) })),
@@ -269,6 +272,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
           return { ...d, appointments: exists ? d.appointments.map((x) => (x.id === id ? next : x)) : [...d.appointments, next] };
         }),
       updateSettings: (patch) => update((d) => ({ ...d, settings: { ...d.settings, ...patch } })),
+      dismissAlert: (key) => update((d) => ({ ...d, dismissed: [...(d.dismissed ?? []).slice(-50), key] })),
       loadDemo: () => setData({ ...demoData(new Date()), demo: true }),
       reset: () => {
         baseRef.current = undefined;

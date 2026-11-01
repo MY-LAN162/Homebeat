@@ -44,6 +44,8 @@ export interface Medication {
   note?: string;
   /** Ảnh viên thuốc do con chụp (uri). */
   photoUri?: string;
+  /** Ngày thêm thuốc (ISO). Tỷ lệ uống thuốc chỉ tính từ ngày này. */
+  createdAt?: string;
 }
 
 export type DoseStatus = 'taken' | 'skipped';
@@ -92,6 +94,12 @@ export interface Appointment {
   place?: string;
   companion?: string;
   questions: string[];
+  /** Câu hỏi đã hỏi bác sĩ (đánh dấu trong lúc khám). */
+  asked?: string[];
+  /** Đồ cần mang theo. Chưa có thì dùng danh sách mặc định. */
+  bring?: string[];
+  /** Lời bác sĩ đã chuyển thành chữ (hoặc con tự ghi). */
+  transcript?: string;
 }
 
 export interface AlertSettings {
@@ -106,6 +114,11 @@ export interface AlertSettings {
   excludeSleep: boolean;
   sleepStart: string;
   sleepEnd: string;
+  /**
+   * Múi giờ nơi bố mẹ sống (vd "Asia/Ho_Chi_Minh"). Giờ uống thuốc, giờ điểm danh, giờ ngủ tính theo múi giờ này,
+   * kể cả khi con ở nước khác. Trống = theo giờ của điện thoại.
+   */
+  timeZone?: string;
 }
 
 export interface Pairing {
@@ -133,6 +146,8 @@ export interface AppData {
   familyId?: string;
   /** Đang xem dữ liệu mẫu: không bao giờ gửi lên máy chủ. */
   demo?: boolean;
+  /** Cảnh báo con đã bấm "ổn rồi, tắt cảnh báo" (chỉ trên máy này). */
+  dismissed?: string[];
 }
 
 export const DEFAULT_SETTINGS: AlertSettings = {

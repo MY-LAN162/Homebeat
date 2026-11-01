@@ -1,6 +1,8 @@
 import { router } from 'expo-router';
-import { Switch, View } from 'react-native';
-import { Back, Card, Chip, H1, Screen, T } from '../../components/ui';
+import { useState } from 'react';
+import { Pressable, Switch, View } from 'react-native';
+import { Back, Btn, Card, Chip, H1, Screen, T } from '../../components/ui';
+import { deviceTimeZone, TIME_ZONES, zoneLabel } from '../../domain/tz';
 import { useStore } from '../../state/store';
 import { colors } from '../../theme';
 
@@ -35,6 +37,8 @@ export default function AlertSettings() {
   const { data, updateSettings } = useStore();
   const s = data.settings;
   const bpKey = `${s.bpSys}/${s.bpDia}`;
+  const [pickTz, setPickTz] = useState(false);
+  const mine = deviceTimeZone();
   return (
     <Screen>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -42,6 +46,34 @@ export default function AlertSettings() {
         <H1 size={22}>Khi nào báo cho con?</H1>
       </View>
       <T size={13} color={colors.muted}>Ngưỡng càng ngắn càng dễ báo nhầm.</T>
+      <Card style={{ gap: 8 }}>
+        <T size={15} weight="700">Bố mẹ đang sống ở đâu?</T>
+        <T size={13} color={colors.muted}>Giờ uống thuốc, giờ điểm danh, giờ ngủ tính theo giờ ở nơi này, kể cả khi bạn ở nước khác.</T>
+        <T size={16} weight="700" color={colors.green}>{zoneLabel(s.timeZone)}</T>
+        {!pickTz ? (
+          <Btn variant="secondary" label="Đổi nơi sống" height={44} size={15} onPress={() => setPickTz(true)} />
+        ) : (
+          <View style={{ gap: 6 }}>
+            {[{ id: undefined as string | undefined, label: `Theo giờ điện thoại này${mine ? ` (${mine})` : ''}` }, ...TIME_ZONES].map((z) => {
+              const on = z.id === s.timeZone;
+              return (
+                <Pressable
+                  key={z.id ?? 'device'}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on }}
+                  onPress={() => {
+                    updateSettings({ timeZone: z.id });
+                    setPickTz(false);
+                  }}
+                  style={{ padding: 12, borderRadius: 12, borderWidth: 2, borderColor: on ? colors.green : colors.line, backgroundColor: on ? colors.greenSoft : colors.white }}
+                >
+                  <T size={15} weight={on ? '700' : '400'}>{z.id ? zoneLabel(z.id) : z.label}</T>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+      </Card>
       <Group title="Trễ thuốc quá" options={[15, 30, 60]} value={s.lateMinutes} onPick={(v) => updateSettings({ lateMinutes: v })} label={(v) => `${v} phút`} />
       <Group title="Mất tín hiệu / không di chuyển quá" options={[2, 3, 5]} value={s.stillHours} onPick={(v) => updateSettings({ stillHours: v })} label={(v) => `${v} giờ`} />
       <Group title='Chưa bấm "ổn" trước' options={['09:00', '10:00', '12:00']} value={s.checkinBy} onPick={(v) => updateSettings({ checkinBy: v })} label={(v) => v} />

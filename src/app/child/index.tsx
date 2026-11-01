@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { Banner, Btn, Card, H1, Screen, T } from '../../components/ui';
 import { displayName } from '../../domain/address';
-import { familyAlerts, memberAlerts, memberStatus, type FamilyAlert } from '../../domain/alerts';
+import { alertKey, familyAlerts, memberAlerts, memberStatus, type FamilyAlert } from '../../domain/alerts';
 import { slotsForDay } from '../../domain/schedule';
 import { dateKey, formatShortDate, hm } from '../../domain/time';
 import type { Member } from '../../domain/types';
@@ -25,15 +25,21 @@ const MOOD = { good: 'Khỏe', tired: 'Hơi mệt', unwell: 'Không khỏe' };
 function AlertRow({ a, member }: { a: FamilyAlert; member?: Member }) {
   const t = TONE[a.level];
   return (
-    <View style={{ backgroundColor: t.bg, borderRadius: 16, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${a.title}. Xem chi tiết`}
+      onPress={() => router.push({ pathname: '/child/alert', params: { memberId: a.memberId, kind: a.kind } })}
+      style={({ pressed }) => ({ backgroundColor: t.bg, borderRadius: 16, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10, opacity: pressed ? 0.85 : 1 })}
+    >
       <View style={{ flex: 1 }}>
-        <T size={15} weight="700" color={t.fg}>{a.title}</T>
-        {!!a.detail && <T size={13} color={t.fg}>{a.detail}</T>}
+        <T size={16} weight="700" color={t.fg}>{a.title}</T>
+        {!!a.detail && <T size={14} color={t.fg}>{a.detail}</T>}
+        <T size={13} weight="600" color={t.fg}>Xem chi tiết ›</T>
       </View>
       {member?.phone && a.level !== 'info' ? (
         <Btn label={`Gọi ${member.call.toLowerCase()}`} height={40} size={14} variant={a.level === 'urgent' ? 'danger' : 'primary'} onPress={() => call(member.phone)} />
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -48,7 +54,9 @@ function Stat({ label, value, warn }: { label: string; value: string; warn?: boo
 
 export default function ChildHome() {
   const { data, now, syncError } = useStore();
-  const alerts = familyAlerts(data, now).filter((a) => a.level !== 'info');
+  const alerts = familyAlerts(data, now).filter(
+    (a) => a.level !== 'info' && !data.dismissed?.includes(alertKey(a.memberId, a.kind, now)),
+  );
   const today = dateKey(now);
   const me = [...data.caregivers].sort((a, b) => a.order - b.order)[0];
 

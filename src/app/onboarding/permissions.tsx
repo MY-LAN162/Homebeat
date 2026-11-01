@@ -1,7 +1,8 @@
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Linking, Platform, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
+import { confirm } from '../../services/dialog';
 import { Banner, Btn, Card, H1, Screen, T } from '../../components/ui';
 import { askPermission, hasPermission, rescheduleMedReminders } from '../../services/notifications';
 import { useCurrentMember, useStore } from '../../state/store';
@@ -68,16 +69,15 @@ export default function PermissionsScreen() {
         done={false}
         action="Chỉ cách"
         onPress={() =>
-          Alert.alert(
+          confirm(
             'Giữ An Tâm luôn chạy',
-            Platform.OS === 'android'
-              ? 'Vào Cài đặt > Ứng dụng > An Tâm > Pin, chọn "Không giới hạn". Trên một số máy (Xiaomi, Oppo, Vivo...) cần bật thêm "Tự khởi động".'
-              : 'Vào Cài đặt > An Tâm, bật Thông báo và Làm mới trong nền.',
-            [
-              { text: 'Mở Cài đặt', onPress: () => Linking.openSettings() },
-              { text: 'Đóng', style: 'cancel' },
-            ],
-          )
+            Platform.OS === 'ios'
+              ? 'Vào Cài đặt > An Tâm, bật Thông báo và Làm mới trong nền.'
+              : 'Vào Cài đặt > Ứng dụng > An Tâm > Pin, chọn "Không giới hạn". Trên một số máy (Xiaomi, Oppo, Vivo...) cần bật thêm "Tự khởi động".',
+            'Mở Cài đặt',
+          ).then((ok) => {
+            if (ok && Platform.OS !== 'web') void Linking.openSettings();
+          })
         }
       />
       <View style={{ flex: 1 }} />

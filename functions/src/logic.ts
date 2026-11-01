@@ -20,6 +20,8 @@ export function buildAppData(snap: RemoteSnapshot): AppData {
   const base = emptyData();
   const data = mergeRemote(base, snap);
   data.settings = { ...DEFAULT_SETTINGS, ...(snap.settings ?? {}) };
+  // Gia đình chưa chọn nơi sống của bố mẹ thì dùng múi giờ mặc định của máy chủ (APP_TZ, mặc định Việt Nam).
+  data.settings.timeZone ??= process.env.APP_TZ || 'Asia/Ho_Chi_Minh';
   return data;
 }
 

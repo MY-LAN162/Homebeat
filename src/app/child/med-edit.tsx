@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Switch, View } from 'react-native';
+import { Switch, View } from 'react-native';
+import { confirm } from '../../services/dialog';
 import { Back, Btn, Card, Chip, Field, H1, Screen, T } from '../../components/ui';
 import { isValidTime, toMinutes } from '../../domain/time';
 import { useStore } from '../../state/store';
@@ -94,10 +95,11 @@ export default function MedEdit() {
           variant="ghost"
           label="Xóa thuốc này"
           onPress={() =>
-            Alert.alert('Xóa thuốc?', existing.name, [
-              { text: 'Hủy', style: 'cancel' },
-              { text: 'Xóa', style: 'destructive', onPress: () => { removeMedication(existing.id); router.back(); } },
-            ])
+            confirm('Xóa thuốc này?', `${existing.name} sẽ không còn được nhắc nữa.`, 'Xóa').then((ok) => {
+              if (!ok) return;
+              removeMedication(existing.id);
+              router.back();
+            })
           }
         />
       )}

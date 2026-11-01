@@ -17,6 +17,12 @@ export default function ChildMeds() {
   return (
     <Screen>
       <H1 size={26}>Thuốc của bố mẹ</H1>
+      <Btn
+        variant="blue"
+        label="📷  Quét đơn thuốc"
+        onPress={() => router.push({ pathname: '/child/scan', params: memberId ? { memberId } : {} })}
+        disabled={!memberId}
+      />
       <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
         {data.members.map((m) => (
           <Chip key={m.id} label={displayName(m)} on={m.id === memberId} onPress={() => setWho(m.id)} />
