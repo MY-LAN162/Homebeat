@@ -26,6 +26,10 @@ beforeEach(async () => {
 });
 
 const as = (uid: string) => env.authenticatedContext(uid).firestore();
+// Dữ liệu đúng dạng, giống app ghi.
+const MED = { id: 'amlo', memberId: 'bo', name: 'Amlodipin 5mg', pillsPerDose: 1, times: ['07:00'], afterMeal: true, stockPills: 30 };
+const DOSE = { memberId: 'bo', medId: 'amlo', date: '2026-10-01', time: '07:00', status: 'taken', at: '2026-10-01T00:05:00.000Z' };
+const SOS = { id: 's', memberId: 'bo', at: '2026-10-01T00:05:00.000Z', cancelled: false, lat: 21.03, lng: 105.85 };
 
 test('tạo gia đình: chỉ được có chính mình', async () => {
   await assertSucceeds(setDoc(doc(as('a'), 'families', 'f2'), { ownerUid: 'a', uids: ['a'] }));
@@ -34,13 +38,37 @@ test('tạo gia đình: chỉ được có chính mình', async () => {
 });
 
 test('người trong gia đình đọc/ghi được, người ngoài thì không', async () => {
-  await assertSucceeds(setDoc(doc(as('con'), 'families', FAM, 'medications', 'amlo'), { id: 'amlo', name: 'Amlodipin' }));
+  await assertSucceeds(setDoc(doc(as('con'), 'families', FAM, 'medications', 'amlo'), MED));
   await assertSucceeds(getDoc(doc(as('bo'), 'families', FAM, 'medications', 'amlo')));
-  await assertSucceeds(setDoc(doc(as('bo'), 'families', FAM, 'doseLogs', 'x'), { at: 'x' }));
+  await assertSucceeds(setDoc(doc(as('bo'), 'families', FAM, 'doseLogs', 'x'), DOSE));
   await assertFails(getDoc(doc(as('la'), 'families', FAM, 'medications', 'amlo')));
-  await assertFails(setDoc(doc(as('la'), 'families', FAM, 'sosEvents', 's'), { at: 'x' }));
+  await assertFails(setDoc(doc(as('la'), 'families', FAM, 'sosEvents', 's'), SOS));
   await assertFails(getDoc(doc(as('la'), 'families', FAM)));
   await assertFails(setDoc(doc(as('con'), 'families', FAM, 'khac', 'x'), { a: 1 }));
+});
+
+test('dữ liệu phải đúng dạng: trường lạ, số vô lý, chữ quá dài, giờ sai đều bị từ chối', async () => {
+  const fam = (c: string, id: string) => doc(as('con'), 'families', FAM, c, id);
+  const BP = { memberId: 'bo', at: '2026-10-01T01:00:00.000Z', sys: 135, dia: 85, pulse: 76 };
+  await assertSucceeds(setDoc(fam('bpReadings', 'b1'), BP));
+  await assertFails(setDoc(fam('bpReadings', 'b2'), { ...BP, sys: 999 }));
+  await assertFails(setDoc(fam('bpReadings', 'b3'), { ...BP, sys: '135' }));
+  await assertFails(setDoc(fam('bpReadings', 'b4'), { ...BP, hacker: true }));
+  await assertFails(setDoc(fam('medications', 'amlo'), { ...MED, name: 'x'.repeat(101) }));
+  await assertFails(setDoc(fam('medications', 'amlo'), { ...MED, name: '' }));
+  await assertFails(setDoc(fam('medications', 'khac'), MED));
+  await assertFails(setDoc(fam('doseLogs', 'd2'), { ...DOSE, time: '7h sáng' }));
+  await assertFails(setDoc(fam('doseLogs', 'd3'), { ...DOSE, status: 'maybe' }));
+  await assertFails(setDoc(fam('checkins', 'c1'), { memberId: 'bo', at: 'x', mood: 'happy', symptoms: [] }));
+  await assertSucceeds(setDoc(fam('checkins', 'c2'), { memberId: 'bo', at: 'x', mood: 'tired', symptoms: ['Đau đầu'] }));
+  await assertFails(setDoc(fam('sosEvents', 's2'), { ...SOS, id: 's2', lat: 200 }));
+  await assertFails(setDoc(fam('members', 'm1'), { id: 'm1', name: 'Hùng', call: 'Chú', self: 'Con' }));
+  await assertSucceeds(setDoc(fam('members', 'm1'), { id: 'm1', name: 'Hùng', call: 'Bố', self: 'Con', phone: '0912345678' }));
+  await assertFails(updateDoc(doc(as('con'), 'families', FAM), { settings: { lateMinutes: 1 } }));
+  await assertFails(updateDoc(doc(as('con'), 'families', FAM), { settings: { lateMinutes: 30, x: 1 } }));
+  await assertFails(setDoc(doc(as('bo'), 'families', FAM, 'heartbeats', 'bo'), { at: 'x', uid: 'bo', battery: 150 }));
+  await assertFails(setDoc(doc(as('con'), 'families', FAM, 'devices', 'con'), { role: 'child', pushToken: 'x'.repeat(301) }));
+  await assertSucceeds(deleteDoc(fam('bpReadings', 'b1')));
 });
 
 test('không tự thêm mình vào gia đình, chỉ sửa được cài đặt', async () => {

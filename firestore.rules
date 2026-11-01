@@ -22,6 +22,60 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/families/$(familyId)/joinRequests/$(added[0]));
     }
     // Mã kết nối có 2 loại: role 'parent' (máy của bố/mẹ, kèm memberId) và 'child' (máy mới của con, memberId rỗng).
+    // ---- Kiểm tra dữ liệu ----
+    function str(v, max) { return v is string && v.size() <= max; }
+    function optStr(d, k, max) { return !(k in d) || str(d[k], max); }
+    function num(v, lo, hi) { return (v is int || v is float) && v >= lo && v <= hi; }
+    function optNum(d, k, lo, hi) { return !(k in d) || num(d[k], lo, hi); }
+    function optBool(d, k) { return !(k in d) || d[k] is bool; }
+    function hhmm(v) { return v is string && v.matches('^[0-2][0-9]:[0-5][0-9]$'); }
+    function day(v) { return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
+    function list(v, max) { return v is list && v.size() <= max; }
+    function optList(d, k, max) { return !(k in d) || list(d[k], max); }
+    function validDoc(coll, id, d) {
+      return (coll == 'members'
+          && d.keys().hasOnly(['id', 'name', 'call', 'self', 'phone', 'note'])
+          && d.id == id && str(d.name, 60) && d.call in ['Bố', 'Mẹ', 'Ông', 'Bà'] && d.self in ['Con', 'Cháu']
+          && optStr(d, 'phone', 20) && optStr(d, 'note', 300))
+        || (coll == 'caregivers'
+          && d.keys().hasOnly(['id', 'name', 'phone', 'order', 'sosOnly'])
+          && d.id == id && str(d.name, 60) && str(d.phone, 20) && num(d.order, 0, 100) && optBool(d, 'sosOnly'))
+        || (coll == 'medications'
+          && d.keys().hasOnly(['id', 'memberId', 'name', 'purpose', 'pillsPerDose', 'times', 'afterMeal', 'stockPills', 'note', 'photoUri', 'createdAt'])
+          && d.id == id && str(d.memberId, 80) && str(d.name, 100) && d.name.size() > 0
+          && num(d.pillsPerDose, 0, 20) && list(d.times, 12) && optBool(d, 'afterMeal')
+          && optNum(d, 'stockPills', 0, 100000) && optStr(d, 'purpose', 100) && optStr(d, 'note', 300)
+          && optStr(d, 'photoUri', 2000) && optStr(d, 'createdAt', 40))
+        || (coll == 'appointments'
+          && d.keys().hasOnly(['id', 'memberId', 'title', 'at', 'place', 'companion', 'questions', 'asked', 'bring', 'transcript', 'shareTranscript'])
+          && d.id == id && str(d.memberId, 80) && str(d.title, 120) && str(d.at, 40)
+          && optStr(d, 'place', 120) && optStr(d, 'companion', 60) && list(d.questions, 30)
+          && optList(d, 'asked', 30) && optList(d, 'bring', 20) && optStr(d, 'transcript', 20000) && optBool(d, 'shareTranscript'))
+        || (coll == 'doseLogs'
+          && d.keys().hasOnly(['memberId', 'medId', 'date', 'time', 'status', 'at'])
+          && str(d.memberId, 80) && str(d.medId, 80) && day(d.date) && hhmm(d.time)
+          && d.status in ['taken', 'skipped'] && str(d.at, 40))
+        || (coll == 'checkins'
+          && d.keys().hasOnly(['memberId', 'at', 'mood', 'symptoms'])
+          && str(d.memberId, 80) && str(d.at, 40) && d.mood in ['good', 'tired', 'unwell'] && list(d.symptoms, 12))
+        || (coll == 'bpReadings'
+          && d.keys().hasOnly(['memberId', 'at', 'sys', 'dia', 'pulse'])
+          && str(d.memberId, 80) && str(d.at, 40)
+          && num(d.sys, 40, 300) && num(d.dia, 20, 200) && num(d.pulse, 20, 250))
+        || (coll == 'sosEvents'
+          && d.keys().hasOnly(['id', 'memberId', 'at', 'cancelled', 'lat', 'lng'])
+          && d.id == id && str(d.memberId, 80) && str(d.at, 40) && d.cancelled is bool
+          && optNum(d, 'lat', -90, 90) && optNum(d, 'lng', -180, 180));
+    }
+    function validSettings(s) {
+      return s is map
+        && s.keys().hasOnly(['lateMinutes', 'stillHours', 'checkinBy', 'bpSys', 'bpDia', 'excludeSleep', 'sleepStart', 'sleepEnd', 'timeZone', 'autoSpeak'])
+        && optNum(s, 'lateMinutes', 5, 240) && optNum(s, 'stillHours', 1, 48)
+        && (!('checkinBy' in s) || hhmm(s.checkinBy)) && optNum(s, 'bpSys', 80, 250) && optNum(s, 'bpDia', 40, 150)
+        && optBool(s, 'excludeSleep') && (!('sleepStart' in s) || hhmm(s.sleepStart)) && (!('sleepEnd' in s) || hhmm(s.sleepEnd))
+        && optStr(s, 'timeZone', 60) && optBool(s, 'autoSpeak');
+    }
+
     function removesAllowed() {
       let removed = resource.data.uids.removeAll(request.resource.data.uids);
       return resource.data.uids.hasAll(request.resource.data.uids)
@@ -52,7 +106,7 @@ service cloud.firestore {
       // Gỡ máy: chỉ người tạo gia đình (chủ) gỡ được máy khác; máy khác chỉ tự rời được; chủ không tự gỡ mình.
       // Chuyển quyền chủ: chỉ chủ, cho một máy đang trong gia đình.
       allow update: if isMember(familyId) && (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['settings'])
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['settings']) && validSettings(request.resource.data.settings))
         || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uids']) && (
           addsOneRequester(familyId) || removesAllowed()
         ))
@@ -63,27 +117,37 @@ service cloud.firestore {
       allow delete: if false;
 
       // Dữ liệu gia đình: người, người nhận cảnh báo, thuốc, lịch khám, sự kiện.
+      // Đọc / xóa: người trong gia đình. Ghi: người trong gia đình, VÀ dữ liệu phải đúng dạng
+      // (đúng trường, đúng kiểu, độ dài giới hạn, số trong khoảng hợp lý) để máy lỗi hay mã độc không ghi được rác.
       match /{coll}/{docId} {
-        allow read, write: if isMember(familyId)
+        allow read, delete: if isMember(familyId)
           && coll in ['members', 'caregivers', 'medications', 'appointments',
                       'doseLogs', 'checkins', 'bpReadings', 'sosEvents'];
+        allow create, update: if isMember(familyId) && validDoc(coll, docId, request.resource.data);
       }
       // Nhịp "còn sống" của máy bố mẹ.
       match /heartbeats/{memberId} {
         allow read: if isMember(familyId);
-        allow write: if isMember(familyId) && request.resource.data.uid == request.auth.uid;
+        allow write: if isMember(familyId) && request.resource.data.uid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['at', 'battery', 'uid'])
+          && str(request.resource.data.at, 40) && optNum(request.resource.data, 'battery', 0, 100);
       }
       // Thông tin từng máy (vai trò, mã nhận thông báo): mỗi máy chỉ sửa của chính mình.
       match /devices/{uid} {
         allow read: if isMember(familyId);
         allow delete: if isMember(familyId) && (uid == request.auth.uid || isOwner(familyId));
         allow create, update: if isMember(familyId) && uid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['role', 'memberId', 'pushToken', 'platform', 'updatedAt', 'joinedAt'])
+          && optStr(request.resource.data, 'pushToken', 300) && optStr(request.resource.data, 'memberId', 80)
+          && optStr(request.resource.data, 'platform', 20)
           && (!('role' in request.resource.data) || request.resource.data.role in ['child', 'parent']);
       }
       // Yêu cầu vào gia đình: máy mới tự tạo (phải có mã đúng, còn hạn); người trong gia đình
       // đồng ý / từ chối. Máy mới đọc được yêu cầu của chính mình để biết kết quả.
       match /joinRequests/{uid} {
         allow create: if signedIn() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['uid', 'code', 'memberId', 'role', 'status', 'device', 'at'])
+          && optStr(request.resource.data, 'device', 40) && optStr(request.resource.data, 'at', 40)
           && request.resource.data.uid == uid
           && request.resource.data.status == 'pending'
           && request.resource.data.role in ['parent', 'child']

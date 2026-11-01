@@ -93,6 +93,24 @@ const fsGet = async (p) => (await fetch(`http://127.0.0.1:8080/v1/projects/demo-
   await step('Máy con: thấy bố đã điểm danh "Khỏe"', async () => {
     await vis(con, /· Khỏe$/).waitFor({ timeout: 15000 });
   });
+  await step('Con thêm thuốc → máy bố thấy lịch thuốc (dữ liệu đúng dạng được máy chủ nhận)', async () => {
+    await con.goto(URL + 'child/med-edit');
+    await con.getByRole('textbox', { name: 'Tên thuốc và hàm lượng', exact: true }).fill('Amlodipin 5mg');
+    await con.getByRole('textbox', { name: 'Số viên còn lại (để báo sắp hết)', exact: true }).fill('30');
+    await vis(con, '21:00').click();
+    await vis(con, 'Lưu và tạo lịch nhắc').click();
+    await vis(con, /Thuốc của bố mẹ|Bố mẹ hôm nay/).waitFor({ timeout: 15000 });
+    const t0 = Date.now();
+    await bo.getByText(/(07|21):00 · 1 viên/).first().waitFor({ state: 'attached', timeout: 30000 });
+    console.log(`   máy bố nhận thuốc sau ${((Date.now() - t0) / 1000).toFixed(1)} giây`);
+  });
+  await step('Bố nhập huyết áp → máy con thấy', async () => {
+    await bo.goto(URL + 'parent/bp');
+    await vis(bo, 'Lưu và gửi cho các con').click();
+    await vis(bo, 'Con ơi, bố ổn').waitFor({ timeout: 15000 }).catch(() => undefined);
+    await con.goto(URL + 'child');
+    await vis(con, /^\d{2,3}\/\d{2,3}$/).waitFor({ timeout: 15000 });
+  });
   await step('Máy lạ dùng lại mã cũ → báo mã chưa đúng', async () => {
     await la.goto(URL); await la.getByText('Tôi là bố, mẹ').click(); await enterCode(la, code);
     await vis(la, /Mã chưa đúng/).waitFor({ timeout: 15000 });
