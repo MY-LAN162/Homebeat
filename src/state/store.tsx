@@ -19,7 +19,9 @@ import type {
 } from '../domain/types';
 import { emptyData } from '../domain/types';
 import { emptyShared, mergeRemote, shared, type SharedData } from '../domain/syncdiff';
+import { bpPush, checkinPush, sosPush, type PushMessage } from '../domain/pushRules';
 import { getFamilySync } from '../services/firebaseSync';
+import { sendPush } from '../services/push';
 import { getPushToken, rescheduleMedReminders } from '../services/notifications';
 import { SyncError, type FamilySync, type JoinRequest } from '../services/sync';
 import { SyncEngine } from '../services/syncEngine';
@@ -216,6 +218,14 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
 
   const store = useMemo<Store>(() => {
     const iso = () => new Date().toISOString();
+    // Máy bố mẹ tự gửi thông báo cho các con (miễn phí, không cần máy chủ riêng). Chạy ngầm, không chặn màn hình.
+    const alertChildren = (msg: PushMessage) => {
+      if (!sync || !familyId || data.role !== 'parent') return;
+      sync
+        .childPushTokens(familyId)
+        .then((tokens) => sendPush(tokens, msg))
+        .catch(() => undefined);
+    };
     return {
       ready,
       data,
@@ -301,13 +311,23 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
           ],
           medications: status === 'taken' ? consumeStock(d.medications, slot) : d.medications,
         })),
-      checkin: (memberId, mood, symptoms) =>
-        update((d) => ({ ...d, checkins: [...d.checkins, { memberId, mood, symptoms, at: iso() }] })),
-      addBp: (memberId, sys, dia, pulse) =>
-        update((d) => ({ ...d, bpReadings: [...d.bpReadings, { memberId, sys, dia, pulse, at: iso() }] })),
+      checkin: (memberId, mood, symptoms) => {
+        update((d) => ({ ...d, checkins: [...d.checkins, { memberId, mood, symptoms, at: iso() }] }));
+        const m = data.members.find((x) => x.id === memberId);
+        const msg = m && checkinPush(m, mood, symptoms);
+        if (msg) alertChildren(msg);
+      },
+      addBp: (memberId, sys, dia, pulse) => {
+        update((d) => ({ ...d, bpReadings: [...d.bpReadings, { memberId, sys, dia, pulse, at: iso() }] }));
+        const m = data.members.find((x) => x.id === memberId);
+        const msg = m && bpPush(m, sys, dia, data.settings);
+        if (msg) alertChildren(msg);
+      },
       startSos: (memberId, loc) => {
         const id = newId('sos');
         update((d) => ({ ...d, sosEvents: [...d.sosEvents, { id, memberId, at: iso(), cancelled: false, ...loc }] }));
+        const m = data.members.find((x) => x.id === memberId);
+        if (m) alertChildren(sosPush(m, new Date(), loc));
         return id;
       },
       cancelSos: (id) =>
