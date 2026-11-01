@@ -144,6 +144,13 @@ export class MemorySync implements FamilySync {
     this.server.notifyRequests(familyId);
   }
 
+  async deleteFamily(familyId: string) {
+    const f = this.server.family(familyId, this.uid);
+    if (f.owner !== this.uid) throw new Error('permission-denied');
+    this.server.families.delete(familyId);
+    for (const [c, p] of this.server.codes) if (p.familyId === familyId) this.server.codes.delete(c);
+  }
+
   async listDevices(familyId: string): Promise<FamilyDevice[]> {
     const f = this.server.family(familyId, this.uid);
     return f.uids.map((uid) => ({

@@ -35,6 +35,7 @@ import { connectFunctionsEmulator, type Functions, getFunctions } from 'firebase
 import { Platform } from 'react-native';
 import { createPairing } from '../domain/pairing';
 import {
+  COLLECTIONS,
   CONFIG_COLLECTIONS,
   EVENT_COLLECTIONS,
   EVENT_DAYS,
@@ -217,6 +218,25 @@ export class FirebaseSync implements FamilySync {
     if (approve) await updateDoc(fam, { uids: arrayUnion(req.uid) });
     await updateDoc(doc(fam, 'joinRequests', req.uid), { status: approve ? 'approved' : 'denied', decidedBy: uid, decidedAt: new Date().toISOString() });
     if (approve) await deleteDoc(doc(this.db, 'pairingCodes', req.code)).catch(() => undefined);
+  }
+
+  async deleteFamily(familyId: string): Promise<void> {
+    await this.signIn();
+    const fam = doc(this.db, 'families', familyId);
+    const refs = [];
+    for (const coll of [...COLLECTIONS, 'heartbeats', 'joinRequests', 'devices']) {
+      const qs = await getDocs(collection(fam, coll));
+      refs.push(...qs.docs.map((d) => d.ref));
+    }
+    const codes = await getDocs(query(collection(this.db, 'pairingCodes'), where('familyId', '==', familyId)));
+    refs.push(...codes.docs.map((d) => d.ref));
+    for (let i = 0; i < refs.length; i += BATCH_LIMIT) {
+      const batch = writeBatch(this.db);
+      for (const r of refs.slice(i, i + BATCH_LIMIT)) batch.delete(r);
+      await batch.commit();
+    }
+    // Xóa hồ sơ gia đình sau cùng (cần còn là thành viên để xóa các phần trên).
+    await deleteDoc(fam);
   }
 
   async listDevices(familyId: string): Promise<FamilyDevice[]> {

@@ -1,5 +1,6 @@
 import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
+import { PRIVACY_VERSION } from '../domain/privacy';
 import { useStore } from '../state/store';
 import { colors } from '../theme';
 
@@ -12,6 +13,7 @@ export default function Index() {
       </View>
     );
   }
+  if (!data.consentAt || (data.consentVersion ?? 0) < PRIVACY_VERSION) return <Redirect href="/onboarding/consent" />;
   if (data.pendingJoin && data.role !== 'parent') return <Redirect href="/onboarding/wait" />;
   // Máy bố mẹ luôn vào màn hình bố mẹ, kể cả khi dữ liệu gia đình chưa tải về kịp (màn hình đó hiện "đang tải").
   if (data.role === 'parent' && (data.members.length || data.familyId)) return <Redirect href="/parent" />;

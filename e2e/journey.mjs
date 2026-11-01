@@ -114,7 +114,12 @@ p.on('pageerror', (e) => errs.push(e.message));
     await p.mouse.click(pt.x, pt.y); await p.waitForTimeout(250);
   };
 
-  await step('mở trang dùng thử', async () => { await p.goto(URL); await expectScreen('Ai đang dùng điện thoại này?', 15000); });
+  await step('mở trang dùng thử → xin đồng ý quyền riêng tư', async () => { await p.goto(URL); await expectScreen('Trước khi bắt đầu', 15000); });
+  await step('xem chính sách đầy đủ → Quay lại', async () => { await tap('Xem đầy đủ chính sách quyền riêng tư'); await expectScreen('1. Chúng tôi thu thập gì'); await back(); await expectScreen('Trước khi bắt đầu'); });
+  await step('chưa tick thì chưa tiếp tục được; tick rồi Đồng ý', async () => {
+    await tap('Đồng ý và tiếp tục'); await expectScreen('Trước khi bắt đầu');
+    await clickWhenVisible({ label: 'Tôi đồng ý' }, 'ô đồng ý'); await tap('Đồng ý và tiếp tục'); await expectScreen('Ai đang dùng điện thoại này?');
+  });
   await step('vào dữ liệu mẫu', async () => { await tap('Dùng thử với dữ liệu mẫu'); await expectScreen('Bố mẹ hôm nay'); });
   // Trang chủ
   await step('Trang chủ › cảnh báo › Quay lại', async () => { await tap('Xem chi tiết ›'); await expectScreen(/Hôm nay của/); await back(); await expectScreen('Bố mẹ hôm nay'); });
@@ -185,6 +190,7 @@ p.on('pageerror', (e) => errs.push(e.message));
     await expectScreen(/^13:3\d · Khỏe$/); await expectScreen('2/3 lần');
     if (await onScreen('Bố Hùng chưa uống thuốc 12:00')) throw new Error('vẫn báo bố chưa uống 12:00');
   });
+  await step('Cài đặt có Chính sách quyền riêng tư', async () => { await tab('Gia đình'); await tap('Cài đặt (cảnh báo, cỡ chữ)'); await tap('Chính sách quyền riêng tư'); await expectScreen('1. Chúng tôi thu thập gì'); await back(); await expectScreen('Cỡ chữ trên máy này'); await back(); });
   await step('Tải lại trang ở màn hình con: dữ liệu còn nguyên', async () => { await p.reload(); await expectScreen('2/3 lần', 15000); });
 
 console.log(`\nKết quả: ${pass} đạt, ${fail} lỗi. Lỗi trang: ${errs.length ? errs.join(' | ') : 'không'}`);

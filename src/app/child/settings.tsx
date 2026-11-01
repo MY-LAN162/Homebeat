@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, Switch, View } from 'react-native';
 import { Back, Btn, Card, Chip, Field, H1, Screen, T } from '../../components/ui';
 import { authErrorText } from '../../services/authErrors';
+import { confirm, notify } from '../../services/dialog';
 import { deviceTimeZone, TIME_ZONES, zoneLabel } from '../../domain/tz';
 import { useStore } from '../../state/store';
 import { colors } from '../../theme';
@@ -81,6 +82,57 @@ function AccountCard() {
             }}
           />
         </>
+      )}
+    </Card>
+  );
+}
+
+/** Quyền riêng tư; xóa dữ liệu gia đình (máy quản lý) hoặc rời gia đình (máy khác). */
+function DataCard({ connected }: { connected: boolean }) {
+  const { listDevices, deleteFamilyData, leaveFamily } = useStore();
+  const [owner, setOwner] = useState<boolean>();
+  useEffect(() => {
+    if (!connected) return;
+    listDevices()
+      .then((l) => setOwner(!!l.find((d) => d.me)?.owner))
+      .catch(() => undefined);
+  }, [connected, listDevices]);
+  const run = async (fn: () => Promise<void>) => {
+    try {
+      await fn();
+      router.replace('/');
+    } catch {
+      notify('Chưa làm được', 'Kiểm tra kết nối mạng rồi thử lại.');
+    }
+  };
+  return (
+    <Card style={{ gap: 8 }}>
+      <T size={15} weight="700">Dữ liệu và quyền riêng tư</T>
+      <Btn variant="secondary" label="Chính sách quyền riêng tư" height={44} size={15} onPress={() => router.push('/privacy')} />
+      {connected && owner === true && (
+        <Btn
+          variant="ghost"
+          label="Xóa toàn bộ dữ liệu gia đình trên máy chủ"
+          height={44}
+          size={15}
+          onPress={async () => {
+            if (!(await confirm('Xóa toàn bộ dữ liệu gia đình?', 'Thuốc, nhật ký, huyết áp, lịch khám của cả gia đình trên máy chủ sẽ bị xóa. Các máy khác sẽ không còn dữ liệu. Không khôi phục được.', 'Tiếp tục'))) return;
+            if (!(await confirm('Chắc chắn xóa?', 'Bấm "Xóa hẳn" để xóa vĩnh viễn.', 'Xóa hẳn'))) return;
+            await run(deleteFamilyData);
+          }}
+        />
+      )}
+      {connected && owner === false && (
+        <Btn
+          variant="ghost"
+          label="Rời khỏi gia đình"
+          height={44}
+          size={15}
+          onPress={async () => {
+            if (await confirm('Rời khỏi gia đình?', 'Máy này sẽ không xem được dữ liệu của gia đình nữa. Muốn vào lại phải nhập mã mới.', 'Rời'))
+              await run(leaveFamily);
+          }}
+        />
       )}
     </Card>
   );
@@ -185,6 +237,7 @@ export default function AlertSettings() {
       <T size={12} color={colors.muted}>
         Mức huyết áp là ngưỡng để báo cho con, không phải chẩn đoán. Nên hỏi bác sĩ của bố mẹ để đặt cho phù hợp.
       </T>
+      <DataCard connected={connected} />
       <Btn variant="ghost" label="Mức sử dụng app (thử nghiệm)" height={44} size={15} onPress={() => router.push('/child/usage')} />
     </Screen>
   );

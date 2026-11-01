@@ -84,6 +84,8 @@ export interface FamilySync {
   removeDevice(familyId: string, uid: string): Promise<void>;
   /** Chủ chuyển quyền chủ cho máy khác. */
   transferOwner(familyId: string, uid: string): Promise<void>;
+  /** Máy quản lý xóa toàn bộ dữ liệu gia đình trên máy chủ (không khôi phục được). */
+  deleteFamily(familyId: string): Promise<void>;
   /** Ghi các thay đổi lên máy chủ. */
   apply(familyId: string, writes: SyncWrite[]): Promise<void>;
   /** Máy bố mẹ báo "còn sống" (thời điểm, pin). */

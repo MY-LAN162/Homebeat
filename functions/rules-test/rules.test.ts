@@ -75,7 +75,7 @@ test('không tự thêm mình vào gia đình, chỉ sửa được cài đặt'
   await assertFails(updateDoc(doc(as('la'), 'families', FAM), { uids: ['con', 'bo', 'la'] }));
   await assertFails(updateDoc(doc(as('con'), 'families', FAM), { uids: ['con', 'bo', 'la'] }));
   await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { settings: { lateMinutes: 20 } }));
-  await assertFails(deleteDoc(doc(as('con'), 'families', FAM)));
+  await assertFails(deleteDoc(doc(as('bo'), 'families', FAM)));
 });
 
 test('máy chỉ sửa thông tin của chính mình, nhịp còn sống ghi đúng uid', async () => {
@@ -156,6 +156,11 @@ describe('vào gia đình bằng yêu cầu + đồng ý (không cần Cloud Fun
     await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { uids: arrayRemove('em') }));
     await assertSucceeds(updateDoc(doc(as('bo'), 'families', FAM), { uids: arrayRemove('bo') }));
     await assertFails(updateDoc(doc(as('con'), 'families', FAM), { uids: [] }));
+  });
+
+  test('xóa cả gia đình: chỉ máy quản lý', async () => {
+    await assertFails(deleteDoc(doc(as('bo'), 'families', FAM)));
+    await assertSucceeds(deleteDoc(doc(as('con'), 'families', FAM)));
   });
 
   test('chuyển quyền chủ: chỉ chủ, chỉ cho máy đang trong gia đình', async () => {

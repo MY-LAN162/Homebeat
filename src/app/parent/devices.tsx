@@ -1,4 +1,5 @@
 // Máy bố mẹ: con đổi điện thoại → bố mẹ tạo mã, con nhập trên máy mới, bố mẹ bấm Đồng ý.
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { JoinRequests } from '../../components/JoinRequests';
@@ -55,6 +56,7 @@ export default function ParentDevices() {
           />
         </>
       )}
+      <Btn variant="ghost" label="Quyền riêng tư" size={16} onPress={() => router.push('/privacy')} />
     </Screen>
   );
 }

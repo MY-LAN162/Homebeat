@@ -160,6 +160,8 @@ export interface AppData {
   childPairing?: Pairing;
   /** Lúc người dùng đồng ý chính sách quyền riêng tư trên máy này (ISO). */
   consentAt?: string;
+  /** Phiên bản chính sách đã đồng ý (đổi chính sách thì hỏi lại). */
+  consentVersion?: number;
   /** Những gì người dùng đã bấm xóa trên máy này, dạng "medications/<id>" (để chỉ xóa đúng chúng trên máy chủ). */
   deleted?: string[];
 }

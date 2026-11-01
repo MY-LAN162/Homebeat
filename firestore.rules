@@ -114,7 +114,8 @@ service cloud.firestore {
           && request.auth.uid == resource.data.ownerUid
           && request.resource.data.ownerUid in resource.data.uids)
       );
-      allow delete: if false;
+      // Xóa cả gia đình: chỉ máy quản lý (dùng cho nút "Xóa toàn bộ dữ liệu gia đình").
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
 
       // Dữ liệu gia đình: người, người nhận cảnh báo, thuốc, lịch khám, sự kiện.
       // Đọc / xóa: người trong gia đình. Ghi: người trong gia đình, VÀ dữ liệu phải đúng dạng
@@ -128,6 +129,7 @@ service cloud.firestore {
       // Nhịp "còn sống" của máy bố mẹ.
       match /heartbeats/{memberId} {
         allow read: if isMember(familyId);
+        allow delete: if isOwner(familyId);
         allow write: if isMember(familyId) && request.resource.data.uid == request.auth.uid
           && request.resource.data.keys().hasOnly(['at', 'battery', 'uid'])
           && str(request.resource.data.at, 40) && optNum(request.resource.data, 'battery', 0, 100);
@@ -171,6 +173,8 @@ service cloud.firestore {
         && request.resource.data.get('role', 'parent') in ['parent', 'child']
         && isMember(request.resource.data.familyId);
       allow get: if signedIn() && resource.data.expiresAtMs > request.time.toMillis();
+      // Liệt kê mã của gia đình mình (để xóa hết khi xóa gia đình).
+      allow list: if isMember(resource.data.familyId);
       allow delete: if isMember(resource.data.familyId);
     }
 

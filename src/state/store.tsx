@@ -19,6 +19,7 @@ import type {
 } from '../domain/types';
 import { emptyData } from '../domain/types';
 import { emptyShared, mergeRemote, shared, type SharedData } from '../domain/syncdiff';
+import { PRIVACY_VERSION } from '../domain/privacy';
 import { bpPush, checkinPush, sosPush, type PushMessage } from '../domain/pushRules';
 import { getFamilySync } from '../services/firebaseSync';
 import { setBackgroundEnabled } from '../services/background';
@@ -68,6 +69,12 @@ interface Store {
   listDevices: () => Promise<FamilyDevice[]>;
   removeDevice: (uid: string) => Promise<void>;
   transferOwner: (uid: string) => Promise<void>;
+  /** Người dùng đồng ý chính sách quyền riêng tư. */
+  acceptPrivacy: () => void;
+  /** Máy quản lý: xóa toàn bộ dữ liệu gia đình trên máy chủ và trên máy này. */
+  deleteFamilyData: () => Promise<void>;
+  /** Máy khác: rời khỏi gia đình và xóa dữ liệu trên máy này. */
+  leaveFamily: () => Promise<void>;
   /** Bố mẹ hủy yêu cầu đang chờ (để nhập lại mã). */
   cancelJoin: () => void;
   /** Yêu cầu vào gia đình đang chờ con đồng ý (máy con). */
@@ -181,6 +188,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
           ...fresh,
           textScale: d.textScale,
           consentAt: d.consentAt,
+          consentVersion: d.consentVersion,
           role,
           familyId: pending.familyId,
           currentMemberId: role === 'parent' ? pending.memberId : undefined,
@@ -246,6 +254,12 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
 
   const store = useMemo<Store>(() => {
     const iso = () => new Date().toISOString();
+    // Xóa dữ liệu trên máy này (giữ lại đồng ý chính sách và cỡ chữ).
+    const resetLocal = () => {
+      baseRef.current = undefined;
+      AsyncStorage.removeItem(BASE_KEY).catch(() => undefined);
+      setData((d) => ({ ...emptyData(), consentAt: d.consentAt, consentVersion: d.consentVersion, textScale: d.textScale }));
+    };
     // Máy bố mẹ tự gửi thông báo cho các con (miễn phí, không cần máy chủ riêng). Chạy ngầm, không chặn màn hình.
     const alertChildren = (msg: PushMessage) => {
       if (!sync || !familyId || data.role !== 'parent') return;
@@ -322,6 +336,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
           ...fresh,
           textScale: d.textScale,
           consentAt: d.consentAt,
+          consentVersion: d.consentVersion,
           guideSeen: true,
           role: r.role,
           familyId: r.familyId,
@@ -340,6 +355,18 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
       transferOwner: async (uid) => {
         if (!sync || !data.familyId) return;
         await sync.transferOwner(data.familyId, uid);
+      },
+      acceptPrivacy: () => update((d) => ({ ...d, consentAt: new Date().toISOString(), consentVersion: PRIVACY_VERSION })),
+      deleteFamilyData: async () => {
+        if (sync && data.familyId && !data.demo) await sync.deleteFamily(data.familyId);
+        resetLocal();
+      },
+      leaveFamily: async () => {
+        if (sync && data.familyId && !data.demo) {
+          const me = await sync.signIn();
+          await sync.removeDevice(data.familyId, me);
+        }
+        resetLocal();
       },
       cancelJoin: () => update((d) => ({ ...d, pendingJoin: undefined })),
       joinRequests: familyId ? joinRequests : [],
@@ -420,12 +447,9 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
       setTextScale: (k) => update((d) => ({ ...d, textScale: k })),
       markGuideSeen: () => update((d) => ({ ...d, guideSeen: true })),
       dismissAlert: (key) => update((d) => ({ ...d, dismissed: [...(d.dismissed ?? []).slice(-50), key] })),
-      loadDemo: () => setData({ ...demoData(new Date()), demo: true }),
-      reset: () => {
-        baseRef.current = undefined;
-        AsyncStorage.removeItem(BASE_KEY).catch(() => undefined);
-        setData(emptyData());
-      },
+      loadDemo: () =>
+        setData((d) => ({ ...demoData(new Date()), demo: true, consentAt: d.consentAt, consentVersion: d.consentVersion, textScale: d.textScale })),
+      reset: () => resetLocal(),
     };
   }, [data, now, ready, update, sync, syncError, joinRequests, familyId]);
 
