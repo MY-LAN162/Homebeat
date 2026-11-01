@@ -39,7 +39,6 @@ await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const URL = `http://127.0.0.1:${server.address().port}${PAGE_PATH}`;
 fs.rmSync(SHOTS, { recursive: true, force: true });
 fs.mkdirSync(SHOTS, { recursive: true });
-const SP = OUT;
 
 const b = await chromium.launch({ headless: !args.has('--headed') });
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'Asia/Ho_Chi_Minh' });
