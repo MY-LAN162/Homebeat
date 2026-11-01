@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DialogHost } from '../components/DialogHost';
+import { LockGate } from '../components/LockGate';
 import { NotificationBridge } from '../components/NotificationBridge';
 import { ScaledText } from '../components/ScaledText';
 import { UsageTracker } from '../components/UsageTracker';
@@ -21,6 +22,7 @@ export default function RootLayout() {
           <StatusBar style="dark" />
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
           <DialogHost />
+          <LockGate />
         </ScaledText>
         <NotificationBridge />
         <UsageTracker />

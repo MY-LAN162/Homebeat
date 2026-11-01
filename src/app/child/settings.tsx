@@ -5,6 +5,7 @@ import { Pressable, Switch, View } from 'react-native';
 import { Back, Btn, Card, Chip, Field, H1, Screen, T } from '../../components/ui';
 import { authErrorText } from '../../services/authErrors';
 import { confirm, notify } from '../../services/dialog';
+import { canLock, unlock } from '../../services/lock';
 import { deviceTimeZone, TIME_ZONES, zoneLabel } from '../../domain/tz';
 import { useStore } from '../../state/store';
 import { colors } from '../../theme';
@@ -87,6 +88,33 @@ function AccountCard() {
   );
 }
 
+/** Khóa app bằng vân tay / khuôn mặt / mã máy (chỉ hiện khi máy hỗ trợ). */
+function LockCard() {
+  const { data, setAppLock } = useStore();
+  const [supported, setSupported] = useState(false);
+  useEffect(() => {
+    canLock().then(setSupported).catch(() => undefined);
+  }, []);
+  if (!supported) return null;
+  return (
+    <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View style={{ flex: 1 }}>
+        <T size={15} weight="700">Khóa app bằng vân tay / khuôn mặt</T>
+        <T size={13} color={colors.muted}>Người khác cầm máy bạn cũng không xem được thông tin sức khỏe của bố mẹ.</T>
+      </View>
+      <Switch
+        accessibilityLabel="Khóa app bằng vân tay hoặc khuôn mặt"
+        value={!!data.appLock}
+        onValueChange={async (v) => {
+          // Bật: xác nhận đúng chủ máy trước; tắt: cũng cần xác nhận.
+          if (await unlock()) setAppLock(v);
+        }}
+        trackColor={{ true: colors.green }}
+      />
+    </Card>
+  );
+}
+
 /** Quyền riêng tư; xóa dữ liệu gia đình (máy quản lý) hoặc rời gia đình (máy khác). */
 function DataCard({ connected }: { connected: boolean }) {
   const { listDevices, deleteFamilyData, leaveFamily } = useStore();
@@ -153,6 +181,7 @@ export default function AlertSettings() {
         <H1 size={22}>Cài đặt</H1>
       </View>
       {connected && <AccountCard />}
+      <LockCard />
       <Card style={{ gap: 8 }}>
         <T size={15} weight="700">Cỡ chữ trên máy này</T>
         <View style={{ flexDirection: 'row', gap: 6 }}>

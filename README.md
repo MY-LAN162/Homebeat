@@ -74,6 +74,31 @@ Quét mã QR bằng app **Expo Go** trên điện thoại. Nếu thông báo nh�
 
 Bản chạy trên trình duyệt (để xem nhanh giao diện): `npx expo start --web`.
 
+## Bảo mật và quyền riêng tư
+
+Tất cả miễn phí (Firebase gói Spark, thư viện mã nguồn mở). Đã kiểm thử: 13 kiểm thử luật bảo mật trên Firestore Emulator, 66 kiểm thử app, chạy thử nhiều máy 17 bước.
+
+| Bảo vệ | Chống được gì |
+|---|---|
+| Chỉ máy trong gia đình đọc/ghi được dữ liệu (luật Firestore) | Người lạ xem thông tin sức khỏe, vị trí |
+| Vào gia đình: mã 6 số (1 lần, 24 giờ) **và** người trong gia đình bấm Đồng ý | Đoán trúng mã cũng không vào được |
+| Khôi phục khi đổi máy: bố mẹ / người nhà tạo mã cho máy mới; hoặc đăng nhập email đã liên kết (Cài đặt) | Mất quyền vào gia đình khi đổi máy, cài lại app |
+| Chỉ máy "quản lý gia đình" gỡ được máy khác; màn hình "Các máy trong gia đình"; chuyển quyền quản lý | Bấm nhầm gỡ máy; máy mất / máy lạ vẫn còn quyền |
+| Máy chủ kiểm tra dữ liệu: đúng trường, đúng kiểu, độ dài và số trong khoảng hợp lý | Máy lỗi / mã độc ghi dữ liệu rác, tốn hạn mức |
+| Chỉ xóa trên máy chủ thứ người dùng bấm xóa | Mất dữ liệu khi app tắt giữa chừng |
+| Dữ liệu trên điện thoại được mã hóa (XChaCha20-Poly1305); khóa giữ trong Keychain / Keystore | Ai lấy được file dữ liệu của app cũng không đọc được |
+| Khóa app bằng vân tay / khuôn mặt / mã máy (máy của con; máy bố mẹ không khóa để SOS luôn bấm được) | Người khác cầm máy đã mở khóa |
+| Lời bác sĩ chỉ lưu trên máy ghi, trừ khi bấm chia sẻ | Dữ liệu sức khỏe đi xa hơn cần thiết |
+| Chính sách quyền riêng tư (`PRIVACY.md`, trong app), xin đồng ý lần đầu; xóa toàn bộ dữ liệu gia đình (máy quản lý); rời gia đình | Yêu cầu pháp lý về dữ liệu cá nhân nhạy cảm, yêu cầu của kho ứng dụng |
+
+**Còn lại / hạn chế đã biết:**
+
+- **App Check** (chặn công cụ giả mạo app gọi máy chủ, vd dò mã kết nối để đốt hạn mức miễn phí): thư viện Firebase JS đang dùng không hỗ trợ trên điện thoại ở gói miễn phí; cần chuyển sang React Native Firebase. Chờ Lan quyết.
+- `PRIVACY.md` là **bản nháp**, cần luật sư xem lại; điền email liên hệ trước khi phát hành.
+- Bản web (trang dùng thử) không mã hóa dữ liệu trên trình duyệt và không có khóa vân tay.
+- Nội dung thông báo (vd "Bố chưa uống thuốc 12:00") hiện trên màn hình khóa của máy con, theo cài đặt thông báo của điện thoại.
+- Khi bật Firebase thật: vào **Authentication › Sign-in method** bật **Anonymous** và **Email/Password**.
+
 ## Cài lên điện thoại thật (file APK cho Android)
 
 Đã cấu hình sẵn (`eas.json`, `app.json`): quyền thông báo, vị trí khi SOS, biểu tượng thông báo, kênh "Nhắc uống thuốc". Lan chỉ cần tài khoản Expo miễn phí (https://expo.dev/signup).
@@ -212,7 +237,7 @@ Cấu trúc:
 Các bước chạy thật (gói miễn phí Spark):
 
 1. Tạo dự án ở [Firebase console](https://console.firebase.google.com), giữ gói **Spark** (miễn phí, không cần thẻ).
-2. Bật **Authentication › Anonymous**, tạo **Firestore** (khu vực `asia-southeast1`).
+2. Bật **Authentication › Sign-in method › Anonymous** và **Email/Password**, tạo **Firestore** (khu vực `asia-southeast1`).
 3. Thêm **Web app**, chép cấu hình vào file `.env` (mẫu ở `.env.example`); khi build bằng EAS thì thêm các biến này bằng `eas env:create` (xem mục *Cài lên điện thoại thật*).
 4. Đưa luật bảo mật lên:
 
@@ -235,11 +260,11 @@ Cloud Functions trong `functions/` (gói Blaze) để dành cho khi cần cảnh
 ## Kiểm tra
 
 ```bash
-npm test            # 56 bài kiểm thử: lịch thuốc, cảnh báo, xưng hô, mã kết nối, đồng bộ hai máy, đọc đơn thuốc, tóm tắt buổi khám, múi giờ
+npm test            # 66 bài kiểm thử: lịch thuốc, cảnh báo, xưng hô, mã kết nối, đồng bộ hai máy, đọc đơn thuốc, tóm tắt buổi khám, múi giờ
 npm --prefix functions test         # 5 bài kiểm thử logic máy chủ
-npm --prefix functions run test:rules   # 8 bài kiểm thử luật bảo mật (cần Java, chạy trên Firestore Emulator)
-npm run e2e         # chạy thử 34 bước như người dùng trên trang giống Artifact
-npm run e2e:sync    # chạy thử 2 máy + 1 máy lạ qua Firebase Emulator (chạy emulator auth,firestore trước)
+npm --prefix functions run test:rules   # 13 bài kiểm thử luật bảo mật (cần Java, chạy trên Firestore Emulator)
+npm run e2e         # chạy thử 37 bước như người dùng trên trang giống Artifact
+npm run e2e:sync    # chạy thử nhiều máy (con, bố, máy lạ, máy mới) 17 bước qua Firebase Emulator (chạy emulator auth,firestore trước)
 npm run typecheck   # kiểm tra kiểu TypeScript
 npx expo lint
 ```

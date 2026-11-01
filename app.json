@@ -53,7 +53,14 @@
           "locationAlwaysAndWhenInUsePermission": false
         }
       ],
-      "expo-background-task"
+      "expo-background-task",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "An Tâm dùng Face ID để khóa app, giữ kín thông tin sức khỏe của bố mẹ."
+        }
+      ],
+      "expo-secure-store"
     ],
     "scheme": "homebeat",
     "runtimeVersion": {

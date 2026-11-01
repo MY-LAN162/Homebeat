@@ -24,6 +24,7 @@ import { bpPush, checkinPush, sosPush, type PushMessage } from '../domain/pushRu
 import { getFamilySync } from '../services/firebaseSync';
 import { setBackgroundEnabled } from '../services/background';
 import { checkAndAlert } from '../services/checkAndAlert';
+import { readSecure, writeSecure } from '../services/vault';
 import { sendPush } from '../services/push';
 import { BASE_KEY, DATA_KEY } from './keys';
 import { getPushToken, rescheduleMedReminders } from '../services/notifications';
@@ -98,6 +99,7 @@ interface Store {
   dismissAlert: (key: string) => void;
   markGuideSeen: () => void;
   setTextScale: (k: number) => void;
+  setAppLock: (on: boolean) => void;
   loadDemo: () => void;
   reset: () => void;
 }
@@ -116,7 +118,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
   const dataRef = useRef(data);
 
   useEffect(() => {
-    Promise.all([AsyncStorage.getItem(KEY), AsyncStorage.getItem(BASE_KEY)])
+    Promise.all([readSecure(KEY), readSecure(BASE_KEY)])
       .then(([raw, base]) => {
         if (raw) setData({ ...emptyData(), ...(JSON.parse(raw) as AppData) });
         if (base) baseRef.current = JSON.parse(base) as SharedData;
@@ -133,7 +135,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
   useEffect(() => {
     dataRef.current = data;
     if (!loaded.current) return;
-    AsyncStorage.setItem(KEY, JSON.stringify(data)).catch(() => undefined);
+    writeSecure(KEY, JSON.stringify(data)).catch(() => undefined);
     engineRef.current?.push(shared(data));
   }, [data]);
 
@@ -151,7 +153,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
       },
       saveAcked: (b) => {
         baseRef.current = b;
-        AsyncStorage.setItem(BASE_KEY, JSON.stringify(b)).catch(() => undefined);
+        writeSecure(BASE_KEY, JSON.stringify(b)).catch(() => undefined);
       },
       onError: (e) => setSyncError(e.message),
       canDelete: (coll, id) => (dataRef.current.deleted ?? []).includes(`${coll}/${id}`),
@@ -182,7 +184,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
       if (st === 'approved') {
         const fresh = emptyData();
         baseRef.current = shared(fresh);
-        AsyncStorage.setItem(BASE_KEY, JSON.stringify(baseRef.current)).catch(() => undefined);
+        writeSecure(BASE_KEY, JSON.stringify(baseRef.current)).catch(() => undefined);
         const role = pending.role ?? 'parent';
         setData((d) => ({
           ...fresh,
@@ -331,7 +333,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
         if (!r) return false;
         const fresh = emptyData();
         baseRef.current = shared(fresh);
-        await AsyncStorage.setItem(BASE_KEY, JSON.stringify(baseRef.current)).catch(() => undefined);
+        await writeSecure(BASE_KEY, JSON.stringify(baseRef.current)).catch(() => undefined);
         setData((d) => ({
           ...fresh,
           textScale: d.textScale,
@@ -444,6 +446,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
           return { ...d, appointments: exists ? d.appointments.map((x) => (x.id === id ? next : x)) : [...d.appointments, next] };
         }),
       updateSettings: (patch) => update((d) => ({ ...d, settings: { ...d.settings, ...patch } })),
+      setAppLock: (on) => update((d) => ({ ...d, appLock: on })),
       setTextScale: (k) => update((d) => ({ ...d, textScale: k })),
       markGuideSeen: () => update((d) => ({ ...d, guideSeen: true })),
       dismissAlert: (key) => update((d) => ({ ...d, dismissed: [...(d.dismissed ?? []).slice(-50), key] })),

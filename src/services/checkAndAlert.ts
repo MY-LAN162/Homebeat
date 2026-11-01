@@ -9,6 +9,7 @@ import type { AppData } from '../domain/types';
 import { BG_LAST_KEY, BG_SENT_KEY, DATA_KEY } from '../state/keys';
 import { getFamilySync } from './firebaseSync';
 import { sendPush } from './push';
+import { readSecure } from './vault';
 
 let running = false;
 
@@ -27,7 +28,7 @@ export async function checkAndAlert(now = new Date()): Promise<void> {
   if (running) return;
   running = true;
   try {
-    const raw = await AsyncStorage.getItem(DATA_KEY);
+    const raw = await readSecure(DATA_KEY);
     if (!raw) return;
     const data = JSON.parse(raw) as AppData;
     if (data.role !== 'parent' || !data.currentMemberId || !data.familyId || data.demo) return;
