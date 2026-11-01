@@ -12,6 +12,7 @@ export default function Index() {
       </View>
     );
   }
+  if (data.pendingJoin && data.role !== 'parent') return <Redirect href="/onboarding/wait" />;
   if (data.role === 'parent' && data.members.length) return <Redirect href="/parent" />;
   if (data.role === 'child') return <Redirect href="/child" />;
   return <Redirect href="/onboarding" />;

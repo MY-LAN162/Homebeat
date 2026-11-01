@@ -33,7 +33,7 @@ export default function PairScreen() {
     setBusy(true);
     const r = await pair(code);
     setBusy(false);
-    if (r.ok) router.replace('/onboarding/permissions');
+    if (r.ok) router.replace(r.pending ? '/onboarding/wait' : '/onboarding/permissions');
     else setError(PAIR_ERRORS[r.reason]);
   };
 

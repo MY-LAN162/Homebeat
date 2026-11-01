@@ -11,7 +11,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApp, getApps, initializeApp, type FirebaseOptions } from 'firebase/app';
 import * as FirebaseAuth from 'firebase/auth';
 import {
+  arrayUnion,
   collection,
+  deleteDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
   connectFirestoreEmulator,
   doc,
   type Firestore,
@@ -24,7 +29,7 @@ import {
   where,
   writeBatch,
 } from 'firebase/firestore';
-import { connectFunctionsEmulator, type Functions, getFunctions, httpsCallable } from 'firebase/functions';
+import { connectFunctionsEmulator, type Functions, getFunctions } from 'firebase/functions';
 import { Platform } from 'react-native';
 import { createPairing } from '../domain/pairing';
 import {
@@ -35,7 +40,7 @@ import {
   type SyncWrite,
 } from '../domain/syncdiff';
 import type { Pairing } from '../domain/types';
-import { SyncError, type DeviceInfo, type FamilySync, type RedeemError } from './sync';
+import { SyncError, type DeviceInfo, type FamilySync, type JoinRequest, type RedeemError } from './sync';
 
 /** Cấu hình lấy từ biến môi trường EXPO_PUBLIC_FIREBASE_* (file .env, xem .env.example). */
 export function firebaseConfig(): FirebaseOptions | undefined {
@@ -111,6 +116,7 @@ export class FirebaseSync implements FamilySync {
           familyId,
           memberId,
           expiresAt: p.expiresAt,
+          expiresAtMs: new Date(p.expiresAt).getTime(),
           createdBy: uid,
           createdAt: serverTimestamp(),
         });
@@ -122,14 +128,73 @@ export class FirebaseSync implements FamilySync {
     throw new Error('Không tạo được mã kết nối');
   }
 
-  async redeemPairingCode(code: string): Promise<{ familyId: string; memberId: string }> {
-    await this.signIn();
+  async requestJoin(code: string): Promise<{ familyId: string; memberId: string }> {
+    const c = code.replace(/\s/g, '');
+    if (!/^\d{6}$/.test(c)) throw new SyncError('format');
+    const uid = await this.signIn();
+    let info: { familyId: string; memberId: string; expiresAtMs: number } | undefined;
     try {
-      const fn = httpsCallable<{ code: string }, { familyId: string; memberId: string }>(this.fns, 'redeemPairingCode');
-      return (await fn({ code })).data;
+      const snap = await getDoc(doc(this.db, 'pairingCodes', c));
+      info = snap.data() as typeof info;
     } catch (e) {
-      throw new SyncError(redeemReason((e as { code?: string }).code), (e as Error).message);
+      // Mã hết hạn thì luật không cho đọc → báo như mã sai/hết hạn, không phải lỗi mạng.
+      if ((e as { code?: string }).code === 'permission-denied') throw new SyncError('wrong');
+      throw new SyncError('network', (e as Error).message);
     }
+    if (!info) throw new SyncError('wrong');
+    if (info.expiresAtMs < Date.now()) throw new SyncError('expired');
+    try {
+      await setDoc(doc(this.db, 'families', info.familyId, 'joinRequests', uid), {
+        uid,
+        code: c,
+        memberId: info.memberId,
+        status: 'pending',
+        device: Platform.OS === 'ios' ? 'iPhone' : Platform.OS === 'android' ? 'Điện thoại Android' : 'Trình duyệt',
+        at: new Date().toISOString(),
+      });
+    } catch (e) {
+      throw new SyncError((e as { code?: string }).code === 'permission-denied' ? 'expired' : 'network', (e as Error).message);
+    }
+    return { familyId: info.familyId, memberId: info.memberId };
+  }
+
+  watchJoinRequest(familyId: string, onStatus: (s: JoinRequest['status'] | 'gone') => void): () => void {
+    let unsub = () => undefined as void;
+    let stopped = false;
+    void this.signIn().then((uid) => {
+      if (stopped) return;
+      unsub = onSnapshot(
+        doc(this.db, 'families', familyId, 'joinRequests', uid),
+        (s) => onStatus(s.exists() ? (s.data() as JoinRequest).status : 'gone'),
+        () => undefined,
+      );
+    });
+    return () => {
+      stopped = true;
+      unsub();
+    };
+  }
+
+  subscribeJoinRequests(familyId: string, onList: (list: JoinRequest[]) => void): () => void {
+    return onSnapshot(
+      query(collection(this.db, 'families', familyId, 'joinRequests'), where('status', '==', 'pending')),
+      (qs) => onList(qs.docs.map((d) => d.data() as JoinRequest)),
+      () => undefined,
+    );
+  }
+
+  async decideJoin(familyId: string, req: JoinRequest, approve: boolean): Promise<void> {
+    const uid = await this.signIn();
+    const fam = doc(this.db, 'families', familyId);
+    // Thêm vào gia đình trước (luật kiểm tra máy đó đã gửi yêu cầu), rồi mới ghi kết quả.
+    if (approve) await updateDoc(fam, { uids: arrayUnion(req.uid) });
+    await updateDoc(doc(fam, 'joinRequests', req.uid), { status: approve ? 'approved' : 'denied', decidedBy: uid, decidedAt: new Date().toISOString() });
+    if (approve) await deleteDoc(doc(this.db, 'pairingCodes', req.code)).catch(() => undefined);
+  }
+
+  async childPushTokens(familyId: string): Promise<string[]> {
+    const qs = await getDocs(query(collection(this.db, 'families', familyId, 'devices'), where('role', '==', 'child')));
+    return qs.docs.map((d) => d.get('pushToken') as string | undefined).filter((t): t is string => !!t);
   }
 
   async apply(familyId: string, writes: SyncWrite[]): Promise<void> {

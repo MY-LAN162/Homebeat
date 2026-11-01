@@ -23,7 +23,8 @@ export function formatCode(code: string): string {
 }
 
 export type PairResult =
-  | { ok: true; memberId: string }
+  /** pending: đã gửi yêu cầu, chờ con bấm Đồng ý (khi có máy chủ đồng bộ). */
+  | { ok: true; memberId: string; pending?: boolean }
   /** too-many: nhập sai quá nhiều lần; network: không gọi được máy chủ. */
   | { ok: false; reason: 'format' | 'wrong' | 'expired' | 'too-many' | 'network' };
 

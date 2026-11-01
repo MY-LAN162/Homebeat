@@ -2,7 +2,7 @@ import { logSlot, slotsForDay } from '../../domain/schedule';
 import { diffData, docId, emptyShared, mergeRemote, shared, type SharedData } from '../../domain/syncdiff';
 import { emptyData, type AppData } from '../../domain/types';
 import { MemoryServer, MemorySync } from '../memorySync';
-import { SyncError } from '../sync';
+import { SyncError, type JoinRequest } from '../sync';
 import { SyncEngine } from '../syncEngine';
 
 const NOW = new Date(2026, 9, 1, 9, 0);
@@ -98,7 +98,12 @@ describe('hai máy qua máy chủ', () => {
     await child.engine!.flush();
     const pairing = await child.sync.createPairingCode(fid, 'bo');
     const parent = new Device(new MemorySync(server, 'uid-bo'));
-    const res = await parent.sync.redeemPairingCode(pairing.code);
+    const res = await parent.sync.requestJoin(pairing.code);
+    // Con thấy yêu cầu và bấm Đồng ý.
+    let pending: JoinRequest[] = [];
+    child.sync.subscribeJoinRequests(fid, (l) => (pending = l));
+    expect(pending.map((r) => r.memberId)).toEqual(['bo']);
+    await child.sync.decideJoin(fid, pending[0], true);
     parent.data = { ...parent.data, role: 'parent', currentMemberId: res.memberId };
     parent.connect(res.familyId, shared(emptyData()));
     return { server, fid, child, parent, code: pairing.code };
@@ -132,8 +137,8 @@ describe('hai máy qua máy chủ', () => {
   it('mã đã dùng hoặc sai thì từ chối; người ngoài gia đình không ghi được', async () => {
     const { server, code, fid } = await setup();
     const other = new MemorySync(server, 'uid-la');
-    await expect(other.redeemPairingCode(code)).rejects.toEqual(new SyncError('wrong'));
-    await expect(other.redeemPairingCode('12')).rejects.toEqual(new SyncError('format'));
+    await expect(other.requestJoin(code)).rejects.toEqual(new SyncError('wrong'));
+    await expect(other.requestJoin('12')).rejects.toEqual(new SyncError('format'));
     await expect(other.apply(fid, [{ op: 'delete', coll: 'medications', id: 'amlo' }])).rejects.toThrow('permission-denied');
   });
 
@@ -144,7 +149,26 @@ describe('hai máy qua máy chủ', () => {
     const fid = await s.createFamily();
     const p = await s.createPairingCode(fid, 'bo');
     server.now = () => new Date(NOW.getTime() + 25 * 3600_000);
-    await expect(new MemorySync(server, 'b').redeemPairingCode(p.code)).rejects.toEqual(new SyncError('expired'));
+    await expect(new MemorySync(server, 'b').requestJoin(p.code)).rejects.toEqual(new SyncError('expired'));
+  });
+
+  it('gửi yêu cầu chưa vào được gia đình; con từ chối thì máy kia biết và vẫn không vào được', async () => {
+    const server = new MemoryServer();
+    server.now = () => NOW;
+    const con = new MemorySync(server, 'con');
+    const fid = await con.createFamily();
+    const p = await con.createPairingCode(fid, 'bo');
+    const la = new MemorySync(server, 'la');
+    await la.requestJoin(p.code);
+    const seen: string[] = [];
+    la.watchJoinRequest(fid, (st) => seen.push(st));
+    await expect(la.apply(fid, [{ op: 'delete', coll: 'medications', id: 'x' }])).rejects.toThrow('permission-denied');
+    let pending: JoinRequest[] = [];
+    con.subscribeJoinRequests(fid, (l) => (pending = l));
+    await con.decideJoin(fid, pending[0], false);
+    expect(seen).toEqual(['pending', 'denied']);
+    expect(pending).toEqual([]);
+    await expect(la.apply(fid, [{ op: 'delete', coll: 'medications', id: 'x' }])).rejects.toThrow('permission-denied');
   });
 
   it('ghi lỗi thì gửi lại ở lần sau', async () => {

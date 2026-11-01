@@ -1,8 +1,9 @@
 rules_version = '2';
 
-// Luật bảo mật cho An Tâm.
+// Luật bảo mật cho An Tâm (chạy được trên Firebase gói miễn phí Spark, không cần Cloud Functions).
 // Chỉ người trong gia đình (uid có trong families/{id}.uids) mới đọc / ghi được dữ liệu gia đình đó.
-// Người vào gia đình bằng mã 6 số qua Cloud Function redeemPairingCode (máy chủ thêm uid), không tự thêm được.
+// Vào gia đình: máy mới nhập mã 6 số → gửi yêu cầu (joinRequests/{uid}) → người trong gia đình bấm
+// "Đồng ý" thì mới được thêm uid. Đoán trúng mã cũng không tự vào được.
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
@@ -14,15 +15,35 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/families/$(familyId)).data.uids;
     }
 
+    function addsOneRequester(familyId) {
+      let added = request.resource.data.uids.removeAll(resource.data.uids);
+      return request.resource.data.uids.hasAll(resource.data.uids)
+        && added.size() == 1
+        && exists(/databases/$(database)/documents/families/$(familyId)/joinRequests/$(added[0]));
+    }
+    function validCode(code, familyId, memberId) {
+      let path = /databases/$(database)/documents/pairingCodes/$(code);
+      return exists(path)
+        && get(path).data.familyId == familyId
+        && get(path).data.memberId == memberId
+        && get(path).data.expiresAtMs > request.time.toMillis();
+    }
+
     match /families/{familyId} {
       allow read: if signedIn() && request.auth.uid in resource.data.uids;
       // Tạo gia đình mới: chỉ có chính mình trong danh sách.
       allow create: if signedIn()
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.uids == [request.auth.uid];
-      // Người trong gia đình chỉ được sửa cài đặt cảnh báo, không sửa danh sách người.
-      allow update: if isMember(familyId)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['settings']);
+      // Người trong gia đình được: sửa cài đặt; thêm ĐÚNG MỘT máy đã gửi yêu cầu vào gia đình;
+      // hoặc bỏ bớt máy (vẫn phải còn ít nhất một người).
+      allow update: if isMember(familyId) && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['settings'])
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uids']) && (
+          addsOneRequester(familyId)
+          || (resource.data.uids.hasAll(request.resource.data.uids) && request.resource.data.uids.size() >= 1)
+        ))
+      );
       allow delete: if false;
 
       // Dữ liệu gia đình: người, người nhận cảnh báo, thuốc, lịch khám, sự kiện.
@@ -42,15 +63,32 @@ service cloud.firestore {
         allow write: if isMember(familyId) && uid == request.auth.uid
           && (!('role' in request.resource.data) || request.resource.data.role in ['child', 'parent']);
       }
-      // sentAlerts: chỉ máy chủ dùng (chống gửi trùng).
+      // Yêu cầu vào gia đình: máy mới tự tạo (phải có mã đúng, còn hạn); người trong gia đình
+      // đồng ý / từ chối. Máy mới đọc được yêu cầu của chính mình để biết kết quả.
+      match /joinRequests/{uid} {
+        allow create: if signedIn() && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.status == 'pending'
+          && validCode(request.resource.data.code, familyId, request.resource.data.memberId);
+        allow read: if signedIn() && (request.auth.uid == uid || isMember(familyId));
+        allow update: if isMember(familyId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'decidedAt', 'decidedBy'])
+          && request.resource.data.status in ['approved', 'denied'];
+        allow delete: if signedIn() && (request.auth.uid == uid || isMember(familyId));
+      }
+      // sentAlerts: chỉ máy chủ dùng (chống gửi trùng, khi bật Cloud Functions).
     }
 
-    // Mã kết nối 6 số: người trong gia đình tạo; không ai đọc được (máy chủ kiểm tra hộ).
+    // Mã kết nối 6 số: người trong gia đình tạo. Máy mới đọc được mã (để biết gia đình nào, bố/mẹ nào)
+    // khi biết đúng mã và mã còn hạn; không ai liệt kê được danh sách mã.
     // Tạo đè mã đang có bị tính là sửa → bị từ chối, app tự thử mã khác.
     match /pairingCodes/{code} {
       allow create: if code.matches('^[0-9]{6}$')
         && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.expiresAtMs is int
         && isMember(request.resource.data.familyId);
+      allow get: if signedIn() && resource.data.expiresAtMs > request.time.toMillis();
+      allow delete: if isMember(resource.data.familyId);
     }
 
     // pairingAttempts: chỉ máy chủ dùng (giới hạn số lần nhập mã).

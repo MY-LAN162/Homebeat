@@ -26,6 +26,17 @@ export interface DeviceInfo {
   platform?: string;
 }
 
+/** Yêu cầu vào gia đình của một máy mới (máy bố mẹ), chờ người trong gia đình đồng ý. */
+export interface JoinRequest {
+  uid: string;
+  memberId: string;
+  code: string;
+  status: 'pending' | 'approved' | 'denied';
+  /** "iPhone", "Điện thoại Android"... */
+  device?: string;
+  at?: string;
+}
+
 export interface FamilySync {
   /** Đăng nhập (ẩn danh), trả về mã người dùng. Gọi nhiều lần vẫn là một người. */
   signIn(): Promise<string>;
@@ -33,8 +44,19 @@ export interface FamilySync {
   createFamily(): Promise<string>;
   /** Máy con tạo mã 6 số cho một bố/mẹ. */
   createPairingCode(familyId: string, memberId: string): Promise<Pairing>;
-  /** Máy bố mẹ đổi mã 6 số lấy quyền vào gia đình. Lỗi thì ném SyncError. */
-  redeemPairingCode(code: string): Promise<{ familyId: string; memberId: string }>;
+  /**
+   * Máy bố mẹ nhập mã 6 số: gửi yêu cầu vào gia đình (chưa vào ngay, chờ con bấm Đồng ý).
+   * Lỗi thì ném SyncError ('format' | 'wrong' | 'expired' | 'network').
+   */
+  requestJoin(code: string): Promise<{ familyId: string; memberId: string }>;
+  /** Máy bố mẹ theo dõi yêu cầu của mình. 'gone' = yêu cầu đã bị xóa. Trả về hàm hủy. */
+  watchJoinRequest(familyId: string, onStatus: (s: JoinRequest['status'] | 'gone') => void): () => void;
+  /** Máy con nghe các yêu cầu đang chờ. Trả về hàm hủy. */
+  subscribeJoinRequests(familyId: string, onList: (list: JoinRequest[]) => void): () => void;
+  /** Máy con đồng ý / từ chối. Đồng ý thì thêm máy đó vào gia đình và xóa mã đã dùng. */
+  decideJoin(familyId: string, req: JoinRequest, approve: boolean): Promise<void>;
+  /** Mã nhận thông báo đẩy của các máy con (để máy bố mẹ tự gửi cảnh báo, không cần máy chủ riêng). */
+  childPushTokens(familyId: string): Promise<string[]>;
   /** Ghi các thay đổi lên máy chủ. */
   apply(familyId: string, writes: SyncWrite[]): Promise<void>;
   /** Máy bố mẹ báo "còn sống" (thời điểm, pin). */

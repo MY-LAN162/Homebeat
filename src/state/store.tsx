@@ -21,7 +21,7 @@ import { emptyData } from '../domain/types';
 import { emptyShared, mergeRemote, shared, type SharedData } from '../domain/syncdiff';
 import { getFamilySync } from '../services/firebaseSync';
 import { getPushToken, rescheduleMedReminders } from '../services/notifications';
-import { SyncError, type FamilySync } from '../services/sync';
+import { SyncError, type FamilySync, type JoinRequest } from '../services/sync';
 import { SyncEngine } from '../services/syncEngine';
 
 const KEY = 'homebeat:data:v1';
@@ -52,6 +52,11 @@ interface Store {
   newPairing: (memberId: string) => Promise<void>;
   /** Bố mẹ nhập mã. Chưa có máy chủ: kiểm tra với mã đã tạo trên chính máy này. */
   pair: (code: string) => Promise<PairResult>;
+  /** Bố mẹ hủy yêu cầu đang chờ (để nhập lại mã). */
+  cancelJoin: () => void;
+  /** Yêu cầu vào gia đình đang chờ con đồng ý (máy con). */
+  joinRequests: JoinRequest[];
+  decideJoin: (req: JoinRequest, approve: boolean) => Promise<void>;
   setCurrentMember: (id: string) => void;
   upsertCaregiver: (c: Omit<Caregiver, 'id'> & { id?: string }) => void;
   removeCaregiver: (id: string) => void;
@@ -81,6 +86,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
   const [ready, setReady] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [syncError, setSyncError] = useState<string>();
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const loaded = useRef(false);
   const baseRef = useRef<SharedData | undefined>(undefined);
   const engineRef = useRef<SyncEngine | undefined>(undefined);
@@ -141,6 +147,29 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
       engine.stop();
       if (engineRef.current === engine) engineRef.current = undefined;
     };
+  }, [ready, sync, familyId]);
+
+  // Máy bố mẹ: chờ con bấm Đồng ý. Được đồng ý thì vào gia đình, bắt đầu từ dữ liệu trên máy chủ
+  // (bỏ dữ liệu cũ trên máy, vd dữ liệu mẫu).
+  const pending = sync ? data.pendingJoin : undefined;
+  useEffect(() => {
+    if (!ready || !sync || !pending || pending.denied) return;
+    return sync.watchJoinRequest(pending.familyId, (st) => {
+      if (st === 'approved') {
+        const fresh = emptyData();
+        baseRef.current = shared(fresh);
+        AsyncStorage.setItem(BASE_KEY, JSON.stringify(baseRef.current)).catch(() => undefined);
+        setData((d) => ({ ...fresh, textScale: d.textScale, role: 'parent', familyId: pending.familyId, currentMemberId: pending.memberId }));
+      } else if (st === 'denied' || st === 'gone') {
+        setData((d) => (d.pendingJoin ? { ...d, pendingJoin: { ...d.pendingJoin, denied: true } } : d));
+      }
+    });
+  }, [ready, sync, pending]);
+
+  // Máy trong gia đình: nghe các yêu cầu vào gia đình đang chờ đồng ý.
+  useEffect(() => {
+    if (!ready || !sync || !familyId) return;
+    return sync.subscribeJoinRequests(familyId, setJoinRequests);
   }, [ready, sync, familyId]);
 
   // Ghi thông tin máy (vai trò, mã nhận thông báo đẩy) để máy chủ biết gửi cảnh báo cho ai.
@@ -226,16 +255,19 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
         }
         if (!/^\d{6}$/.test(code.replace(/\s/g, ''))) return { ok: false, reason: 'format' };
         try {
-          const { familyId: fid, memberId } = await sync.redeemPairingCode(code);
-          // Máy bố mẹ bắt đầu từ dữ liệu của gia đình trên máy chủ, bỏ dữ liệu cũ trên máy (vd dữ liệu mẫu).
-          const fresh = emptyData();
-          baseRef.current = shared(fresh);
-          await AsyncStorage.setItem(BASE_KEY, JSON.stringify(baseRef.current)).catch(() => undefined);
-          setData({ ...fresh, role: 'parent', familyId: fid, currentMemberId: memberId });
-          return { ok: true, memberId };
+          // Gửi yêu cầu, chờ con bấm Đồng ý (xem hiệu ứng theo dõi pendingJoin bên dưới).
+          const { familyId: fid, memberId } = await sync.requestJoin(code);
+          update((d) => ({ ...d, pendingJoin: { familyId: fid, memberId, at: new Date().toISOString() } }));
+          return { ok: true, memberId, pending: true };
         } catch (e) {
           return { ok: false, reason: e instanceof SyncError ? e.reason : 'network' };
         }
+      },
+      cancelJoin: () => update((d) => ({ ...d, pendingJoin: undefined })),
+      joinRequests: familyId ? joinRequests : [],
+      decideJoin: async (req, approve) => {
+        if (!sync || !data.familyId) return;
+        await sync.decideJoin(data.familyId, req, approve);
       },
       setCurrentMember: (id) => update((d) => ({ ...d, currentMemberId: id })),
       upsertCaregiver: (c) =>
@@ -298,7 +330,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
         setData(emptyData());
       },
     };
-  }, [data, now, ready, update, sync, syncError]);
+  }, [data, now, ready, update, sync, syncError, joinRequests, familyId]);
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }

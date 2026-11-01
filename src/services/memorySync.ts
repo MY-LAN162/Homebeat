@@ -3,7 +3,7 @@
 import { createPairing, checkCode } from '../domain/pairing';
 import { COLLECTIONS, type CollectionName, type RemoteSnapshot, type SyncWrite } from '../domain/syncdiff';
 import type { AlertSettings, Pairing } from '../domain/types';
-import { SyncError, type DeviceInfo, type FamilySync } from './sync';
+import { SyncError, type DeviceInfo, type FamilySync, type JoinRequest } from './sync';
 
 interface FamilyDoc {
   uids: string[];
@@ -11,6 +11,7 @@ interface FamilyDoc {
   colls: Record<CollectionName, Map<string, Record<string, unknown>>>;
   heartbeats: Map<string, { at: string; battery?: number }>;
   devices: Map<string, DeviceInfo>;
+  requests: Map<string, JoinRequest>;
 }
 
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
@@ -19,8 +20,13 @@ type Listener = (snap: RemoteSnapshot, pending: boolean) => void;
 
 export class MemoryServer {
   families = new Map<string, FamilyDoc>();
-  codes = new Map<string, Pairing & { familyId: string; used?: boolean }>();
+  codes = new Map<string, Pairing & { familyId: string }>();
   listeners = new Map<string, Set<Listener>>();
+  reqListeners = new Map<string, Set<() => void>>();
+
+  notifyRequests(familyId: string) {
+    for (const l of this.reqListeners.get(familyId) ?? []) l();
+  }
   private n = 0;
   now = () => new Date();
 
@@ -62,7 +68,7 @@ export class MemorySync implements FamilySync {
   async createFamily() {
     const id = this.server.nextId('fam');
     const colls = Object.fromEntries(COLLECTIONS.map((c) => [c, new Map()])) as FamilyDoc['colls'];
-    this.server.families.set(id, { uids: [this.uid], colls, heartbeats: new Map(), devices: new Map() });
+    this.server.families.set(id, { uids: [this.uid], colls, heartbeats: new Map(), devices: new Map(), requests: new Map() });
     return id;
   }
 
@@ -73,15 +79,50 @@ export class MemorySync implements FamilySync {
     return p;
   }
 
-  async redeemPairingCode(code: string) {
+  async requestJoin(code: string) {
     const c = code.replace(/\s/g, '');
     const p = this.server.codes.get(c);
-    const res = checkCode(c, p && !p.used ? p : undefined, this.server.now());
+    const res = checkCode(c, p, this.server.now());
     if (!res.ok) throw new SyncError(res.reason);
-    p!.used = true;
     const f = this.server.families.get(p!.familyId)!;
-    if (!f.uids.includes(this.uid)) f.uids.push(this.uid);
+    f.requests.set(this.uid, { uid: this.uid, code: c, memberId: res.memberId, status: 'pending', device: 'Máy thử' });
+    this.server.notifyRequests(p!.familyId);
     return { familyId: p!.familyId, memberId: res.memberId };
+  }
+
+  watchJoinRequest(familyId: string, onStatus: (s: JoinRequest['status'] | 'gone') => void) {
+    const f = this.server.families.get(familyId);
+    const fn = () => onStatus(f?.requests.get(this.uid)?.status ?? 'gone');
+    const set = this.server.reqListeners.get(familyId) ?? new Set();
+    set.add(fn);
+    this.server.reqListeners.set(familyId, set);
+    fn();
+    return () => void set.delete(fn);
+  }
+
+  subscribeJoinRequests(familyId: string, onList: (list: JoinRequest[]) => void) {
+    const f = this.server.family(familyId, this.uid);
+    const fn = () => onList([...f.requests.values()].filter((r) => r.status === 'pending'));
+    const set = this.server.reqListeners.get(familyId) ?? new Set();
+    set.add(fn);
+    this.server.reqListeners.set(familyId, set);
+    fn();
+    return () => void set.delete(fn);
+  }
+
+  async decideJoin(familyId: string, req: JoinRequest, approve: boolean) {
+    const f = this.server.family(familyId, this.uid);
+    const r = f.requests.get(req.uid);
+    if (!r) throw new Error('not-found');
+    if (approve && !f.uids.includes(req.uid)) f.uids.push(req.uid);
+    r.status = approve ? 'approved' : 'denied';
+    if (approve) this.server.codes.delete(req.code);
+    this.server.notifyRequests(familyId);
+  }
+
+  async childPushTokens(familyId: string) {
+    const f = this.server.family(familyId, this.uid);
+    return [...f.devices.values()].filter((d) => d.role === 'child' && d.pushToken).map((d) => d.pushToken!);
   }
 
   async apply(familyId: string, writes: SyncWrite[]) {

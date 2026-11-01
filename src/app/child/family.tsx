@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { confirm, notify } from '../../services/dialog';
+import { JoinRequests } from '../../components/JoinRequests';
 import { Btn, Card, Field, H1, Screen, T } from '../../components/ui';
 import { displayName } from '../../domain/address';
 import { formatCode } from '../../domain/pairing';
@@ -20,6 +21,7 @@ export default function ChildFamily() {
     <Screen>
       <H1 size={26}>Gia đình</H1>
 
+      <JoinRequests />
       <T size={13} weight="700" color={colors.muted}>NGƯỜI ĐƯỢC CHĂM SÓC</T>
       {data.members.map((m) => {
         const p = data.pairing?.memberId === m.id ? data.pairing : undefined;

@@ -113,7 +113,7 @@ export default function InviteScreen() {
           </Card>
           <T size={14} color={colors.muted}>
             {syncEnabled
-              ? 'Cài An Tâm trên máy của bố mẹ, chọn "Tôi là bố, mẹ" rồi nhập mã này.'
+              ? 'Cài An Tâm trên máy của bố mẹ, chọn "Tôi là bố, mẹ" rồi nhập mã này. Sau đó máy bạn sẽ hiện "Có máy xin kết nối": bấm Đồng ý là xong.'
               : 'Chưa cấu hình máy chủ đồng bộ: mã chỉ dùng được trên chính máy này (để thử).'}
           </T>
           <View style={{ flex: 1 }} />

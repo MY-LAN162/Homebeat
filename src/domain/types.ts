@@ -154,6 +154,8 @@ export interface AppData {
   guideSeen?: boolean;
   /** Cỡ chữ trên máy này: 1 bình thường, 1.15 lớn, 1.3 rất lớn (không đồng bộ sang máy khác). */
   textScale?: number;
+  /** Máy bố mẹ đã gửi yêu cầu vào gia đình, đang chờ con bấm Đồng ý. */
+  pendingJoin?: { familyId: string; memberId: string; at: string; denied?: boolean };
 }
 
 export const DEFAULT_SETTINGS: AlertSettings = {
