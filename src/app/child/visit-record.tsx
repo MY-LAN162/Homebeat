@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { goBack } from '../../services/nav';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Platform, Pressable, TextInput, View } from 'react-native';
 import { Back, Banner, Btn, Card, H1, Screen, T } from '../../components/ui';
 import { SAMPLE_TRANSCRIPT } from '../../domain/visit';
 import { canListen, startListening } from '../../services/listen';
@@ -88,6 +88,11 @@ export default function VisitRecord() {
             style={{ alignSelf: 'stretch' }}
           />
           {err && <T size={14} color={colors.red}>{err}</T>}
+          {Platform.OS === 'web' && (
+            <T size={12} color={colors.muted} style={{ textAlign: 'center' }}>
+              Trên trình duyệt, giọng nói được trình duyệt gửi tới máy chủ của họ (vd Google) để chuyển thành chữ. Lời ghi chỉ lưu trên máy này, trừ khi bạn chia sẻ.
+            </T>
+          )}
         </Card>
       ) : (
         <Banner tone="blue">

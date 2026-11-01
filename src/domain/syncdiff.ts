@@ -60,6 +60,8 @@ export function toDoc<C extends CollectionName>(coll: C, item: Item<C>): Record<
   for (const [k, v] of Object.entries(item as object)) {
     if (v === undefined) continue;
     if (coll === 'members' && (MEMBER_LOCAL_FIELDS as string[]).includes(k)) continue;
+    // Lời bác sĩ chỉ gửi lên máy chủ khi người dùng bấm chia sẻ.
+    if (coll === 'appointments' && k === 'transcript' && !(item as { shareTranscript?: boolean }).shareTranscript) continue;
     out[k] = v;
   }
   return out;
@@ -131,6 +133,13 @@ export function mergeRemote<T extends SharedData>(local: T, remote: RemoteSnapsh
   for (const coll of CONFIG_COLLECTIONS) {
     const r = remote[coll];
     if (r) (next as SharedData)[coll] = r as never;
+  }
+  // Lời bác sĩ chưa chia sẻ chỉ có trên máy này: giữ lại khi bản máy chủ không có.
+  if (remote.appointments) {
+    const mine = new Map(local.appointments.map((a) => [a.id, a.transcript] as const));
+    next.appointments = remote.appointments.map((a) =>
+      a.transcript === undefined && mine.get(a.id) ? { ...a, transcript: mine.get(a.id) } : a,
+    );
   }
   for (const coll of EVENT_COLLECTIONS) {
     const r = remote[coll] as Item<typeof coll>[] | undefined;

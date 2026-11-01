@@ -247,3 +247,21 @@ describe('hai máy qua máy chủ', () => {
     expect(parent.acked?.checkins).toHaveLength(1);
   });
 });
+
+describe('lời bác sĩ chỉ giữ trên máy trừ khi chia sẻ', () => {
+  const ap = { id: 'k1', memberId: 'bo', title: 'Tim mạch', at: '2026-10-01T01:00:00.000Z', questions: [], transcript: 'Tăng thuốc lên 10mg.' };
+  it('chưa chia sẻ thì không gửi lời ghi lên máy chủ', () => {
+    const before = { ...shared(emptyData()), appointments: [] };
+    const w = diffData(before, { ...before, appointments: [ap] });
+    expect(w).toHaveLength(1);
+    expect((w[0] as { data: Record<string, unknown> }).data.transcript).toBeUndefined();
+  });
+  it('bấm chia sẻ thì gửi; bản máy chủ không có lời ghi thì máy ghi vẫn giữ', () => {
+    const before = { ...shared(emptyData()), appointments: [] };
+    const w = diffData(before, { ...before, appointments: [{ ...ap, shareTranscript: true }] });
+    expect((w[0] as { data: Record<string, unknown> }).data.transcript).toBe(ap.transcript);
+    const local = { ...emptyData(), appointments: [ap] };
+    const { transcript: _t, ...remoteAp } = ap;
+    expect(mergeRemote(local, { appointments: [remoteAp] }).appointments[0].transcript).toBe(ap.transcript);
+  });
+});

@@ -134,6 +134,23 @@ export default function VisitSummaryScreen() {
           onPress={() => Share.share({ message: summaryText(a.title, when, s) }).then(() => track('summary_shared')).catch(() => notify('Chưa gửi được', 'Thử lại sau nhé.'))}
         />
       )}
+      {!!a.transcript && (
+        <Card style={{ gap: 6 }}>
+          <T size={14} weight="700">{a.shareTranscript ? '✓ Cả nhà xem được lời bác sĩ' : 'Lời bác sĩ chỉ lưu trên máy này'}</T>
+          <T size={13} color={colors.muted}>
+            {a.shareTranscript
+              ? 'Lời ghi đang được đồng bộ lên máy chủ cho các máy trong gia đình.'
+              : 'Bản tóm tắt vẫn gửi được bằng nút trên. Chia sẻ thì các máy khác trong gia đình cũng xem được toàn bộ lời ghi.'}
+          </T>
+          <Btn
+            variant="secondary"
+            label={a.shareTranscript ? 'Thôi chia sẻ (xóa khỏi máy chủ)' : 'Chia sẻ lời ghi với cả nhà'}
+            height={44}
+            size={15}
+            onPress={() => upsertAppointment({ ...a, shareTranscript: !a.shareTranscript })}
+          />
+        </Card>
+      )}
       <Btn variant="ghost" label="Sửa lời ghi" onPress={() => router.replace({ pathname: '/child/visit-record', params: { id: a.id } })} />
       <T size={13} color={colors.muted} style={{ textAlign: 'center' }}>
         Bản tóm tắt do máy tự lọc từ lời ghi, có thể sót hoặc sai. Hãy hỏi lại bác sĩ nếu có điểm chưa rõ.

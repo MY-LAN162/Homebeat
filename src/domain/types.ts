@@ -100,6 +100,8 @@ export interface Appointment {
   bring?: string[];
   /** Lời bác sĩ đã chuyển thành chữ (hoặc con tự ghi). */
   transcript?: string;
+  /** Có chia sẻ lời bác sĩ với cả nhà không. Mặc định không: lời ghi chỉ nằm trên máy đã ghi. */
+  shareTranscript?: boolean;
 }
 
 export interface AlertSettings {
