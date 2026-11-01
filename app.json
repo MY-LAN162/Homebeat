@@ -52,7 +52,8 @@
           "locationWhenInUsePermission": "An Tâm gửi vị trí của bố mẹ cho các con khi bấm SOS.",
           "locationAlwaysAndWhenInUsePermission": false
         }
-      ]
+      ],
+      "expo-background-task"
     ],
     "scheme": "homebeat",
     "runtimeVersion": {

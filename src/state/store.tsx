@@ -21,14 +21,15 @@ import { emptyData } from '../domain/types';
 import { emptyShared, mergeRemote, shared, type SharedData } from '../domain/syncdiff';
 import { bpPush, checkinPush, sosPush, type PushMessage } from '../domain/pushRules';
 import { getFamilySync } from '../services/firebaseSync';
+import { setBackgroundEnabled } from '../services/background';
+import { checkAndAlert } from '../services/checkAndAlert';
 import { sendPush } from '../services/push';
+import { BASE_KEY, DATA_KEY } from './keys';
 import { getPushToken, rescheduleMedReminders } from '../services/notifications';
 import { SyncError, type FamilySync, type JoinRequest } from '../services/sync';
 import { SyncEngine } from '../services/syncEngine';
 
-const KEY = 'homebeat:data:v1';
-/** Bản dữ liệu máy chủ đã xác nhận (mốc so sánh khi gửi thay đổi). */
-const BASE_KEY = 'homebeat:synced:v1';
+const KEY = DATA_KEY;
 /** Máy bố mẹ báo "còn sống" mỗi 15 phút khi đang mở app. */
 const HEARTBEAT_MS = 15 * 60_000;
 
@@ -185,11 +186,16 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
       .catch(() => undefined);
   }, [ready, sync, familyId, data.role, data.currentMemberId]);
 
-  // Máy bố mẹ báo "còn sống": khi mở app, khi quay lại app và mỗi 15 phút.
+  // Máy bố mẹ: báo "còn sống" và tự báo cho con khi trễ thuốc / chưa điểm danh —
+  // khi mở app, khi quay lại app, mỗi 15 phút khi đang mở, và chạy nền khi đóng app (nếu máy cho phép).
   const beatMember = data.role === 'parent' ? data.currentMemberId : undefined;
   useEffect(() => {
-    if (!ready || !sync || !familyId || !beatMember) return;
-    const beat = () => sync.heartbeat(familyId, beatMember).catch(() => undefined);
+    if (!ready || !sync || !familyId || !beatMember) {
+      void setBackgroundEnabled(false);
+      return;
+    }
+    void setBackgroundEnabled(true);
+    const beat = () => checkAndAlert().catch(() => undefined);
     beat();
     const t = setInterval(beat, HEARTBEAT_MS);
     const sub = AppState.addEventListener('change', (s) => s === 'active' && beat());
