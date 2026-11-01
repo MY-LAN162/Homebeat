@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Con – Trang chủ gia đình</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;background:#F6F1E9;color:#1F2A28}
+button{font-family:inherit;cursor:pointer}
+a{color:#1F6F5C}a:hover{color:#16503F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 24px 16px 0; display: flex; flex-direction: column; gap: 12px; background: #F6F1E9; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #1F2A28">
+  <div style="display: flex; align-items: center; justify-content: space-between">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <div style="font-size: 14px; color: #5E6663">Chào Hà · Thứ Bảy 26/9</div>
+      <h1 style="margin: 0; font-family: Lora, Georgia, serif; font-size: 26px; font-weight: 700">Bố mẹ hôm nay</h1>
+    </div>
+    <button aria-label="Thông báo" style="width: 44px; height: 44px; border-radius: 22px; border: none; background: #FFFFFF; color: #1F2A28; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+    </button>
+  </div>
+
+  <div style="background: #FBE9D9; border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; gap: 12px">
+    <div style="color: #B4530F; flex-shrink: 0">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 20.5 3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7Z"></path><path d="m8.5 8.5 7 7"></path></svg>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px">
+      <div style="font-size: 15px; font-weight: 700; color: #7A3606">Mẹ chưa uống thuốc 12:00</div>
+      <div style="font-size: 13px; color: #5A2C0A">Đã trễ 35 phút · đã nhắc 2 lần</div>
+    </div>
+    <button style="height: 40px; padding: 0 14px; border: none; border-radius: 20px; background: #B4530F; color: #FFFFFF; font-size: 14px; font-weight: 600">Gọi mẹ</button>
+  </div>
+
+  <div style="background: #FFFFFF; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="width: 48px; height: 48px; border-radius: 24px; background: #DCEBE4; color: #16503F; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; flex-shrink: 0">B</div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px">
+        <a href="ChildParent.dc.html" style="font-size: 18px; font-weight: 700; color: #1F2A28">Bố Hùng ›</a>
+        <div style="font-size: 13px; color: #5E6663">72 tuổi · huyết áp, tiểu đường</div>
+      </div>
+      <div style="padding: 5px 10px; border-radius: 12px; background: #DCEBE4; color: #16503F; font-size: 13px; font-weight: 700">Ổn</div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+      <div style="background: #F6F1E9; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 12px; color: #5E6663">Điểm danh</div>
+        <div style="font-size: 14px; font-weight: 600">7:12 · "Bố ổn"</div>
+      </div>
+      <div style="background: #F6F1E9; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 12px; color: #5E6663">Thuốc hôm nay</div>
+        <div style="font-size: 14px; font-weight: 600">2/3 lần ✓</div>
+      </div>
+      <div style="background: #F6F1E9; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 12px; color: #5E6663">Vị trí</div>
+        <div style="font-size: 14px; font-weight: 600">Ở nhà · 15 phút</div>
+      </div>
+      <div style="background: #F6F1E9; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 12px; color: #5E6663">Huyết áp sáng</div>
+        <div style="font-size: 14px; font-weight: 600">135/85</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #FFFFFF; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; border: 2px solid #F2C9A5">
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="width: 48px; height: 48px; border-radius: 24px; background: #FBE9D9; color: #8A3E08; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; flex-shrink: 0">M</div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px">
+        <a href="ChildOffline.dc.html" style="font-size: 18px; font-weight: 700; color: #1F2A28">Mẹ Thu ›</a>
+        <div style="font-size: 13px; color: #5E6663">68 tuổi · tim mạch</div>
+      </div>
+      <div style="padding: 5px 10px; border-radius: 12px; background: #FBE9D9; color: #8A3E08; font-size: 13px; font-weight: 700">Cần chú ý</div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+      <div style="background: #F6F1E9; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 12px; color: #5E6663">Điểm danh</div>
+        <div style="font-size: 14px; font-weight: 600">8:05 · "Hơi mệt"</div>
+      </div>
+      <div style="background: #FBE9D9; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 12px; color: #7A3606">Thuốc hôm nay</div>
+        <div style="font-size: 14px; font-weight: 700; color: #7A3606">1/3 · trễ</div>
+      </div>
+      <div style="background: #F6F1E9; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 12px; color: #5E6663">Vị trí</div>
+        <div style="font-size: 14px; font-weight: 600">Chợ gần nhà</div>
+      </div>
+      <div style="background: #F6F1E9; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 12px; color: #5E6663">Triệu chứng</div>
+        <div style="font-size: 14px; font-weight: 600">Đau đầu</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 10px; padding: 0 4px; color: #5E6663; font-size: 13px">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B4530F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
+    Nắng nóng 37°C · đã nhắc bố mẹ uống đủ nước
+  </div>
+
+  <div style="flex-grow: 1"></div>
+
+  <nav aria-label="Điều hướng chính" style="margin: 0 -16px; height: 72px; background: #FFFFFF; border-top: 1px solid #E7E0D4; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr))">
+    <a href="ChildHome.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #1F6F5C; font-size: 12px; font-weight: 700; text-decoration: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z"></path></svg>
+      Trang chủ
+    </a>
+    <a href="ChildMeds.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #5E6663; font-size: 12px; font-weight: 500; text-decoration: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 20.5 3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7Z"></path><path d="m8.5 8.5 7 7"></path></svg>
+      Thuốc
+    </a>
+    <a href="ChildVisits.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #5E6663; font-size: 12px; font-weight: 500; text-decoration: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+      Đi khám
+    </a>
+    <a href="ChildFamily.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #5E6663; font-size: 12px; font-weight: 500; text-decoration: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      Gia đình
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

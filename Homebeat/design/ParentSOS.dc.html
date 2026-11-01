@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Bố mẹ – Đang gửi SOS</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;background:#B42318;color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+a{color:#FFFFFF}a:hover{color:#FDE4E1}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 56px 24px 28px; display: flex; flex-direction: column; align-items: center; gap: 22px; background: #B42318; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #FFFFFF; text-align: center">
+  <div style="font-size: 20px; font-weight: 600; letter-spacing: 0.5px">ĐANG GỬI CẢNH BÁO</div>
+  <div style="width: 200px; height: 200px; border-radius: 100px; border: 10px solid rgba(255,255,255,0.3); box-sizing: border-box; display: flex; align-items: center; justify-content: center">
+    <div style="width: 150px; height: 150px; border-radius: 75px; background: #FFFFFF; color: #B42318; display: flex; align-items: center; justify-content: center; font-size: 84px; font-weight: 700">3</div>
+  </div>
+  <h1 style="margin: 0; font-family: Lora, Georgia, serif; font-size: 30px; font-weight: 700; line-height: 1.25">Đang gọi các con cho bố</h1>
+
+  <div style="width: 100%; background: rgba(255,255,255,0.14); border-radius: 20px; padding: 16px 18px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; text-align: left">
+    <div style="display: flex; align-items: center; gap: 12px; font-size: 18px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      Gửi tới: con Hà, con Minh
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; font-size: 18px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+      Kèm vị trí hiện tại của bố
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; font-size: 18px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"></path></svg>
+      Tự động gọi con Hà nếu không ai trả lời
+    </div>
+  </div>
+
+  <div style="flex-grow: 1"></div>
+
+  <a href="Main.dc.html" style="width: 100%; height: 76px; border-radius: 20px; background: #FFFFFF; color: #B42318; font-size: 22px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Bố ổn, hủy cảnh báo</a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

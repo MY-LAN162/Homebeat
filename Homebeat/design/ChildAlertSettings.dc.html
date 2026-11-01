@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Con – Cài đặt cảnh báo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;background:#F6F1E9;color:#1F2A28}
+button{font-family:inherit;cursor:pointer}
+a{color:#1F6F5C}a:hover{color:#16503F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 20px 16px 20px; display: flex; flex-direction: column; gap: 12px; background: #F6F1E9; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #1F2A28">
+  <div style="display: flex; align-items: center; gap: 10px">
+    <a href="ChildFamily.dc.html" aria-label="Quay lại" style="width: 44px; height: 44px; border-radius: 22px; background: #FFFFFF; color: #1F2A28; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+    </a>
+    <h1 style="margin: 0; flex-grow: 1; font-family: Lora, Georgia, serif; font-size: 22px; font-weight: 700">Khi nào báo cho con?</h1>
+  </div>
+  <div style="font-size: 13px; color: #5E6663; line-height: 1.45">Đặt riêng cho bố Hùng. Ngưỡng càng ngắn càng dễ báo nhầm.</div>
+
+  <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+    <div style="background: #FFFFFF; border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 15px; font-weight: 700">{{g.title}}</div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+        <sc-for list="{{g.opts}}" as="o" hint-placeholder-count="3">
+          <button onClick="{{o.pick}}" aria-pressed="{{o.on}}" style="height: 40px; border-radius: 12px; border: 1.5px solid {{o.border}}; background: {{o.bg}}; color: {{o.fg}}; font-size: 14px; font-weight: 600">{{o.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+
+  <div style="background: #FFFFFF; border-radius: 18px; padding: 12px 14px; display: flex; align-items: center; gap: 12px">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+      <div style="font-size: 15px; font-weight: 700">Không tính giờ ngủ</div>
+      <div style="font-size: 13px; color: #5E6663">22:00 – 6:00 không báo "chưa di chuyển"</div>
+    </div>
+    <button onClick="{{toggleSleep}}" role="switch" aria-checked="{{sleepOn}}" aria-label="Không tính giờ ngủ" style="width: 56px; height: 32px; border-radius: 16px; border: none; background: {{sleepBg}}; padding: 3px; display: flex; justify-content: {{sleepJustify}}">
+      <div style="width: 26px; height: 26px; border-radius: 13px; background: #FFFFFF"></div>
+    </button>
+  </div>
+
+  <div style="flex-grow: 1"></div>
+  <a href="ChildFamily.dc.html" style="height: 56px; border-radius: 18px; background: #1F6F5C; color: #FFFFFF; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Lưu cài đặt</a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { late: '30 phút', still: '3 giờ', checkin: '10:00', bp: '140/90', sleep: true }; }
+renderVals() {
+  const s = this.state || {};
+  const group = (key, title, labels) => ({
+    title: title,
+    opts: labels.map((l) => {
+      const on = s[key] === l;
+      return { label: l, on: on ? 'true' : 'false', bg: on ? '#1F6F5C' : '#FFFFFF', fg: on ? '#FFFFFF' : '#1F2A28',
+        border: on ? '#1F6F5C' : '#D8D1C4', pick: () => this.setState({ [key]: l }) };
+    })
+  });
+  return {
+    groups: [
+      group('late', 'Trễ thuốc quá', ['15 phút', '30 phút', '60 phút']),
+      group('still', 'Điện thoại không di chuyển quá', ['2 giờ', '3 giờ', '5 giờ']),
+      group('checkin', 'Chưa bấm "bố ổn" trước', ['9:00', '10:00', '12:00']),
+      group('bp', 'Huyết áp từ mức', ['130/80', '140/90', '160/100'])
+    ],
+    sleepOn: s.sleep ? 'true' : 'false',
+    sleepBg: s.sleep ? '#1F6F5C' : '#C9C1B3',
+    sleepJustify: s.sleep ? 'flex-end' : 'flex-start',
+    toggleSleep: () => this.setState({ sleep: !s.sleep })
+  };
+}
+}
+</script>
+</body>
+</html>

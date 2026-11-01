@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Tóm tắt buổi khám</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;background:#F6F1E9;color:#1F2A28}
+button{font-family:inherit;cursor:pointer}
+a{color:#1F6F5C}a:hover{color:#16503F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 20px 16px 20px; display: flex; flex-direction: column; gap: 12px; background: #F6F1E9; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #1F2A28">
+  <div style="display: flex; align-items: center; gap: 10px">
+    <a href="ChildVisits.dc.html" aria-label="Quay lại" style="width: 44px; height: 44px; border-radius: 22px; background: #FFFFFF; color: #1F2A28; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+    </a>
+    <div style="flex-grow: 1; display: flex; flex-direction: column">
+      <h1 style="margin: 0; font-family: Lora, Georgia, serif; font-size: 22px; font-weight: 700">Tóm tắt buổi khám</h1>
+      <div style="font-size: 13px; color: #5E6663">30/9 · Tim mạch · BS. [Tên bác sĩ]</div>
+    </div>
+  </div>
+
+  <div style="background: #FFFFFF; border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+    <div style="font-size: 16px; font-weight: 700">Bác sĩ nói gì</div>
+    <div style="font-size: 14px; line-height: 1.5">• Huyết áp của bố <b>còn hơi cao</b>, cần kiểm soát tốt hơn.</div>
+    <div style="font-size: 14px; line-height: 1.5">• Chóng mặt khi đứng dậy có thể do đứng lên quá nhanh. Nên ngồi dậy từ từ.</div>
+    <div style="font-size: 14px; line-height: 1.5">• Tim và phổi nghe bình thường.</div>
+  </div>
+
+  <div style="background: #FBE9D9; border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+    <div style="font-size: 16px; font-weight: 700; color: #7A3606">Thay đổi thuốc</div>
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 15px; flex-wrap: wrap">
+      <b>Amlodipine</b>
+      <span style="padding: 3px 8px; border-radius: 8px; background: #FFFFFF; color: #5E6663; text-decoration: line-through">5mg</span>
+      <span style="color: #7A3606">→</span>
+      <span style="padding: 3px 8px; border-radius: 8px; background: #B4530F; color: #FFFFFF; font-weight: 700">10mg</span>
+      <span style="color: #5A2C0A">buổi sáng</span>
+    </div>
+    <button style="height: 44px; border: none; border-radius: 12px; background: #B4530F; color: #FFFFFF; font-size: 15px; font-weight: 600">Cập nhật lịch nhắc thuốc</button>
+  </div>
+
+  <div style="background: #FFFFFF; border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+    <div style="font-size: 16px; font-weight: 700">Việc cần làm</div>
+    <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45">
+      <input type="checkbox" style="width: 20px; height: 20px; margin: 1px 0 0; accent-color: #1F6F5C; flex-shrink: 0">
+      Đo huyết áp mỗi sáng, ghi vào app
+    </label>
+    <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45">
+      <input type="checkbox" style="width: 20px; height: 20px; margin: 1px 0 0; accent-color: #1F6F5C; flex-shrink: 0">
+      Xét nghiệm máu trước lần tái khám
+    </label>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #E1EAF6; color: #1E3F6E; font-size: 14px; font-weight: 600">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+      Tái khám: Thứ Ba 28/10 · đã thêm vào lịch
+    </div>
+  </div>
+
+  <div style="flex-grow: 1"></div>
+
+  <div style="display: flex; gap: 10px">
+    <button style="flex-grow: 1; height: 56px; border: 2px solid #1F2A28; border-radius: 16px; background: #FFFFFF; color: #1F2A28; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l14 8-14 8Z"></path></svg>
+      Nghe lại
+    </button>
+    <button style="flex-grow: 2; height: 56px; border: none; border-radius: 16px; background: #1F6F5C; color: #FFFFFF; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"></path></svg>
+      Gửi cho cả nhà
+    </button>
+  </div>
+  <div style="font-size: 12px; color: #5E6663; text-align: center">Bản tóm tắt do AI tạo từ ghi âm. Hãy hỏi lại bác sĩ nếu có điểm chưa rõ.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

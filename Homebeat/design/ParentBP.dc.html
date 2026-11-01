@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Bố mẹ – Nhập huyết áp</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;background:#F6F1E9;color:#1F2A28}
+button{font-family:inherit;cursor:pointer}
+a{color:#1F6F5C}a:hover{color:#16503F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 20px 20px 24px; display: flex; flex-direction: column; gap: 14px; background: #F6F1E9; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #1F2A28">
+  <div style="display: flex; align-items: center; gap: 10px">
+    <a href="ParentCheckin.dc.html" aria-label="Quay lại" style="width: 48px; height: 48px; border-radius: 24px; background: #FFFFFF; color: #1F2A28; display: flex; align-items: center; justify-content: center">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+    </a>
+    <h1 style="margin: 0; flex-grow: 1; font-family: Lora, Georgia, serif; font-size: 26px; font-weight: 700">Huyết áp sáng nay</h1>
+  </div>
+  <div style="font-size: 17px; color: #5E6663; line-height: 1.45">Bố nhìn máy đo, bấm + hoặc − cho đúng 3 số.</div>
+
+  <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+    <div style="background: #FFFFFF; border-radius: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 12px">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 19px; font-weight: 700">{{r.label}}</div>
+        <div style="font-size: 14px; color: #5E6663">{{r.sub}}</div>
+      </div>
+      <button onClick="{{r.minus}}" aria-label="{{r.minusAria}}" style="width: 56px; height: 56px; border-radius: 16px; border: 2px solid #1F2A28; background: #FFFFFF; color: #1F2A28; font-size: 30px; font-weight: 700; line-height: 1">−</button>
+      <div style="width: 70px; text-align: center; font-size: 34px; font-weight: 700">{{r.val}}</div>
+      <button onClick="{{r.plus}}" aria-label="{{r.plusAria}}" style="width: 56px; height: 56px; border-radius: 16px; border: none; background: #1F6F5C; color: #FFFFFF; font-size: 30px; font-weight: 700; line-height: 1">+</button>
+    </div>
+  </sc-for>
+
+  <div style="border-radius: 16px; padding: 12px 16px; background: {{statusBg}}; color: {{statusFg}}; font-size: 16px; line-height: 1.45; font-weight: 600">{{statusText}}</div>
+
+  <button style="height: 56px; border: 2px dashed #9DB4D6; border-radius: 18px; background: #EEF3FA; color: #2B5C9E; font-size: 17px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"></path><circle cx="12" cy="13" r="3"></circle></svg>
+    Hoặc chụp màn hình máy đo
+  </button>
+
+  <div style="flex-grow: 1"></div>
+  <a href="Main.dc.html" style="height: 72px; border-radius: 20px; background: #1F6F5C; color: #FFFFFF; font-size: 22px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Lưu và gửi cho các con</a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { sys: 135, dia: 85, pulse: 76 }; }
+renderVals() {
+  const s = this.state || { sys: 135, dia: 85, pulse: 76 };
+  const row = (key, label, sub) => ({
+    label: label, sub: sub, val: s[key],
+    minusAria: 'Giảm ' + label, plusAria: 'Tăng ' + label,
+    minus: () => this.setState({ [key]: Math.max(30, s[key] - 1) }),
+    plus: () => this.setState({ [key]: Math.min(250, s[key] + 1) })
+  });
+  const high = s.sys >= 140 || s.dia >= 90;
+  return {
+    rows: [row('sys', 'Số trên', 'Tâm thu (SYS)'), row('dia', 'Số dưới', 'Tâm trương (DIA)'), row('pulse', 'Nhịp tim', 'Mạch (PUL)')],
+    statusBg: high ? '#FBE9D9' : '#DCEBE4',
+    statusFg: high ? '#7A3606' : '#16503F',
+    statusText: high ? 'Cao hơn mức con đã đặt (140/90). An Tâm sẽ báo cho các con.' : 'Trong mức con đã đặt (dưới 140/90).'
+  };
+}
+}
+</script>
+</body>
+</html>

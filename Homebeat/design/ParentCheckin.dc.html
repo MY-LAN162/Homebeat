@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Bố mẹ – Hỏi thăm hằng ngày</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;background:#F6F1E9;color:#1F2A28}
+button{font-family:inherit;cursor:pointer}
+a{color:#1F6F5C}a:hover{color:#16503F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 28px 20px 24px; display: flex; flex-direction: column; gap: 16px; background: #F6F1E9; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #1F2A28">
+  <div style="display: flex; flex-direction: column; gap: 4px">
+    <div style="font-size: 17px; color: #5E6663">Con Hà hỏi thăm bố</div>
+    <h1 style="margin: 0; font-family: Lora, Georgia, serif; font-size: 28px; font-weight: 700; line-height: 1.25">Hôm nay bố thấy trong người thế nào?</h1>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <button style="height: 76px; border: 3px solid #1F6F5C; border-radius: 18px; background: #DCEBE4; color: #16503F; font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 14px; padding: 0 18px">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"></path></svg>
+      Khỏe
+    </button>
+    <button style="height: 76px; border: 2px solid #E8D3BC; border-radius: 18px; background: #FFFFFF; color: #8A3E08; font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 14px; padding: 0 18px">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M8 15h8M9 9h.01M15 9h.01"></path></svg>
+      Hơi mệt
+    </button>
+    <button style="height: 76px; border: 2px solid #F0C9C4; border-radius: 18px; background: #FFFFFF; color: #9B1C12; font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 14px; padding: 0 18px">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2M9 9h.01M15 9h.01"></path></svg>
+      Không khỏe
+    </button>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div style="font-size: 19px; font-weight: 700">Có chỗ nào khó chịu không?</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px">
+      <button style="height: 48px; padding: 0 16px; border: 1.5px solid #D8D1C4; border-radius: 24px; background: #FFFFFF; color: #1F2A28; font-size: 17px; font-weight: 500">Đau đầu</button>
+      <button style="height: 48px; padding: 0 16px; border: 1.5px solid #1F6F5C; border-radius: 24px; background: #1F6F5C; color: #FFFFFF; font-size: 17px; font-weight: 600">Chóng mặt</button>
+      <button style="height: 48px; padding: 0 16px; border: 1.5px solid #D8D1C4; border-radius: 24px; background: #FFFFFF; color: #1F2A28; font-size: 17px; font-weight: 500">Mất ngủ</button>
+      <button style="height: 48px; padding: 0 16px; border: 1.5px solid #D8D1C4; border-radius: 24px; background: #FFFFFF; color: #1F2A28; font-size: 17px; font-weight: 500">Đau ngực</button>
+      <button style="height: 48px; padding: 0 16px; border: 1.5px solid #D8D1C4; border-radius: 24px; background: #FFFFFF; color: #1F2A28; font-size: 17px; font-weight: 500">Khó thở</button>
+      <button style="height: 48px; padding: 0 16px; border: 1.5px solid #D8D1C4; border-radius: 24px; background: #FFFFFF; color: #1F2A28; font-size: 17px; font-weight: 500">Ăn không ngon</button>
+    </div>
+  </div>
+
+  <button style="height: 64px; border: 2px dashed #9DB4D6; border-radius: 18px; background: #EEF3FA; color: #2B5C9E; font-size: 19px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"></path></svg>
+    Giữ để nói với con
+  </button>
+
+  <a href="ParentBP.dc.html" style="font-size: 18px; font-weight: 600; text-align: center; padding: 4px">Nhập huyết áp sáng nay</a>
+
+  <div style="flex-grow: 1"></div>
+
+  <a href="Main.dc.html" style="height: 72px; border-radius: 20px; background: #1F6F5C; color: #FFFFFF; font-size: 22px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Gửi cho các con</a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

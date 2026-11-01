@@ -1,0 +1,258 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "ChildAlert.dc.html": {
+      "h": 844,
+      "title": "Con · Cảnh báo không di chuyển",
+      "w": 390,
+      "x": 940,
+      "y": 1264,
+      "is_interactive": true
+    },
+    "ChildHome.dc.html": {
+      "h": 844,
+      "title": "Con · Trang chủ gia đình",
+      "w": 390,
+      "x": 0,
+      "y": 1264,
+      "is_interactive": true
+    },
+    "ChildParent.dc.html": {
+      "h": 844,
+      "title": "Con · Chi tiết về bố",
+      "w": 390,
+      "x": 470,
+      "y": 1264,
+      "is_interactive": true
+    },
+    "Main.dc.html": {
+      "h": 844,
+      "title": "Bố mẹ · Trang chủ",
+      "w": 390,
+      "x": 0,
+      "y": 0,
+      "is_interactive": true
+    },
+    "ParentCheckin.dc.html": {
+      "h": 844,
+      "title": "Bố mẹ · Hỏi thăm hằng ngày",
+      "w": 390,
+      "x": 940,
+      "y": 0,
+      "is_interactive": true
+    },
+    "ParentMedicine.dc.html": {
+      "h": 844,
+      "title": "Bố mẹ · Nhắc uống thuốc",
+      "w": 390,
+      "x": 470,
+      "y": 0,
+      "is_interactive": true
+    },
+    "ParentSOS.dc.html": {
+      "h": 844,
+      "title": "Bố mẹ · Đang gửi SOS",
+      "w": 390,
+      "x": 1410,
+      "y": 0,
+      "is_interactive": true
+    },
+    "ScanConfirm.dc.html": {
+      "h": 844,
+      "title": "Con · Xác nhận đơn thuốc",
+      "w": 390,
+      "x": 1880,
+      "y": 1264,
+      "is_interactive": true
+    },
+    "ScanRx.dc.html": {
+      "h": 844,
+      "title": "Con · Quét đơn thuốc",
+      "w": 390,
+      "x": 1410,
+      "y": 1264,
+      "is_interactive": true
+    },
+    "VisitPrep.dc.html": {
+      "h": 844,
+      "title": "Đi khám · Chuẩn bị",
+      "w": 390,
+      "x": 0,
+      "y": 2528,
+      "is_interactive": true
+    },
+    "VisitRecord.dc.html": {
+      "h": 844,
+      "title": "Đi khám · Đang ghi âm",
+      "w": 390,
+      "x": 470,
+      "y": 2528,
+      "is_interactive": true
+    },
+    "VisitSummary.dc.html": {
+      "h": 844,
+      "title": "Đi khám · Tóm tắt",
+      "w": 390,
+      "x": 940,
+      "y": 2528,
+      "is_interactive": true
+    },
+    "ParentBP.dc.html": {
+      "h": 844,
+      "w": 390,
+      "x": 1880,
+      "y": 0,
+      "title": "Bố mẹ · Nhập huyết áp",
+      "is_interactive": true
+    },
+    "ChildMeds.dc.html": {
+      "h": 844,
+      "w": 390,
+      "x": 0,
+      "y": 3792,
+      "title": "Con · Tab Thuốc",
+      "is_interactive": true
+    },
+    "ChildVisits.dc.html": {
+      "h": 844,
+      "w": 390,
+      "x": 470,
+      "y": 3792,
+      "title": "Con · Tab Đi khám",
+      "is_interactive": true
+    },
+    "ChildFamily.dc.html": {
+      "h": 844,
+      "w": 390,
+      "x": 940,
+      "y": 3792,
+      "title": "Con · Tab Gia đình",
+      "is_interactive": true
+    },
+    "ChildAlertSettings.dc.html": {
+      "h": 844,
+      "w": 390,
+      "x": 1410,
+      "y": 3792,
+      "title": "Con · Cài đặt cảnh báo",
+      "is_interactive": true
+    },
+    "ChildOffline.dc.html": {
+      "h": 844,
+      "w": 390,
+      "x": 1880,
+      "y": 3792,
+      "title": "Con · Mất tín hiệu từ máy bố mẹ",
+      "is_interactive": true
+    },
+    "OnboardRole.dc.html": {
+      "h": 844,
+      "w": 390,
+      "x": 0,
+      "y": -1564,
+      "title": "Bắt đầu · Chọn vai trò",
+      "is_interactive": true
+    },
+    "OnboardInvite.dc.html": {
+      "h": 844,
+      "w": 390,
+      "x": 470,
+      "y": -1564,
+      "title": "Bắt đầu · Con thêm bố mẹ, xưng hô",
+      "is_interactive": true
+    },
+    "OnboardPair.dc.html": {
+      "h": 844,
+      "w": 390,
+      "x": 940,
+      "y": -1564,
+      "title": "Bắt đầu · Bố mẹ nhập mã",
+      "is_interactive": true
+    },
+    "OnboardPermissions.dc.html": {
+      "h": 844,
+      "w": 390,
+      "x": 1410,
+      "y": -1564,
+      "title": "Bắt đầu · Bố mẹ cấp quyền",
+      "is_interactive": true
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-26T09:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "rowChild": {
+      "kind": "title1",
+      "maxW": 2270,
+      "text": "Màn hình của con cái",
+      "w": 240,
+      "x": 0,
+      "y": 964
+    },
+    "rowParent": {
+      "kind": "title1",
+      "maxW": 2270,
+      "text": "Màn hình của bố mẹ",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "rowVisit": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "Đồng hành khi đi khám",
+      "w": 240,
+      "x": 0,
+      "y": 2228
+    },
+    "rowOnboard": {
+      "kind": "title1",
+      "maxW": 1800,
+      "text": "Bắt đầu sử dụng",
+      "w": 240,
+      "x": 0,
+      "y": -1864
+    },
+    "rowManage": {
+      "kind": "title1",
+      "maxW": 2270,
+      "text": "Con · Thuốc, gia đình và cài đặt",
+      "w": 240,
+      "x": 0,
+      "y": 3492
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "ParentMedicine.dc.html",
+    "ParentCheckin.dc.html",
+    "ParentSOS.dc.html",
+    "ChildHome.dc.html",
+    "ChildParent.dc.html",
+    "ChildAlert.dc.html",
+    "ScanRx.dc.html",
+    "ScanConfirm.dc.html",
+    "VisitPrep.dc.html",
+    "VisitRecord.dc.html",
+    "VisitSummary.dc.html",
+    "ParentBP.dc.html",
+    "ChildMeds.dc.html",
+    "ChildVisits.dc.html",
+    "ChildFamily.dc.html",
+    "ChildAlertSettings.dc.html",
+    "ChildOffline.dc.html",
+    "OnboardRole.dc.html",
+    "OnboardInvite.dc.html",
+    "OnboardPair.dc.html",
+    "OnboardPermissions.dc.html"
+  ],
+  "pages": [],
+  "title": "Ứng dụng chăm sóc bố mẹ"
+}
