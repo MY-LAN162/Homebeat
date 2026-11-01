@@ -99,6 +99,21 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 
 **Cách quyết định tiếp:** thử với 5–10 gia đình trong 2 tuần, xem màn hình *Mức sử dụng app* (tỷ lệ uống đúng giờ, số lần phải nhắc lại, màn hình nào không ai mở), rồi giữ, bỏ hoặc làm tiếp theo số liệu.
 
+## Sửa lỗi lần 3 (1/11/2026): trang dùng thử báo "not found" và lỗi điều hướng
+
+Chạy thử lại theo **hành trình người dùng thật** (31 bước, mỗi bước kiểm tra màn hình đang hiện trước mắt), trên máy chủ thử giống Artifact (chỉ phục vụ 1 đường dẫn): **31/31 đạt**, không có lỗi trang.
+
+| Lỗi | Ảnh hưởng | Đã sửa |
+|---|---|---|
+| Trang dùng thử đổi đường dẫn thật khi chuyển màn hình | Tải lại trang / có bản cập nhật → "not found" | Đường dẫn ảo trong bộ nhớ (`scripts/make-test-page.py`) |
+| "Quay lại" ở màn hình con về Trang chủ thay vì màn trước | Lạc đường | Thanh tab quay lại theo lịch sử |
+| Mở thẳng màn hình (từ thông báo, tải lại) bấm "Quay lại"/"Đã uống" không làm gì | Bố mẹ bị kẹt | Không có màn trước thì về trang chủ đúng vai trò |
+| Màn "Hôm nay bố thấy thế nào?" và màn nhắc thuốc không có nút Quay lại | Bố mẹ không biết thoát | Thêm nút |
+| Nút Quay lại chỉ là "‹" | Người lớn tuổi không hiểu | Thành "‹ Quay lại" |
+| Đổi vai trò xong không về được màn hình con | Tưởng mất dữ liệu | Nút "Tiếp tục với gia đình đã có" |
+
+Làm lại trang dùng thử: `npx expo export -p web --output-dir <thư mục>/web-demo` rồi `python3 scripts/make-test-page.py <thư mục>`.
+
 ## Kiểm tra lần build này (1/11/2026, lần 2)
 
 47 bài kiểm thử app + 5 logic máy chủ đạt; typecheck, lint sạch; đóng gói Android / iOS / web không lỗi; chạy thử 30 bước qua mọi màn hình (kể cả SOS, mua thêm thuốc, bảng 30 ngày), không có lỗi console.
