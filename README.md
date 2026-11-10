@@ -57,8 +57,8 @@ Các tính năng "AI" ở trên **không dùng mô hình AI trả phí**: gợi 
 
 1. **Tạo dự án Firebase** (gói Spark miễn phí) và **tài khoản Expo** để build file cài (xem các mục bên dưới).
 2. **Chụp ảnh → chữ** cho quét đơn thuốc (ML Kit / Apple Vision, chạy trên máy) và **nhận dạng giọng nói trên điện thoại** (`expo-speech-recognition`). Hiện bản web dùng giọng nói của trình duyệt; bản cài cần thêm 2 thư viện này.
-3. **Chụp ảnh viên thuốc**; **nhiều con cùng theo dõi một gia đình** (hiện mã kết nối chỉ dành cho máy bố mẹ).
-4. **Hạn chế đã biết của gói miễn phí:** iPhone không đảm bảo giờ chạy nền, nên cảnh báo trễ thuốc có thể đến chậm 15–60 phút; cảnh báo "mất tín hiệu" chỉ hiện trong app của con (chưa gửi thông báo). Khi cần đúng giờ hơn: bật Firebase gói Blaze, Cloud Functions trong `functions/` đã viết sẵn.
+3. **Chụp ảnh viên thuốc**.
+4. **Hạn chế đã biết của gói miễn phí:** iPhone không đảm bảo giờ chạy nền, nên cảnh báo trễ thuốc có thể đến chậm 15–60 phút; cảnh báo "mất tín hiệu" do máy con tự kiểm tra khi chạy nền, nên cũng có thể chậm. Khi cần đúng giờ hơn: bật Firebase gói Blaze, Cloud Functions trong `functions/` đã viết sẵn.
 5. Tài khoản Google Play / Apple để đưa lên kho (khi phát hành rộng).
 
 Ở chế độ thử, có thể xem cả hai vai trò trên một máy: chọn **Dùng thử với dữ liệu mẫu**, rồi vào **Gia đình › Xem màn hình của bố**.
@@ -88,6 +88,8 @@ Tất cả miễn phí (Firebase gói Spark, thư viện mã nguồn mở). Đã
 | Chỉ xóa trên máy chủ thứ người dùng bấm xóa | Mất dữ liệu khi app tắt giữa chừng |
 | Dữ liệu trên điện thoại được mã hóa (XChaCha20-Poly1305); khóa giữ trong Keychain / Keystore | Ai lấy được file dữ liệu của app cũng không đọc được |
 | Khóa app bằng vân tay / khuôn mặt / mã máy (máy của con; máy bố mẹ không khóa để SOS luôn bấm được) | Người khác cầm máy đã mở khóa |
+| Chỉ máy của con / máy quản lý xóa được dữ liệu; vai trò máy lấy theo yêu cầu đã được Đồng ý | Máy bố mẹ nhiễm mã độc xóa dữ liệu cả nhà hoặc tự nâng quyền |
+| Máy con tự báo khi máy bố mẹ mất tín hiệu, pin yếu | Máy bố mẹ hết pin, bị tắt mà không ai biết |
 | Lời bác sĩ chỉ lưu trên máy ghi, trừ khi bấm chia sẻ | Dữ liệu sức khỏe đi xa hơn cần thiết |
 | Chính sách quyền riêng tư (`PRIVACY.md`, trong app), xin đồng ý lần đầu; xóa toàn bộ dữ liệu gia đình (máy quản lý); rời gia đình | Yêu cầu pháp lý về dữ liệu cá nhân nhạy cảm, yêu cầu của kho ứng dụng |
 
@@ -181,6 +183,15 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 | Không làm | Chat, gọi video (đã có Zalo), đếm bước, trò chơi, trợ lý AI trò chuyện | Dễ làm ra rồi bỏ đó |
 
 **Cách quyết định tiếp:** thử với 5–10 gia đình trong 2 tuần, xem màn hình *Mức sử dụng app* (tỷ lệ uống đúng giờ, số lần phải nhắc lại, màn hình nào không ai mở), rồi giữ, bỏ hoặc làm tiếp theo số liệu.
+
+## Bổ sung lần 5 (10/11/2026): mất tín hiệu, pin yếu, người nhà cùng theo dõi, bảo mật
+
+- **Máy con tự báo khi máy bố mẹ mất tín hiệu** (quá số giờ con đặt, mặc định 3 giờ) **hoặc pin còn ≤ 15%**. Máy con chạy nền, đọc nhịp "còn sống" của máy bố mẹ và tự hiện thông báo, nên vẫn báo được khi máy bố mẹ đã tắt / hết pin. Miễn phí (không cần Cloud Functions). Bấm vào thông báo mở thẳng chi tiết cảnh báo.
+- **Mời anh chị em cùng theo dõi:** màn hình đầu có lựa chọn "Người nhà mời tôi cùng theo dõi"; tab Gia đình có mục "Người cùng theo dõi" và nút gửi mã qua Zalo.
+- **Bảo mật:** chỉ máy của con hoặc máy quản lý xóa được dữ liệu; vai trò của máy lấy theo yêu cầu vào gia đình đã được Đồng ý (máy bố mẹ không tự đổi thành máy con).
+- **Thư viện:** cập nhật bản vá trong cùng phiên bản (Expo 57.0.32, Firebase 13.2.0); lỗ hổng đã biết 31 → 23 (còn lại cần lên phiên bản lớn hoặc nằm trong công cụ build).
+
+Đã chạy: 71 kiểm thử app, 5 logic máy chủ, typecheck, lint, đóng gói Android/web, `npm run e2e` 38/38. **Chưa chạy** (môi trường làm việc lần này không tải được Firestore Emulator): `npm --prefix functions run test:rules` (16 bài, có 3 bài mới) và `npm run e2e:sync`. Cần chạy 2 lệnh này trước khi đưa luật lên máy chủ.
 
 ## Kiểm tra lần 4 (1/11/2026): hướng dẫn, cỡ chữ, bản cài, đồng bộ miễn phí
 
