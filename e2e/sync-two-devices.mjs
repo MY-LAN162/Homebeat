@@ -76,6 +76,7 @@ const fsGet = async (p) => (await fetch(`http://127.0.0.1:8080/v1/projects/demo-
     await con.getByLabel('Số điện thoại của bạn').fill('0901234567');
     await con.getByText('Tạo mã kết nối', { exact: true }).click();
     const el = con.getByText(/^\d{3} \d{3}$/); await el.waitFor({ timeout: 20000 }); code = (await el.textContent()).replace(' ', '');
+    await con.getByText(/hỏi “Cho phép An Tâm gửi thông báo\?”/).waitFor();
     await con.getByText('Xong, vào trang chủ').click(); await vis(con, 'Bố mẹ hôm nay').waitFor();
   });
   await step('Máy bố: nhập mã → màn hình chờ con đồng ý (chưa vào gia đình)', async () => {

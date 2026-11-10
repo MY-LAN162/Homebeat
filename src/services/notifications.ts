@@ -78,6 +78,17 @@ export async function askPermission(): Promise<boolean> {
   return req.granted;
 }
 
+/** Máy này có thông báo không (bản trình duyệt thì không). */
+export const notificationsSupported = supported;
+
+/** Tình trạng quyền thông báo: 'granted' đã cho; 'ask' còn hỏi được; 'blocked' đã chặn, phải vào Cài đặt mở lại. */
+export async function permissionState(): Promise<'granted' | 'ask' | 'blocked'> {
+  if (!supported) return 'blocked';
+  const p = await Notifications.getPermissionsAsync();
+  if (p.granted) return 'granted';
+  return p.canAskAgain ? 'ask' : 'blocked';
+}
+
 export async function hasPermission(): Promise<boolean> {
   if (!supported) return false;
   return (await Notifications.getPermissionsAsync()).granted;

@@ -52,6 +52,8 @@ interface Store {
   syncEnabled: boolean;
   /** Lỗi đồng bộ gần nhất (để hiện cho người dùng). */
   syncError?: string;
+  /** Gửi lại mã nhận thông báo của máy này lên máy chủ (gọi sau khi người dùng vừa cho phép thông báo). */
+  refreshDevice: () => void;
   setRole: (role: Role | undefined) => void;
   /** Con tạo gia đình: thêm bố/mẹ đầu tiên và tạo mã kết nối. */
   addMember: (m: Omit<Member, 'id'>) => Member;
@@ -112,6 +114,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
   const [now, setNow] = useState(() => new Date());
   const [syncError, setSyncError] = useState<string>();
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [deviceTick, setDeviceTick] = useState(0);
   const loaded = useRef(false);
   const baseRef = useRef<SharedData | undefined>(undefined);
   const engineRef = useRef<SyncEngine | undefined>(undefined);
@@ -216,7 +219,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
       .catch(() => undefined)
       .then((pushToken) => sync.registerDevice(familyId, { role, memberId, pushToken }))
       .catch(() => undefined);
-  }, [ready, sync, familyId, data.role, data.currentMemberId]);
+  }, [ready, sync, familyId, data.role, data.currentMemberId, deviceTick]);
 
   // Máy bố mẹ: báo "còn sống" và tự báo cho con khi trễ thuốc / chưa điểm danh —
   // khi mở app, khi quay lại app, mỗi 15 phút khi đang mở, và chạy nền khi đóng app (nếu máy cho phép).
@@ -277,6 +280,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
       now,
       syncEnabled: !!sync,
       syncError,
+      refreshDevice: () => setDeviceTick((t) => t + 1),
       setRole: (role) => update((d) => ({ ...d, role })),
       addMember: (m) => {
         const member: Member = { ...m, id: newId('m') };

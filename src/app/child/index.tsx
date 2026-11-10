@@ -5,6 +5,7 @@ import { displayName } from '../../domain/address';
 import { alertKey, familyAlerts, memberAlerts, memberStatus, type FamilyAlert } from '../../domain/alerts';
 import { daysOfStock, slotsForDay } from '../../domain/schedule';
 import { JoinRequests } from '../../components/JoinRequests';
+import { NotifCard } from '../../components/NotifCard';
 import { Restock } from '../../components/Restock';
 import { dateKey, formatShortDate, hm } from '../../domain/time';
 import type { Member } from '../../domain/types';
@@ -76,6 +77,8 @@ export default function ChildHome() {
           <Btn label="Thêm bố hoặc mẹ" onPress={() => router.push('/onboarding/invite')} />
         </Card>
       )}
+
+      <NotifCard />
 
       <JoinRequests />
 

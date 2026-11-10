@@ -3,6 +3,7 @@ import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Share, View } from 'react-native';
 import { notify } from '../../services/dialog';
+import { NotifCard } from '../../components/NotifCard';
 import { Back, Btn, Card, Chip, Field, H1, Screen, T } from '../../components/ui';
 import { medPrompt, okLabel } from '../../domain/address';
 import { formatCode } from '../../domain/pairing';
@@ -133,6 +134,7 @@ export default function InviteScreen() {
               ? 'Cài An Tâm trên máy của bố mẹ, chọn "Tôi là bố, mẹ" rồi nhập mã này. Sau đó máy bạn sẽ hiện "Có máy xin kết nối": bấm Đồng ý là xong.'
               : 'Chưa cấu hình máy chủ đồng bộ: mã chỉ dùng được trên chính máy này (để thử).'}
           </T>
+          <NotifCard onboarding />
           <View style={{ flex: 1 }} />
           <Btn
             label="Xong, vào trang chủ"
