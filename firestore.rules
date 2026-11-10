@@ -83,6 +83,17 @@ service cloud.firestore {
         && !(resource.data.ownerUid in removed)
         && (request.auth.uid == resource.data.ownerUid || removed == [request.auth.uid]);
     }
+    // Vai trò của máy đang gọi, theo yêu cầu vào gia đình đã được Đồng ý (máy không tự đổi được).
+    // Máy tạo gia đình (không có yêu cầu vào) là máy của con.
+    function approvedRole(familyId) {
+      let jr = /databases/$(database)/documents/families/$(familyId)/joinRequests/$(request.auth.uid);
+      return exists(jr) ? get(jr).data.role : 'child';
+    }
+    // Xóa dữ liệu gia đình (thuốc, lịch khám, người, nhật ký): chỉ máy của con hoặc máy quản lý.
+    // Máy của bố mẹ không cần xóa gì; nếu máy đó nhiễm mã độc cũng không xóa được dữ liệu cả nhà.
+    function canDeleteData(familyId) {
+      return isOwner(familyId) || approvedRole(familyId) == 'child';
+    }
     function isOwner(familyId) {
       return signedIn() && get(/databases/$(database)/documents/families/$(familyId)).data.ownerUid == request.auth.uid;
     }
@@ -121,7 +132,10 @@ service cloud.firestore {
       // Đọc / xóa: người trong gia đình. Ghi: người trong gia đình, VÀ dữ liệu phải đúng dạng
       // (đúng trường, đúng kiểu, độ dài giới hạn, số trong khoảng hợp lý) để máy lỗi hay mã độc không ghi được rác.
       match /{coll}/{docId} {
-        allow read, delete: if isMember(familyId)
+        allow read: if isMember(familyId)
+          && coll in ['members', 'caregivers', 'medications', 'appointments',
+                      'doseLogs', 'checkins', 'bpReadings', 'sosEvents'];
+        allow delete: if isMember(familyId) && canDeleteData(familyId)
           && coll in ['members', 'caregivers', 'medications', 'appointments',
                       'doseLogs', 'checkins', 'bpReadings', 'sosEvents'];
         allow create, update: if isMember(familyId) && validDoc(coll, docId, request.resource.data);
@@ -142,7 +156,8 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['role', 'memberId', 'pushToken', 'platform', 'updatedAt', 'joinedAt'])
           && optStr(request.resource.data, 'pushToken', 300) && optStr(request.resource.data, 'memberId', 80)
           && optStr(request.resource.data, 'platform', 20)
-          && (!('role' in request.resource.data) || request.resource.data.role in ['child', 'parent']);
+          && (!('role' in request.resource.data) || (request.resource.data.role in ['child', 'parent']
+              && (isOwner(familyId) || request.resource.data.role == approvedRole(familyId))));
       }
       // Yêu cầu vào gia đình: máy mới tự tạo (phải có mã đúng, còn hạn); người trong gia đình
       // đồng ý / từ chối. Máy mới đọc được yêu cầu của chính mình để biết kết quả.
@@ -158,7 +173,10 @@ service cloud.firestore {
         allow update: if isMember(familyId)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'decidedAt', 'decidedBy'])
           && request.resource.data.status in ['approved', 'denied'];
-        allow delete: if signedIn() && (request.auth.uid == uid || isMember(familyId));
+        // Yêu cầu đã được Đồng ý là bằng chứng vai trò của máy: máy còn trong gia đình không tự xóa được
+        // (để không tự đổi thành "máy của con"). Máy đã rời / bị gỡ thì xóa được để xin vào lại.
+        allow delete: if signedIn() && (isOwner(familyId)
+          || (request.auth.uid == uid && (resource.data.status != 'approved' || !isMember(familyId))));
       }
       // sentAlerts: chỉ máy chủ dùng (chống gửi trùng, khi bật Cloud Functions).
     }

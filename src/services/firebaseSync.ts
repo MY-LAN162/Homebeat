@@ -200,6 +200,8 @@ export class FirebaseSync implements FamilySync {
     await this.signIn();
     await fb.deleteDoc(fb.doc(this.db, 'families', familyId, 'devices', uid)).catch(() => undefined);
     await fb.updateDoc(fb.doc(this.db, 'families', familyId), { uids: fb.arrayRemove(uid) });
+    // Xóa yêu cầu cũ để máy đó (nếu là máy đổi chủ, cài lại) xin vào lại được bằng mã mới.
+    await fb.deleteDoc(fb.doc(this.db, 'families', familyId, 'joinRequests', uid)).catch(() => undefined);
   }
 
   async transferOwner(familyId: string, uid: string): Promise<void> {

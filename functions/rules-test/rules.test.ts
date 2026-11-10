@@ -1,5 +1,6 @@
 // Kiểm thử luật bảo mật Firestore (firestore.rules) trên Firestore Emulator.
 // Chạy: npm run test:rules (trong thư mục functions; cần Java và firebase-tools).
+// Lưu ý: máy có trong gia đình mà không có yêu cầu vào (vd máy tạo gia đình) được coi là máy của con.
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { arrayRemove, arrayUnion, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
@@ -168,5 +169,45 @@ describe('vào gia đình bằng yêu cầu + đồng ý (không cần Cloud Fun
     await assertFails(updateDoc(doc(as('con'), 'families', FAM), { ownerUid: 'nguoiLa' }));
     await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { ownerUid: 'bo' }));
     await assertSucceeds(updateDoc(doc(as('bo'), 'families', FAM), { uids: arrayRemove('con') }));
+  });
+});
+
+describe('chống máy bố mẹ bị nhiễm mã độc', () => {
+  // Máy bố đã vào gia đình bằng mã của bố mẹ (yêu cầu đã được Đồng ý); máy em vào bằng mã máy con.
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await updateDoc(doc(db, 'families', FAM), { uids: ['con', 'bo', 'em'] });
+      await setDoc(doc(db, 'families', FAM, 'joinRequests', 'bo'), { uid: 'bo', code: '111111', memberId: 'bo', role: 'parent', status: 'approved' });
+      await setDoc(doc(db, 'families', FAM, 'joinRequests', 'em'), { uid: 'em', code: '222222', memberId: '', role: 'child', status: 'approved' });
+      await setDoc(doc(db, 'families', FAM, 'medications', 'amlo'), MED);
+      await setDoc(doc(db, 'families', FAM, 'doseLogs', 'd1'), DOSE);
+    });
+  });
+
+  test('máy bố mẹ không xóa được thuốc, nhật ký; máy con và máy quản lý thì được', async () => {
+    await assertFails(deleteDoc(doc(as('bo'), 'families', FAM, 'medications', 'amlo')));
+    await assertFails(deleteDoc(doc(as('bo'), 'families', FAM, 'doseLogs', 'd1')));
+    await assertSucceeds(deleteDoc(doc(as('em'), 'families', FAM, 'doseLogs', 'd1')));
+    await assertSucceeds(deleteDoc(doc(as('con'), 'families', FAM, 'medications', 'amlo')));
+    // Máy bố mẹ vẫn ghi được việc của mình.
+    await assertSucceeds(setDoc(doc(as('bo'), 'families', FAM, 'doseLogs', 'd2'), { ...DOSE, time: '19:00' }));
+  });
+
+  test('máy bố mẹ không tự đổi thành "máy của con", không tự xóa yêu cầu đã được đồng ý', async () => {
+    await assertSucceeds(setDoc(doc(as('bo'), 'families', FAM, 'devices', 'bo'), { role: 'parent', memberId: 'bo' }));
+    await assertFails(setDoc(doc(as('bo'), 'families', FAM, 'devices', 'bo'), { role: 'child' }));
+    await assertFails(deleteDoc(doc(as('bo'), 'families', FAM, 'joinRequests', 'bo')));
+    await assertFails(updateDoc(doc(as('bo'), 'families', FAM, 'joinRequests', 'bo'), { role: 'child' }));
+    await assertSucceeds(setDoc(doc(as('em'), 'families', FAM, 'devices', 'em'), { role: 'child' }));
+    await assertFails(setDoc(doc(as('em'), 'families', FAM, 'devices', 'em'), { role: 'parent' }));
+  });
+
+  test('máy đã bị gỡ khỏi gia đình xóa được yêu cầu cũ để xin vào lại; chủ xóa được', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'families', FAM), { uids: ['con', 'bo'] });
+    });
+    await assertSucceeds(deleteDoc(doc(as('em'), 'families', FAM, 'joinRequests', 'em')));
+    await assertSucceeds(deleteDoc(doc(as('con'), 'families', FAM, 'joinRequests', 'bo')));
   });
 });
