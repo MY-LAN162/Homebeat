@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -16,8 +16,18 @@ const PAIR_ERRORS = {
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'del'];
 
+// Người nhà (anh chị em) cùng theo dõi: cùng màn hình nhập mã, câu chữ cho người nhà thay vì cho bố mẹ.
+const FAMILY_ERRORS = {
+  format: 'Mã chưa đúng. Kiểm tra lại với người đã gửi mã.',
+  wrong: 'Mã chưa đúng. Kiểm tra lại với người đã gửi mã.',
+  expired: 'Mã đã hết hạn. Nhờ người nhà tạo mã mới.',
+  'too-many': 'Nhập sai nhiều lần quá. Chờ 10 phút rồi thử lại.',
+  network: 'Chưa kết nối được. Kiểm tra mạng (wifi, 4G) rồi thử lại.',
+} as const;
+
 export default function PairScreen() {
   const { pair } = useStore();
+  const sibling = useLocalSearchParams<{ ai?: string }>().ai === 'nguoi-nha';
   const [code, setCode] = useState('');
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -34,14 +44,18 @@ export default function PairScreen() {
     const r = await pair(code);
     setBusy(false);
     if (r.ok) router.replace(r.pending ? '/onboarding/wait' : '/onboarding/permissions');
-    else setError(PAIR_ERRORS[r.reason]);
+    else setError((sibling ? FAMILY_ERRORS : PAIR_ERRORS)[r.reason]);
   };
 
   return (
     <Screen>
       <Back onPress={() => goBack('/')} />
-      <H1 size={30}>Nhập mã con gửi</H1>
-      <T size={18} color={colors.muted}>Mã gồm 6 số, con gửi qua Zalo hoặc tin nhắn.</T>
+      <H1 size={30}>{sibling ? 'Nhập mã người nhà gửi' : 'Nhập mã con gửi'}</H1>
+      <T size={18} color={colors.muted}>
+        {sibling
+          ? 'Mã gồm 6 số, người nhà tạo trong tab Gia đình và gửi qua Zalo hoặc tin nhắn. Họ bấm Đồng ý là bạn vào được.'
+          : 'Mã gồm 6 số, con gửi qua Zalo hoặc tin nhắn.'}
+      </T>
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }} accessibilityLabel={`Đã nhập ${code.length} trên 6 số`}>
         {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -96,7 +110,7 @@ export default function PairScreen() {
       )}
       <View style={{ flex: 1 }} />
       <Btn
-        label={busy ? 'Đang kết nối...' : code.length === 6 ? 'Kết nối với con' : `Còn ${6 - code.length} số nữa`}
+        label={busy ? 'Đang kết nối...' : code.length === 6 ? (sibling ? 'Vào gia đình' : 'Kết nối với con') : `Còn ${6 - code.length} số nữa`}
         disabled={code.length < 6 || busy}
         height={72}
         size={22}

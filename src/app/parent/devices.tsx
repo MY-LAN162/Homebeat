@@ -27,7 +27,7 @@ export default function ParentDevices() {
       ) : (
         <>
           <T size={19} style={{ lineHeight: 28 }}>
-            Bấm nút xanh để có mã 6 số. Đọc mã cho {kids} nhập trên máy mới. Máy này sẽ hiện “Có máy mới xin vào gia đình”: bấm Đồng ý.
+            Bấm nút xanh để có mã 6 số. Đọc mã cho {kids} nhập trên máy mới. Máy này sẽ hiện “Có người nhà xin cùng theo dõi”: bấm Đồng ý.
           </T>
           <JoinRequests big />
           {p ? (

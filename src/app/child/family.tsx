@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Share, View } from 'react-native';
 import { confirm, notify } from '../../services/dialog';
 import { JoinRequests } from '../../components/JoinRequests';
 import { Btn, Card, Field, H1, Screen, T } from '../../components/ui';
@@ -95,20 +95,33 @@ export default function ChildFamily() {
 
       {connected && (
         <>
-          <T size={13} weight="700" color={colors.muted}>MÁY CỦA CON, CHÁU</T>
+          <T size={13} weight="700" color={colors.muted}>NGƯỜI CÙNG THEO DÕI</T>
           <Card style={{ gap: 8 }}>
+            <T size={16} weight="700">Mời anh chị em cùng theo dõi bố mẹ</T>
             <T size={14} color={colors.muted}>
-              Bạn đổi điện thoại, hoặc anh chị em muốn cùng theo dõi? Tạo mã, nhập trên máy mới (mục “Đổi điện thoại? Lấy lại gia đình đã có”), rồi bấm Đồng ý ở đây.
+              Cả nhà cùng nhận cảnh báo, cùng xem thuốc và lịch khám. Tạo mã rồi gửi qua Zalo. Trên máy của họ: cài An Tâm › “Người nhà mời tôi cùng theo dõi” › nhập mã. Bạn bấm Đồng ý ở đây là xong. Đổi điện thoại cũng dùng mã này.
             </T>
             {childCode && (
               <View style={{ gap: 2 }}>
-                <T size={15} weight="700" color={colors.green}>Mã cho máy mới: {formatCode(childCode.code)}</T>
-                <T size={13} color={colors.muted}>Hết hạn {hm(new Date(childCode.expiresAt))} {formatShortDate(new Date(childCode.expiresAt))}</T>
+                <T size={15} weight="700" color={colors.green}>Mã mời: {formatCode(childCode.code)}</T>
+                <T size={13} color={colors.muted}>Dùng 1 lần, hết hạn {hm(new Date(childCode.expiresAt))} {formatShortDate(new Date(childCode.expiresAt))}</T>
               </View>
+            )}
+            {childCode && (
+              <Btn
+                height={44}
+                size={14}
+                label="Gửi mã qua Zalo, tin nhắn"
+                onPress={() =>
+                  Share.share({
+                    message: `Mời bạn cùng theo dõi bố mẹ trên An Tâm. Cài app, chọn “Người nhà mời tôi cùng theo dõi”, nhập mã: ${formatCode(childCode.code)}`,
+                  }).catch(() => undefined)
+                }
+              />
             )}
             <Btn
               variant="secondary"
-              label={childCode ? 'Tạo mã khác' : 'Tạo mã cho máy mới'}
+              label={childCode ? 'Tạo mã khác' : 'Tạo mã mời người nhà'}
               height={44}
               size={14}
               onPress={() => newChildPairing().catch(() => notify('Chưa tạo được mã', 'Kiểm tra kết nối mạng rồi thử lại.'))}

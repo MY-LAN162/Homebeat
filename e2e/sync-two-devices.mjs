@@ -153,8 +153,8 @@ const fsGet = async (p) => (await fetch(`http://127.0.0.1:8080/v1/projects/demo-
     await vis(moi, 'Nhập mã').click(); await enterCode(moi, code);
     await vis(moi, 'Đã gửi yêu cầu kết nối').waitFor({ timeout: 15000 });
   });
-  await step('Máy bố thấy "Có máy mới xin vào gia đình" → Đồng ý → máy mới vào màn hình con', async () => {
-    await vis(bo, 'Có máy mới xin vào gia đình (máy của con, cháu)').waitFor({ timeout: 15000 });
+  await step('Máy bố thấy "Có người nhà xin cùng theo dõi" → Đồng ý → máy mới vào màn hình con', async () => {
+    await vis(bo, 'Có người nhà xin cùng theo dõi (máy của con, cháu)').waitFor({ timeout: 15000 });
     await bo.getByText('Đồng ý', { exact: true }).filter({ visible: true }).last().click();
     await vis(moi, 'Bố mẹ hôm nay').waitFor({ timeout: 15000 });
     await vis(moi, /Bố Hùng ›/).waitFor({ timeout: 15000 });

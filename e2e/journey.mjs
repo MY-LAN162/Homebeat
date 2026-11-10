@@ -120,6 +120,9 @@ p.on('pageerror', (e) => errs.push(e.message));
     await tap('Đồng ý và tiếp tục'); await expectScreen('Trước khi bắt đầu');
     await clickWhenVisible({ label: 'Tôi đồng ý' }, 'ô đồng ý'); await tap('Đồng ý và tiếp tục'); await expectScreen('Ai đang dùng điện thoại này?');
   });
+  await step('Người nhà mời cùng theo dõi › nhập mã người nhà › Quay lại', async () => {
+    await tap('Người nhà mời tôi cùng theo dõi'); await expectScreen('Nhập mã người nhà gửi'); await back(); await expectScreen('Ai đang dùng điện thoại này?');
+  });
   await step('vào dữ liệu mẫu', async () => { await tap('Dùng thử với dữ liệu mẫu'); await expectScreen('Bố mẹ hôm nay'); });
   // Trang chủ
   await step('Trang chủ › cảnh báo › Quay lại', async () => { await tap('Xem chi tiết ›'); await expectScreen(/Hôm nay của/); await back(); await expectScreen('Bố mẹ hôm nay'); });

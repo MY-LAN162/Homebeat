@@ -50,6 +50,11 @@ export default function RoleScreen() {
       )}
       <RoleCard strong title="Tôi là con, cháu" sub="Theo dõi, nhắc thuốc cho bố mẹ" onPress={() => router.push('/onboarding/invite')} />
       <RoleCard title="Tôi là bố, mẹ" sub="Con đã gửi mã kết nối cho tôi" onPress={() => router.push('/onboarding/pair')} />
+      <RoleCard
+        title="Người nhà mời tôi cùng theo dõi"
+        sub="Anh chị em đã gửi mã 6 số cho tôi"
+        onPress={() => router.push({ pathname: '/onboarding/pair', params: { ai: 'nguoi-nha' } })}
+      />
       <Btn variant="ghost" label="Đổi điện thoại? Lấy lại gia đình đã có" onPress={() => router.push('/onboarding/restore')} />
       <View style={{ flex: 1 }} />
       <Banner tone="blue">

@@ -1,4 +1,4 @@
-// Có máy mới xin vào gia đình → Đồng ý / Từ chối. Hiện trên máy con (trang chủ, tab Gia đình)
+// Có máy mới (người nhà, hoặc máy mới của con) xin vào gia đình → Đồng ý / Từ chối. Hiện trên máy con (trang chủ, tab Gia đình)
 // và trên máy bố mẹ (để bố mẹ duyệt máy mới của con khi con đổi điện thoại).
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -19,11 +19,11 @@ export function JoinRequests({ big = false }: { big?: boolean }) {
         const m = data.members.find((x) => x.id === r.memberId);
         const title =
           r.role === 'child'
-            ? 'Có máy mới xin vào gia đình (máy của con, cháu)'
+            ? 'Có người nhà xin cùng theo dõi (máy của con, cháu)'
             : `Có máy xin kết nối làm máy của ${m ? `${m.call.toLowerCase()} ${m.name}` : 'bố mẹ'}`;
         const hint =
           r.role === 'child'
-            ? 'Chỉ đồng ý nếu con, cháu vừa nhập mã trên máy mới.'
+            ? 'Chỉ đồng ý nếu đúng là người nhà bạn vừa gửi mã (hoặc máy mới của chính bạn).'
             : `Chỉ đồng ý nếu đúng là ${m ? `${m.call.toLowerCase()} ${m.name}` : 'bố mẹ'} vừa nhập mã.`;
         const decide = async (ok: boolean) => {
           setBusy(r.uid);
