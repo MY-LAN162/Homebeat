@@ -220,7 +220,8 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
 
   // Máy bố mẹ: báo "còn sống" và tự báo cho con khi trễ thuốc / chưa điểm danh —
   // khi mở app, khi quay lại app, mỗi 15 phút khi đang mở, và chạy nền khi đóng app (nếu máy cho phép).
-  const beatMember = data.role === 'parent' ? data.currentMemberId : undefined;
+  // Máy con: cũng chạy nền để tự báo khi máy bố mẹ mất tín hiệu hoặc pin yếu.
+  const beatMember = data.role === 'parent' ? data.currentMemberId : data.role === 'child' && !data.demo ? 'child' : undefined;
   useEffect(() => {
     if (!ready || !sync || !familyId || !beatMember) {
       void setBackgroundEnabled(false);

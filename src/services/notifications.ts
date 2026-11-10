@@ -61,6 +61,15 @@ export async function getPushToken(): Promise<string | undefined> {
   return (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 }
 
+/** Hiện ngay một cảnh báo trên máy này (máy con tự báo mất tín hiệu, pin yếu; không cần internet để hiện). */
+export async function showAlertNow(title: string, body: string, data: Record<string, string>): Promise<void> {
+  if (!supported || !(await hasPermission())) return;
+  await Notifications.scheduleNotificationAsync({
+    content: { title, body, data, sound: 'default' },
+    trigger: Platform.OS === 'android' ? { channelId: ALERT_CHANNEL } : null,
+  });
+}
+
 export async function askPermission(): Promise<boolean> {
   if (!supported) return false;
   const cur = await Notifications.getPermissionsAsync();

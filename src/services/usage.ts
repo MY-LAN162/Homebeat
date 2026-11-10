@@ -65,6 +65,7 @@ export const USAGE_LABELS: Record<string, string> = {
   dose_taken_from_notification: 'Bấm "Đã uống" ngay trên thông báo',
   dose_taken_after_followup: 'Uống sau khi được nhắc lại',
   dose_notification_opened: 'Bấm vào thông báo nhắc thuốc',
+  alert_notification_opened: 'Con bấm vào thông báo cảnh báo',
   dose_snoozed: 'Bấm "Nhắc lại sau 15 phút"',
   dose_skipped: 'Bấm "Hết thuốc / không uống được"',
   checkin_ok: 'Bấm "ổn"',

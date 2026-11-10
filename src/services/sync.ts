@@ -90,6 +90,8 @@ export interface FamilySync {
   apply(familyId: string, writes: SyncWrite[]): Promise<void>;
   /** Máy bố mẹ báo "còn sống" (thời điểm, pin). */
   heartbeat(familyId: string, memberId: string, battery?: number): Promise<void>;
+  /** Đọc một lần nhịp "còn sống" mới nhất của các máy bố mẹ (máy con dùng khi chạy nền). */
+  readHeartbeats(familyId: string): Promise<Record<string, { at: string; battery?: number }>>;
   /** Ghi thông tin máy này (vai trò, mã nhận thông báo). */
   registerDevice(familyId: string, info: DeviceInfo): Promise<void>;
   /**

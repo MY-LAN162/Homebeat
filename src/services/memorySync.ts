@@ -191,6 +191,11 @@ export class MemorySync implements FamilySync {
     this.server.notify(familyId);
   }
 
+  async readHeartbeats(familyId: string) {
+    const f = this.server.family(familyId, this.uid);
+    return Object.fromEntries(f.heartbeats) as Record<string, { at: string; battery?: number }>;
+  }
+
   async heartbeat(familyId: string, memberId: string, battery?: number) {
     const f = this.server.family(familyId, this.uid);
     f.heartbeats.set(memberId, { at: this.server.now().toISOString(), battery });

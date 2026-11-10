@@ -1,6 +1,7 @@
 // Việc máy bố mẹ làm khi chạy nền (khoảng 15 phút một lần, tùy điện thoại cho phép):
 // tìm cảnh báo cần báo cho con mà chưa báo. Hàm thuần, không gọi máy chủ.
 import { memberAlerts, type AlertKind } from './alerts';
+import { mergeHeartbeats } from './syncdiff';
 import type { PushMessage } from './pushRules';
 import type { AppData } from './types';
 import { dateKey } from './time';
@@ -34,4 +35,47 @@ export function backgroundPushes(data: AppData, now: Date, sent: string[]): { pu
     });
   }
   return { pushes, sent: keep };
+}
+
+/** Loại cảnh báo máy CON tự kiểm tra (không cần máy bố mẹ còn chạy): mất tín hiệu, pin yếu. */
+export const SIGNAL_KINDS: readonly AlertKind[] = ['no-signal', 'low-battery'];
+
+export interface LocalAlert {
+  title: string;
+  body: string;
+  data: { kind: AlertKind; memberId: string };
+}
+
+/**
+ * Máy con: từ nhịp "còn sống" mới nhất của các máy bố mẹ, tìm cảnh báo mất tín hiệu / pin yếu cần báo.
+ * Mất tín hiệu báo một lần cho mỗi lần mất (theo thời điểm nhịp cuối); pin yếu một lần mỗi ngày.
+ * Hàm thuần: máy con tự hiện thông báo trên máy mình, không cần máy chủ trả phí.
+ */
+export function childSignalAlerts(
+  data: AppData,
+  heartbeats: Record<string, { at: string; battery?: number }>,
+  now: Date,
+  sent: string[],
+): { alerts: LocalAlert[]; sent: string[] } {
+  if (data.role !== 'child' || data.demo) return { alerts: [], sent };
+  const today = dateKey(toZone(now, data.settings.timeZone));
+  const merged: AppData = { ...data, members: mergeHeartbeats(data.members, heartbeats) };
+  const keep = [...sent];
+  const alerts: LocalAlert[] = [];
+  for (const m of merged.members) {
+    for (const a of memberAlerts(merged, m, now)) {
+      if (!SIGNAL_KINDS.includes(a.kind)) continue;
+      const key = a.kind === 'no-signal' ? `no-signal|${m.id}|${m.lastSeenAt}` : `${today}|${m.id}|low-battery`;
+      if (keep.includes(key)) continue;
+      keep.push(key);
+      alerts.push({
+        title: a.title,
+        body: a.kind === 'no-signal'
+          ? `${a.detail ? `${a.detail}. ` : ''}Nên gọi hỏi thăm ${m.call.toLowerCase()}.`
+          : a.detail ?? '',
+        data: { kind: a.kind, memberId: m.id },
+      });
+    }
+  }
+  return { alerts, sent: keep.slice(-100) };
 }

@@ -7,7 +7,10 @@ import { toZone } from './tz';
 
 export type AlertLevel = 'urgent' | 'warn' | 'info';
 
-export type AlertKind = 'sos' | 'late-dose' | 'no-checkin' | 'unwell' | 'bp-high' | 'low-stock' | 'no-signal';
+export type AlertKind = 'sos' | 'late-dose' | 'no-checkin' | 'unwell' | 'bp-high' | 'low-stock' | 'no-signal' | 'low-battery';
+
+/** Pin máy bố mẹ từ mức này trở xuống thì nhắc con (khi máy vẫn còn tín hiệu). */
+export const LOW_BATTERY = 15;
 
 export interface FamilyAlert {
   memberId: string;
@@ -103,6 +106,15 @@ export function memberAlerts(data: AppData, member: Member, realNow: Date): Fami
         kind: 'no-signal',
         title: `Mất tín hiệu từ máy của ${member.call.toLowerCase()} ${formatDuration(mins)}`,
         detail: member.battery != null ? `Pin lần cuối ${member.battery}%` : undefined,
+      });
+    } else if (member.battery != null && member.battery <= LOW_BATTERY && mins < 60) {
+      // Còn tín hiệu (nhịp trong 1 giờ qua) nhưng pin sắp hết: báo trước khi máy tắt.
+      out.push({
+        memberId: member.id,
+        level: 'info',
+        kind: 'low-battery',
+        title: `Pin máy của ${member.call.toLowerCase()} còn ${member.battery}%`,
+        detail: `Nhắc ${member.call.toLowerCase()} cắm sạc để không lỡ nhắc thuốc và SOS`,
       });
     }
   }

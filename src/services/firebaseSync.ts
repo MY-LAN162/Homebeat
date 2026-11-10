@@ -235,6 +235,17 @@ export class FirebaseSync implements FamilySync {
     });
   }
 
+  async readHeartbeats(familyId: string): Promise<Record<string, { at: string; battery?: number }>> {
+    await this.signIn();
+    const qs = await fb.getDocs(fb.collection(this.db, 'families', familyId, 'heartbeats'));
+    const out: Record<string, { at: string; battery?: number }> = {};
+    for (const d of qs.docs) {
+      const v = d.data() as { at: string; battery?: number };
+      out[d.id] = { at: v.at, battery: v.battery };
+    }
+    return out;
+  }
+
   async registerDevice(familyId: string, info: DeviceInfo): Promise<void> {
     const uid = await this.signIn();
     await fb.setDoc(

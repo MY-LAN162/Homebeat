@@ -42,6 +42,7 @@ export default function AlertDetail() {
   const callName = m.call.toLowerCase();
   const urgent = a?.level === 'urgent';
   const today = dateKey(toZone(now, tz));
+  const soft = kind === 'no-signal' || kind === 'low-battery';
 
   const checkin = [...data.checkins].reverse().find((c) => c.memberId === m.id && dateKey(local(c.at)) === today);
   const slots = slotsForDay(data.medications, data.doseLogs, m.id, toZone(now, tz), toZone(now, tz), data.settings.lateMinutes);
@@ -60,7 +61,7 @@ export default function AlertDetail() {
     <Screen bg={urgent ? colors.redSoft : colors.bg}>
       <Back onPress={() => goBack('/child')} />
       <T size={14} weight="700" color={urgent ? colors.red : colors.amberDark}>
-        {urgent ? 'KHẨN CẤP' : kind === 'no-signal' ? 'THÔNG BÁO' : 'CẦN CHÚ Ý'} · {hm(now)}
+        {urgent ? 'KHẨN CẤP' : soft ? 'THÔNG BÁO' : 'CẦN CHÚ Ý'} · {hm(now)}
       </T>
       <H1 size={26} color={urgent ? colors.redDark : colors.ink}>{a?.title ?? `${displayName(m)} hiện không có cảnh báo`}</H1>
       {a?.detail && <T size={17} color={colors.muted}>{a.detail}</T>}
@@ -86,6 +87,15 @@ export default function AlertDetail() {
           </Card>
           <T size={14} color={colors.muted}>An Tâm sẽ tự cập nhật khi máy của {callName} có tín hiệu lại.</T>
         </>
+      )}
+
+      {kind === 'low-battery' && m.battery != null && (
+        <Card style={{ gap: 6 }}>
+          <T size={16}>
+            Pin còn <T size={16} weight="700" color={colors.red}>{m.battery}%</T>
+            {m.lastSeenAt ? <> lúc <T size={16} weight="700">{hm(local(m.lastSeenAt))}</T></> : null}. Hết pin thì máy của {callName} sẽ không nhắc thuốc và không gửi được SOS.
+          </T>
+        </Card>
       )}
 
       {kind !== 'no-signal' && (
@@ -142,7 +152,7 @@ export default function AlertDetail() {
       )}
 
       {a && (
-        <Btn variant="ghost" label={kind === 'no-signal' ? 'Đã liên lạc được, tắt thông báo' : `${m.call} ổn rồi, tắt cảnh báo`} onPress={close} />
+        <Btn variant="ghost" label={kind === 'no-signal' ? 'Đã liên lạc được, tắt thông báo' : kind === 'low-battery' ? `Đã nhắc ${callName} sạc pin, tắt thông báo` : `${m.call} ổn rồi, tắt cảnh báo`} onPress={close} />
       )}
     </Screen>
   );

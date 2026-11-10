@@ -152,9 +152,19 @@ export function mergeRemote<T extends SharedData>(local: T, remote: RemoteSnapsh
   }
   if (remote.settings) next.settings = { ...local.settings, ...remote.settings };
   // Danh sách người lấy từ máy chủ không có lastSeenAt/battery: giữ lại giá trị cũ rồi ghi đè bằng nhịp mới.
-  const oldSeen = new Map(local.members.map((m) => [m.id, m] as const));
-  next.members = next.members.map((m) => {
-    const hb = remote.heartbeats?.[m.id];
+  next.members = mergeHeartbeats(next.members, remote.heartbeats ?? {}, local.members);
+  return next;
+}
+
+/** Gắn nhịp "còn sống" mới nhất (thời điểm, pin) vào từng người; không có nhịp mới thì giữ giá trị cũ. */
+export function mergeHeartbeats(
+  members: Member[],
+  heartbeats: Record<string, { at: string; battery?: number }>,
+  previous: Member[] = members,
+): Member[] {
+  const oldSeen = new Map(previous.map((m) => [m.id, m] as const));
+  return members.map((m) => {
+    const hb = heartbeats[m.id];
     const old = oldSeen.get(m.id);
     const lastSeenAt = hb?.at ?? m.lastSeenAt ?? old?.lastSeenAt;
     const battery = hb ? hb.battery : (m.battery ?? old?.battery);
@@ -163,7 +173,6 @@ export function mergeRemote<T extends SharedData>(local: T, remote: RemoteSnapsh
     if (battery !== undefined) out.battery = battery;
     return out;
   });
-  return next;
 }
 
 function eventTime(e: unknown): string {

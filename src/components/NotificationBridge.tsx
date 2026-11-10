@@ -24,7 +24,13 @@ export function NotificationBridge() {
   });
 
   const handle = (resp: Notifications.NotificationResponse) => {
-    const info = resp.notification.request.content.data as DoseData;
+    const info = resp.notification.request.content.data as DoseData & { memberId?: string };
+    // Máy con bấm vào cảnh báo (từ máy bố mẹ gửi, hoặc máy con tự báo): mở thẳng chi tiết cảnh báo.
+    if (info?.kind && info.kind !== 'dose' && info.memberId && latest.current.data.role === 'child') {
+      track('alert_notification_opened');
+      router.push({ pathname: '/child/alert', params: { memberId: info.memberId, kind: info.kind } });
+      return;
+    }
     if (info?.kind !== 'dose') return;
     const { data: d, markSlot: mark } = latest.current;
     const memberId = d.role === 'parent' ? d.currentMemberId : undefined;

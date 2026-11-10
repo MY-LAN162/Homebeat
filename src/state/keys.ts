@@ -6,3 +6,5 @@ export const BASE_KEY = 'homebeat:synced:v1';
 export const BG_SENT_KEY = 'homebeat:bg-sent:v1';
 /** Lần cuối phần chạy nền chạy (để xem trong Mức sử dụng). */
 export const BG_LAST_KEY = 'homebeat:bg-last:v1';
+/** Cảnh báo mất tín hiệu / pin yếu máy con đã tự báo (chống báo trùng). */
+export const BG_SIGNAL_KEY = 'homebeat:bg-signal:v1';
