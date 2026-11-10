@@ -52,9 +52,10 @@ service cloud.firestore {
           && optStr(d, 'place', 120) && optStr(d, 'companion', 60) && list(d.questions, 30)
           && optList(d, 'asked', 30) && optList(d, 'bring', 20) && optStr(d, 'transcript', 20000) && optBool(d, 'shareTranscript'))
         || (coll == 'doseLogs'
-          && d.keys().hasOnly(['memberId', 'medId', 'date', 'time', 'status', 'at'])
+          && d.keys().hasOnly(['memberId', 'medId', 'date', 'time', 'status', 'at', 'reason'])
           && str(d.memberId, 80) && str(d.medId, 80) && day(d.date) && hhmm(d.time)
-          && d.status in ['taken', 'skipped'] && str(d.at, 40))
+          && d.status in ['taken', 'skipped'] && str(d.at, 40)
+          && (!('reason' in d) || d.reason in ['out', 'unable']))
         || (coll == 'checkins'
           && d.keys().hasOnly(['memberId', 'at', 'mood', 'symptoms'])
           && str(d.memberId, 80) && str(d.at, 40) && d.mood in ['good', 'tired', 'unwell'] && list(d.symptoms, 12))

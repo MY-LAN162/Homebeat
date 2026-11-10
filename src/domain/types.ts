@@ -60,6 +60,8 @@ export interface DoseLog {
   time: string;
   status: DoseStatus;
   at: string;
+  /** Khi không uống: 'out' hết thuốc, 'unable' không uống được (mệt, buồn nôn...). */
+  reason?: 'out' | 'unable';
 }
 
 export type Mood = 'good' | 'tired' | 'unwell';

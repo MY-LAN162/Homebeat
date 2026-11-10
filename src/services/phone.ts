@@ -16,9 +16,13 @@ export async function getLocation(): Promise<{ lat: number; lng: number } | unde
   try {
     const perm = await Location.requestForegroundPermissionsAsync();
     if (perm.status !== 'granted') return undefined;
-    const last = await Location.getLastKnownPositionAsync();
-    const pos = last ?? (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
-    return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    // Ưu tiên vị trí hiện tại (chờ tối đa 6 giây); lâu quá mới dùng vị trí cũ nhất máy còn nhớ (chỉ nhận nếu < 30 phút).
+    const now = await Promise.race([
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).catch(() => null),
+      new Promise<null>((r) => setTimeout(() => r(null), 6000)),
+    ]);
+    const pos = now ?? (await Location.getLastKnownPositionAsync({ maxAge: 30 * 60_000 }));
+    return pos ? { lat: pos.coords.latitude, lng: pos.coords.longitude } : undefined;
   } catch {
     return undefined;
   }

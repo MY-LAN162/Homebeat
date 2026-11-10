@@ -184,6 +184,23 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 
 **Cách quyết định tiếp:** thử với 5–10 gia đình trong 2 tuần, xem màn hình *Mức sử dụng app* (tỷ lệ uống đúng giờ, số lần phải nhắc lại, màn hình nào không ai mở), rồi giữ, bỏ hoặc làm tiếp theo số liệu.
 
+## Bổ sung lần 7 (10/11/2026): gói an toàn khi dùng hằng ngày
+
+Từ đợt rà toàn bộ app (chỗ có thể làm bố mẹ uống sai thuốc, hoặc cả nhà không biết khi có chuyện):
+
+- **Không uống thuốc sớm**: còn hơn 60 phút tới giờ uống thì màn thuốc chỉ báo "CHƯA ĐẾN GIỜ · lần tới lúc 20:00", không có nút "Đã uống", không đọc "đến giờ uống thuốc". Trước đây mở app lúc 10h có thể bấm "Đã uống" cho thuốc 20h.
+- **"Hết thuốc / không uống được"**: hỏi lý do (Hết thuốc / Không uống được / Bấm nhầm), báo ngay cho con. Hết thuốc thì số viên còn lại về 0. Máy con hiện cảnh báo "Bố không uống thuốc 07:00 · Hết thuốc: …" thay cho "trễ thuốc".
+- **Bấm nhầm thì hoàn tác**: "Đã uống" và "ổn" có 6 giây "Bấm nhầm, hoàn tác" trước khi ghi. Bấm "ổn" nhiều lần trong 10 phút chỉ tính một lần.
+- **Nửa viên**: chọn nhanh nửa viên, 1, 1 viên rưỡi, 2 viên, hoặc gõ số lẻ. App hiện và đọc "nửa viên", "1 viên rưỡi".
+- **Nút "📞 Gọi con …"** trên trang chủ bố mẹ, tách khỏi SOS.
+- **Con ghi hộ** "Bố đã uống rồi (con hỏi qua điện thoại)" ngay trên cảnh báo trễ thuốc.
+- **Thử chuông**: "Thử chuông nhắc thuốc" ở bước cấp quyền của bố mẹ; "Thử chuông cảnh báo / SOS" ở bước tạo mã và trong Cài đặt của con. Chuông kêu sau 3 giây.
+- **SOS**: ghi đúng "Đã mở số của Hà, nếu chưa nghe chuông bấm nút gọi màu xanh" và đọc to câu đó, vì trình gọi điện có thể chỉ hiện số. Vị trí lấy vị trí hiện tại (chờ tối đa 6 giây), lâu quá mới dùng vị trí cũ (chỉ nhận nếu dưới 30 phút).
+
+Đã chạy: typecheck, lint, 84 kiểm thử app, `npm run e2e` 42/42 (có hoàn tác "ổn", "Đã ghi" khi uống thuốc, chặn uống sớm), `test:rules` 18/18, `npm run e2e:sync` 19/19. **Cần điện thoại thật**: thử chuông, đọc to khi SOS, vị trí.
+
+Việc còn lại từ đợt rà (chưa làm): nhập huyết áp nhanh hơn và đưa ra trang chủ; báo cho con khi máy bố mẹ tắt thông báo; sửa/xóa lịch khám, chọn ngày bằng lịch; hướng dẫn "giữ app chạy" theo loại máy bố mẹ; đổi thứ tự, sửa số người nhận cảnh báo; thuốc theo đợt / cách ngày; nhắc đo huyết áp; tóm tắt buổi tối cho con; tin gửi mã kèm link tải app.
+
 ## Bổ sung lần 6 (10/11/2026): thông báo hai chiều, cỡ chữ cho bố mẹ
 
 Trang xem trước (duyệt trước khi làm): https://claude.ai/artifact/1KS8hCHJLUFoUfYMtNTPUm

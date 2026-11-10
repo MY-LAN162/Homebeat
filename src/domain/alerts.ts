@@ -7,7 +7,7 @@ import { toZone } from './tz';
 
 export type AlertLevel = 'urgent' | 'warn' | 'info';
 
-export type AlertKind = 'sos' | 'late-dose' | 'no-checkin' | 'unwell' | 'bp-high' | 'low-stock' | 'no-signal' | 'low-battery';
+export type AlertKind = 'sos' | 'late-dose' | 'skipped-dose' | 'no-checkin' | 'unwell' | 'bp-high' | 'low-stock' | 'no-signal' | 'low-battery';
 
 /** Pin máy bố mẹ từ mức này trở xuống thì nhắc con (khi máy vẫn còn tín hiệu). */
 export const LOW_BATTERY = 15;
@@ -52,6 +52,16 @@ export function memberAlerts(data: AppData, member: Member, realNow: Date): Fami
   }
 
   for (const slot of slotsForDay(data.medications, data.doseLogs, member.id, now, now, s.lateMinutes)) {
+    if (slot.status === 'skipped') {
+      const reason = data.doseLogs.find((l) => l.memberId === member.id && l.date === slot.date && l.time === slot.time)?.reason;
+      out.push({
+        memberId: member.id,
+        level: 'warn',
+        kind: 'skipped-dose',
+        title: `${name} không uống thuốc ${slot.time}`,
+        detail: reason === 'out' ? `Hết thuốc: ${slot.meds.map((m) => m.name).join(', ')}` : reason === 'unable' ? 'Không uống được (mệt, khó nuốt...)' : undefined,
+      });
+    }
     if (slot.status === 'late') {
       out.push({
         memberId: member.id,

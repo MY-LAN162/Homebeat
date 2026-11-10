@@ -194,8 +194,20 @@ p.on('pageerror', (e) => errs.push(e.message));
     await tap('Xong', { exact: true }); await expectScreen(/đang: Cực lớn/);
     await tap(/Chữ to hơn/); await tap('Dùng cỡ Lớn', { exact: true }); await tap('Xong', { exact: true }); await expectScreen(/đang: Lớn\)/);
   });
-  await step('Bố: bấm "ổn"', async () => { await tap('Con ơi, bố ổn'); await expectScreen(/Đã báo cho các con lúc/); });
-  await step('Bố › thuốc › "Bố đã uống" › về trang chủ bố', async () => { await tap(/Thuốc lần tới|Thuốc bây giờ|Đến giờ/); await expectScreen('Bố đã uống'); await tap('Bố đã uống'); await expectScreen('Con ơi, bố ổn'); });
+  await step('Bố: bấm "ổn" → bấm nhầm, hoàn tác → bấm lại "ổn"', async () => {
+    await tap('Con ơi, bố ổn'); await expectScreen(/Bấm nhầm, hoàn tác/); await tap(/Bấm nhầm, hoàn tác/); await expectScreen('Con ơi, bố ổn');
+    if (await onScreen(/Đã báo cho các con lúc 13:3/)) throw new Error('hoàn tác rồi mà vẫn báo');
+    await tap('Con ơi, bố ổn'); await expectScreen(/Đã báo cho các con lúc 13:3/, 10000);
+  });
+  await step('Bố › thuốc › "Bố đã uống" → "Đã ghi" (có hoàn tác) → về trang chủ bố', async () => {
+    await tap(/Thuốc lần tới|Thuốc bây giờ|Đến giờ/); await expectScreen('Bố đã uống'); await tap('Bố đã uống');
+    await expectScreen(/Đã ghi: bố đã uống thuốc 12:00/); await tap('Xong', { exact: true }); await expectScreen('Con ơi, bố ổn');
+  });
+  await step('Bố › thuốc lần 19:00 chưa đến giờ: không có nút "Đã uống"', async () => {
+    await tap(/Thuốc lần tới|Thuốc bây giờ|Đến giờ/); await expectScreen('CHƯA ĐẾN GIỜ');
+    if (await onScreen('Bố đã uống')) throw new Error('chưa đến giờ mà vẫn cho bấm Đã uống');
+    await tap('Về trang chủ'); await expectScreen('Con ơi, bố ổn');
+  });
   await step('Bố › kể con nghe › Quay lại', async () => { await tap(/Kể con nghe/); await expectScreen(/thấy thế nào|Hôm nay/); await back(); await expectScreen('Con ơi, bố ổn'); });
   await step('Bố › nhập huyết áp › lưu › về', async () => { await tap(/Kể con nghe/); await tap('Nhập huyết áp sáng nay'); await expectScreen(/Huyết áp/); await back(); await expectScreen(/thấy thế nào|Hôm nay/); await back(); await expectScreen('Con ơi, bố ổn'); });
   await step('Bố › SOS bấm nhầm, hủy › về trang chủ bố', async () => {

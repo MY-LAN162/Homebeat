@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { Switch, View } from 'react-native';
 import { confirm } from '../../services/dialog';
 import { Back, Btn, Card, Chip, Field, H1, Screen, T } from '../../components/ui';
+import { pillsText } from '../../domain/schedule';
 import { isValidTime, toMinutes } from '../../domain/time';
 import { useStore } from '../../state/store';
 import { colors } from '../../theme';
 
+const PILL_CHOICES = [0.5, 1, 1.5, 2];
 const PRESETS = ['06:00', '07:00', '08:00', '12:00', '17:00', '19:00', '20:00', '21:00'];
 
 export default function MedEdit() {
@@ -25,7 +27,7 @@ export default function MedEdit() {
   const [afterMeal, setAfterMeal] = useState(existing?.afterMeal ?? true);
 
   const toggle = (t: string) => setTimes((x) => (x.includes(t) ? x.filter((y) => y !== t) : [...x, t].sort((a, b) => toMinutes(a) - toMinutes(b))));
-  const pillsN = Number(pills);
+  const pillsN = Number(pills.replace(',', '.'));
   const valid = name.trim() && times.length > 0 && Number.isFinite(pillsN) && pillsN > 0 && !!memberId;
 
   const save = () => {
@@ -56,7 +58,13 @@ export default function MedEdit() {
       <Card style={{ gap: 12 }}>
         <Field label="Tên thuốc và hàm lượng" value={name} onChange={setName} placeholder="Ví dụ: Amlodipine 5mg" />
         <Field label="Dùng để (không bắt buộc)" value={purpose} onChange={setPurpose} placeholder="Ví dụ: Huyết áp" />
-        <Field label="Số viên mỗi lần" value={pills} onChange={setPills} keyboard="number-pad" />
+        <T size={14} weight="600">Số viên mỗi lần</T>
+        <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+          {PILL_CHOICES.map((n) => (
+            <Chip key={n} label={pillsText(n)} on={pillsN === n} onPress={() => setPills(String(n))} />
+          ))}
+        </View>
+        <Field label="Số khác (vd 2,5)" value={pills} onChange={setPills} keyboard="decimal-pad" />
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <T size={15} weight="600" style={{ flex: 1 }}>Uống sau bữa ăn</T>
           <Switch value={afterMeal} onValueChange={setAfterMeal} trackColor={{ true: colors.green }} accessibilityLabel="Uống sau bữa ăn" />

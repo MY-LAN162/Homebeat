@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, Platform, View } from 'react-native';
 import { confirm } from '../../services/dialog';
+import { TestBell } from '../../components/TestBell';
 import { Banner, Btn, Card, H1, Screen, T } from '../../components/ui';
 import { askPermission, hasPermission, rescheduleMedReminders } from '../../services/notifications';
 import { useCurrentMember, useStore } from '../../state/store';
@@ -56,6 +57,7 @@ export default function PermissionsScreen() {
           if (ok) rescheduleMedReminders(data).catch(() => undefined);
         }}
       />
+      {notif && <TestBell kinds={['dose']} big />}
       <Row
         title="Vị trí"
         sub={`Gửi kèm khi ${call} bấm SOS`}

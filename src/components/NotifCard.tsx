@@ -5,6 +5,7 @@ import { AppState, Linking } from 'react-native';
 import { askPermission, notificationsSupported, permissionState } from '../services/notifications';
 import { useStore } from '../state/store';
 import { colors } from '../theme';
+import { TestBell } from './TestBell';
 import { Banner, Btn, Card, T } from './ui';
 
 type State = 'granted' | 'ask' | 'blocked' | undefined;
@@ -50,9 +51,12 @@ export function NotifCard({ onboarding }: { onboarding?: boolean }) {
   if (!st) return null;
   if (st === 'granted') {
     return onboarding ? (
-      <Banner tone="green">
-        <T size={15} weight="700" color={colors.greenDark}>✓ Đã bật thông báo: máy này sẽ nhận cảnh báo về bố mẹ</T>
-      </Banner>
+      <>
+        <Banner tone="green">
+          <T size={15} weight="700" color={colors.greenDark}>✓ Đã bật thông báo: máy này sẽ nhận cảnh báo về bố mẹ</T>
+        </Banner>
+        <TestBell kinds={['warn', 'urgent']} />
+      </>
     ) : null;
   }
 

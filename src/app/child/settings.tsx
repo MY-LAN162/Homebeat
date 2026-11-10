@@ -8,6 +8,7 @@ import { confirm, notify } from '../../services/dialog';
 import { canLock, unlock } from '../../services/lock';
 import { deviceTimeZone, TIME_ZONES, zoneLabel } from '../../domain/tz';
 import { useStore } from '../../state/store';
+import { NotifCard } from '../../components/NotifCard';
 import { colors } from '../../theme';
 
 function Group<V extends string | number>({
@@ -181,6 +182,7 @@ export default function AlertSettings() {
         <H1 size={22}>Cài đặt</H1>
       </View>
       {connected && <AccountCard />}
+      <NotifCard onboarding />
       <LockCard />
       <Card style={{ gap: 8 }}>
         <T size={15} weight="700">Cỡ chữ trên máy này</T>

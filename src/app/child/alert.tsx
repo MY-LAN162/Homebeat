@@ -9,6 +9,7 @@ import { slotsForDay } from '../../domain/schedule';
 import { dateKey, formatDuration, hm } from '../../domain/time';
 import { toZone } from '../../domain/tz';
 import { call, mapsLink } from '../../services/phone';
+import { track } from '../../services/usage';
 import { useStore } from '../../state/store';
 import { colors } from '../../theme';
 
@@ -25,7 +26,7 @@ function Fact({ label, value, warn }: { label: string; value: string; warn?: boo
 
 export default function AlertDetail() {
   const { memberId, kind } = useLocalSearchParams<{ memberId: string; kind: AlertKind }>();
-  const { data, now, dismissAlert, ackSos } = useStore();
+  const { data, now, dismissAlert, ackSos, markSlot } = useStore();
   const [howTo, setHowTo] = useState(false);
   const m = data.members.find((x) => x.id === memberId);
   if (!m) {
@@ -192,6 +193,17 @@ export default function AlertDetail() {
         </>
       )}
 
+      {kind === 'late-dose' && late.length > 0 && (
+        <Btn
+          variant="secondary"
+          label={`${m.call} đã uống rồi (con hỏi qua điện thoại)`}
+          onPress={() => {
+            for (const s of late) markSlot(s, 'taken');
+            track('dose_marked_by_child');
+            goBack('/child');
+          }}
+        />
+      )}
       {a && (
         <Btn variant="ghost" label={kind === 'no-signal' ? 'Đã liên lạc được, tắt thông báo' : kind === 'low-battery' ? `Đã nhắc ${callName} sạc pin, tắt thông báo` : `${m.call} ổn rồi, tắt cảnh báo`} onPress={close} />
       )}

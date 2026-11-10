@@ -20,7 +20,7 @@ import type {
 import { emptyData } from '../domain/types';
 import { emptyShared, mergeRemote, shared, type SharedData } from '../domain/syncdiff';
 import { PRIVACY_VERSION } from '../domain/privacy';
-import { bpPush, checkinPush, messagePush, sosAckPush, sosPush, type PushMessage } from '../domain/pushRules';
+import { bpPush, checkinPush, messagePush, skipPush, sosAckPush, sosPush, type PushMessage } from '../domain/pushRules';
 import { getFamilySync } from '../services/firebaseSync';
 import { setBackgroundEnabled } from '../services/background';
 import { checkAndAlert } from '../services/checkAndAlert';
@@ -92,6 +92,8 @@ interface Store {
   /** Đã mua thêm thuốc: cộng thêm số viên còn lại. */
   restock: (medId: string, pills: number) => void;
   markSlot: (slot: DoseSlot, status: 'taken' | 'skipped') => void;
+  /** Bố mẹ không uống: ghi lý do, hết thuốc thì đặt số viên còn lại về 0, báo cho con. */
+  skipSlot: (slot: DoseSlot, reason: 'out' | 'unable') => void;
   checkin: (memberId: string, mood: Mood, symptoms: string[]) => void;
   addBp: (memberId: string, sys: number, dia: number, pulse: number) => void;
   startSos: (memberId: string, loc?: { lat: number; lng: number }) => string;
@@ -443,7 +445,25 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
           ],
           medications: status === 'taken' ? consumeStock(d.medications, slot) : d.medications,
         })),
+      skipSlot: (slot, reason) => {
+        const ids = new Set(slot.meds.map((x) => x.id));
+        update((d) => ({
+          ...d,
+          doseLogs: [
+            ...d.doseLogs.filter((l) => !(l.memberId === slot.memberId && l.date === slot.date && l.time === slot.time)),
+            ...logSlot(slot, 'skipped', new Date(), reason),
+          ],
+          medications: reason === 'out' ? d.medications.map((x) => (ids.has(x.id) ? { ...x, stockPills: 0 } : x)) : d.medications,
+        }));
+        const m = data.members.find((x) => x.id === slot.memberId);
+        if (m) alertChildren(skipPush(m, slot.time, reason, slot.meds.map((x) => x.name)));
+      },
       checkin: (memberId, mood, symptoms) => {
+        // Bấm "ổn" nhiều lần liền nhau chỉ tính một lần.
+        const recent = data.checkins.some(
+          (c) => c.memberId === memberId && c.mood === 'good' && mood === 'good' && Date.now() - new Date(c.at).getTime() < 10 * 60_000,
+        );
+        if (recent) return;
         update((d) => ({ ...d, checkins: [...d.checkins, { memberId, mood, symptoms, at: iso() }] }));
         const m = data.members.find((x) => x.id === memberId);
         const msg = m && checkinPush(m, mood, symptoms);

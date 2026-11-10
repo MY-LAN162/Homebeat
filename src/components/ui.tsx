@@ -303,7 +303,7 @@ export function Field({
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-  keyboard?: 'default' | 'phone-pad' | 'number-pad' | 'email-address';
+  keyboard?: 'default' | 'phone-pad' | 'number-pad' | 'decimal-pad' | 'email-address';
   /** Ẩn chữ khi gõ (mật khẩu). */
   secure?: boolean;
 }) {

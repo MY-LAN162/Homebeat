@@ -121,8 +121,31 @@ export function activeMedsOn(meds: Medication[], logs: DoseLog[], memberId: stri
   });
 }
 
+/** Cho bấm "Đã uống" sớm tối đa bao nhiêu phút trước giờ uống. */
+export const EARLY_MINUTES = 60;
+
+/** Còn bao nhiêu phút nữa tới giờ uống (âm = đã qua giờ). */
+export function minutesUntil(slot: DoseSlot, now: Date): number {
+  return toMinutes(slot.time) - (now.getHours() * 60 + now.getMinutes());
+}
+
+/** Lúc này có được bấm "Đã uống" cho lần này không: đã đến giờ / trễ, hoặc chỉ còn ≤ 60 phút. */
+export function canTakeNow(slot: DoseSlot, now: Date): boolean {
+  if (slot.status === 'due' || slot.status === 'late') return true;
+  return slot.status === 'upcoming' && minutesUntil(slot, now) <= EARLY_MINUTES;
+}
+
+/** Số viên bằng chữ, dễ hiểu với người lớn tuổi: "nửa viên", "1 viên rưỡi", "2 viên". */
+export function pillsText(n: number): string {
+  if (n === 0.5) return 'nửa viên';
+  if (n === 0.25) return 'một phần tư viên';
+  if (Number.isInteger(n)) return `${n} viên`;
+  if (Number.isInteger(n - 0.5)) return `${n - 0.5} viên rưỡi`;
+  return `${String(n).replace('.', ',')} viên`;
+}
+
 /** Ghi nhận cả một giờ uống (mọi thuốc trong giờ đó). */
-export function logSlot(slot: DoseSlot, status: DoseLog['status'], at: Date): DoseLog[] {
+export function logSlot(slot: DoseSlot, status: DoseLog['status'], at: Date, reason?: DoseLog['reason']): DoseLog[] {
   return slot.meds.map((m) => ({
     memberId: slot.memberId,
     medId: m.id,
@@ -130,6 +153,7 @@ export function logSlot(slot: DoseSlot, status: DoseLog['status'], at: Date): Do
     time: slot.time,
     status,
     at: at.toISOString(),
+    ...(status === 'skipped' && reason ? { reason } : {}),
   }));
 }
 

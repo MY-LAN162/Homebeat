@@ -229,3 +229,10 @@ test('lời nhắn, "con đã thấy" SOS, cỡ chữ của bố mẹ: ghi đư�
   await assertSucceeds(setDoc(doc(as('bo'), 'families', FAM, 'members', 'bo'), { ...BO, textScale: 1.4 }));
   await assertFails(setDoc(doc(as('bo'), 'families', FAM, 'members', 'bo'), { ...BO, textScale: 9 }));
 });
+
+test('nhật ký uống thuốc: lý do không uống chỉ nhận "out" / "unable"', async () => {
+  const ref = (id: string) => doc(as('bo'), 'families', FAM, 'doseLogs', id);
+  await assertSucceeds(setDoc(ref('d1'), { ...DOSE, status: 'skipped', reason: 'out' }));
+  await assertSucceeds(setDoc(ref('d2'), { ...DOSE, status: 'skipped', reason: 'unable' }));
+  await assertFails(setDoc(ref('d3'), { ...DOSE, status: 'skipped', reason: 'khac' }));
+});

@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 import { medPrompt } from '../domain/address';
 import { LEVEL_CHANNEL, levelOf, SOS_SOUND, type NotifyLevel } from '../domain/levels';
 import { followUps, visitReminders } from '../domain/reminders';
-import { slotsForDay } from '../domain/schedule';
+import { pillsText, slotsForDay } from '../domain/schedule';
 import type { AppData } from '../domain/types';
 import { toMinutes } from '../domain/time';
 
@@ -104,6 +104,26 @@ export async function showNotice(title: string, body: string): Promise<void> {
   });
 }
 
+/**
+ * Thử chuông: hiện một thông báo thử sau 3 giây (khóa màn hình để nghe như thật).
+ * 'dose' = nhắc uống thuốc trên máy bố mẹ (có nút "Đã uống"); 'warn' / 'urgent' = cảnh báo / SOS trên máy con.
+ */
+export async function testNotification(kind: 'dose' | 'warn' | 'urgent'): Promise<boolean> {
+  if (!supported || !(await hasPermission())) return false;
+  const content =
+    kind === 'dose'
+      ? { title: 'Thử chuông: đến giờ uống thuốc', body: 'Đây là chuông thử. Đến giờ thật máy sẽ kêu như thế này.', data: { kind: 'test' }, categoryIdentifier: DOSE_CATEGORY, sound: 'default' }
+      : kind === 'warn'
+        ? { title: 'Thử chuông: cảnh báo cần chú ý', body: 'Ví dụ: bố mẹ trễ thuốc, báo không khỏe.', data: { kind: 'test' }, sound: 'default' }
+        : { title: '🆘 Thử chuông SOS', body: 'Khi bố mẹ bấm SOS, máy sẽ kêu như thế này.', data: { kind: 'test' }, sound: SOS_SOUND };
+  const channelId = kind === 'dose' ? CHANNEL : LEVEL_CHANNEL[kind];
+  await Notifications.scheduleNotificationAsync({
+    content,
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 3, channelId },
+  });
+  return true;
+}
+
 /** Máy này có thông báo không (bản trình duyệt thì không). */
 const soundOf = (l: NotifyLevel) => (l === 'urgent' ? SOS_SOUND : l === 'warn' ? 'default' : undefined);
 
@@ -140,7 +160,7 @@ export async function rescheduleMedReminders(data: AppData): Promise<number> {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: medPrompt(member),
-        body: `${slot.time} · ${slot.meds.map((m) => m.name).join(', ')} · ${slot.pills} viên`,
+        body: `${slot.time} · ${slot.meds.map((m) => m.name).join(', ')} · ${pillsText(slot.pills)}`,
         data: { kind: 'dose', time: slot.time },
         categoryIdentifier: DOSE_CATEGORY,
       },
@@ -157,7 +177,7 @@ export async function rescheduleMedReminders(data: AppData): Promise<number> {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: `Nhắc lại: ${medPrompt(member)}`,
-        body: `Thuốc ${f.time}${slot ? ` · ${slot.pills} viên` : ''}. Uống xong ${member.call.toLowerCase()} bấm "Đã uống" nhé.`,
+        body: `Thuốc ${f.time}${slot ? ` · ${pillsText(slot.pills)}` : ''}. Uống xong ${member.call.toLowerCase()} bấm "Đã uống" nhé.`,
         data: { kind: 'dose', time: f.time, date: f.date, followUp: f.n },
         categoryIdentifier: DOSE_CATEGORY,
       },

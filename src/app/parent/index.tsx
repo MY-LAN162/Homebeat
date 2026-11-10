@@ -1,12 +1,13 @@
 import { router } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { JoinRequests } from '../../components/JoinRequests';
 import { ParentInbox } from '../../components/ParentInbox';
 import { Btn, H1, HoldButton, Screen, SpeakButton, T } from '../../components/ui';
 import { greeting, okLabel } from '../../domain/address';
 import { sizeLabel } from '../../domain/textSize';
-import { currentSlot, slotsForDay } from '../../domain/schedule';
+import { currentSlot, pillsText, slotsForDay } from '../../domain/schedule';
+import { call as dial } from '../../services/phone';
 import { dateKey, formatLongDate, formatShortDate, hm } from '../../domain/time';
 import { track } from '../../services/usage';
 import { useCurrentMember, useStore } from '../../state/store';
@@ -15,6 +16,21 @@ import { colors } from '../../theme';
 export default function ParentHome() {
   const { data, now, checkin, setRole } = useStore();
   const m = useCurrentMember();
+  // Bấm "ổn": đếm 6 giây cho bấm nhầm thì hoàn tác, rồi mới báo các con.
+  const [okLeft, setOkLeft] = useState<number>();
+  useEffect(() => {
+    if (okLeft === undefined || !m) return;
+    const t = setTimeout(() => {
+      if (okLeft > 1) {
+        setOkLeft(okLeft - 1);
+        return;
+      }
+      checkin(m.id, 'good', []);
+      track('checkin_ok');
+      setOkLeft(undefined);
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [okLeft, m, checkin]);
   // Lần đầu mở: hiện hướng dẫn 3 bước.
   const needGuide = !!m && !data.guideSeen;
   useEffect(() => {
@@ -39,12 +55,13 @@ export default function ParentHome() {
   const slot = currentSlot(slots);
   const takenToday = slots.filter((s) => s.status === 'taken').length;
   const todayCheckin = [...data.checkins].reverse().find((c) => c.memberId === m.id && dateKey(new Date(c.at)) === dateKey(now));
+  const kidsToCall = [...data.caregivers].sort((a, b) => a.order - b.order).filter((c) => !c.sosOnly && c.phone).slice(0, 2);
   const nextVisit = data.appointments
     .filter((a) => a.memberId === m.id && new Date(a.at) >= now)
     .sort((a, b) => a.at.localeCompare(b.at))[0];
 
   const medLine = slot
-    ? `${slot.time} · ${slot.pills} viên`
+    ? `${slot.time} · ${pillsText(slot.pills)}`
     : slots.length
       ? 'Hôm nay đã uống đủ'
       : 'Chưa có lịch thuốc';
@@ -52,7 +69,7 @@ export default function ParentHome() {
 
   const speech = [
     greeting(m, now),
-    slot ? `Lần uống thuốc tới lúc ${slot.time}, ${slot.pills} viên.` : '',
+    slot ? `Lần uống thuốc tới lúc ${slot.time}, ${pillsText(slot.pills)}.` : '',
     nextVisit ? `${formatShortDate(new Date(nextVisit.at))} ${call} đi ${nextVisit.title.toLowerCase()}.` : '',
   ].join(' ');
 
@@ -75,7 +92,14 @@ export default function ParentHome() {
             ? `Đã báo cho các ${m.self.toLowerCase()} lúc ${hm(new Date(todayCheckin.at))}`
             : `Bấm một lần để các ${m.self.toLowerCase()} biết hôm nay ${call} vẫn ổn`}
         </T>
-        <Btn variant="light" label={okLabel(m)} height={72} size={24} onPress={() => { checkin(m.id, 'good', []); track('checkin_ok'); }} />
+        {okLeft === undefined ? (
+          <Btn variant="light" label={okLabel(m)} height={72} size={24} onPress={() => setOkLeft(6)} />
+        ) : (
+          <>
+            <T size={22} weight="700" color={colors.white}>✓ Đang báo cho các {m.self.toLowerCase()}…</T>
+            <Btn variant="secondary" label={`Bấm nhầm, hoàn tác (${okLeft})`} height={60} size={20} onPress={() => setOkLeft(undefined)} />
+          </>
+        )}
       </View>
 
       <Pressable
@@ -107,6 +131,11 @@ export default function ParentHome() {
       )}
 
       <Btn variant="ghost" label={`Kể ${m.self.toLowerCase()} nghe hôm nay ${call} thấy thế nào`} onPress={() => router.push('/parent/checkin')} />
+
+      {/* Gọi hỏi thăm bình thường, tách khỏi SOS để bố mẹ không phải bấm SOS chỉ để gọi con. */}
+      {kidsToCall.map((c) => (
+        <Btn key={c.id} variant="blue" label={`📞 Gọi ${m.self.toLowerCase()} ${c.name}`} height={64} size={22} onPress={() => { void dial(c.phone); track('call_child'); }} />
+      ))}
 
       <View style={{ flex: 1, minHeight: 12 }} />
       <HoldButton

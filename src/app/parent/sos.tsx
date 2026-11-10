@@ -9,6 +9,7 @@ import { Btn, H1, Screen, T } from '../../components/ui';
 import { displayName } from '../../domain/address';
 import { hm } from '../../domain/time';
 import { call, getLocation, mapsLink, smsCaregivers } from '../../services/phone';
+import { speak } from '../../services/speech';
 import { track } from '../../services/usage';
 import { useCurrentMember, useStore } from '../../state/store';
 import { colors } from '../../theme';
@@ -56,7 +57,11 @@ export default function ParentSos() {
       const first = receivers[0];
       if (first) {
         const ok = await call(first.phone).catch(() => false);
-        if (ok) setCalled(first.name);
+        if (ok) {
+          setCalled(first.name);
+          // Trình gọi điện có thể chỉ hiện số, chưa gọi: nhắc bố mẹ bấm nút gọi.
+          speak(`Bấm nút gọi màu xanh để gọi ${first.name}.`);
+        }
       }
       setCallTried(true);
     })();
@@ -93,7 +98,7 @@ export default function ParentSos() {
           <Line ok={sentId ? true : undefined} text={synced ? `Đã báo SOS lên app An Tâm của các ${kids}` : 'Đã ghi lại SOS trên máy này'} />
           <Line
             ok={callTried ? !!called : undefined}
-            text={!callTried ? 'Đang gọi...' : called ? `Đã mở cuộc gọi cho ${called}` : `Chưa gọi được: chưa có số điện thoại của các ${kids}`}
+            text={!callTried ? 'Đang mở cuộc gọi...' : called ? `Đã mở số của ${called}. Nếu chưa nghe chuông, bấm nút gọi màu xanh trên màn hình` : `Chưa gọi được: chưa có số điện thoại của các ${kids}`}
           />
           {receivers.length > 0 && (
           <Line

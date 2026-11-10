@@ -43,6 +43,16 @@ export function messagePush(m: Member, from: string, text: string): PushMessage 
   };
 }
 
+/** Bố mẹ bấm "Hết thuốc / không uống được": báo con ngay. */
+export function skipPush(m: Member, time: string, reason: 'out' | 'unable', medNames: string[]): PushMessage {
+  return {
+    title: `${displayName(m)} không uống thuốc ${time}`,
+    body: reason === 'out' ? `Hết thuốc: ${medNames.join(', ')}. Cần mua thêm.` : `${m.call} báo không uống được. Nên gọi hỏi thăm.`,
+    data: { kind: 'skipped-dose', memberId: m.id },
+    level: 'warn',
+  };
+}
+
 /** Chỉ báo khi "không khỏe" (mức cần chú ý); "hơi mệt" chỉ hiện trong app. */
 export function checkinPush(m: Member, mood: Mood, symptoms: string[]): PushMessage | undefined {
   if (mood !== 'unwell') return undefined;

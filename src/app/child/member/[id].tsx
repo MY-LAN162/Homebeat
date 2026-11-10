@@ -5,7 +5,7 @@ import { Back, Btn, Card, Chip, H1, Screen, T } from '../../../components/ui';
 import { PARENT_SIZES } from '../../../domain/textSize';
 import { displayName } from '../../../domain/address';
 import { isBpHigh } from '../../../domain/alerts';
-import { slotsForDay } from '../../../domain/schedule';
+import { pillsText, slotsForDay } from '../../../domain/schedule';
 import { dateKey, hm } from '../../../domain/time';
 import { call } from '../../../services/phone';
 import { useStore } from '../../../state/store';
@@ -32,7 +32,7 @@ export default function MemberDetail() {
   }
   for (const s of slotsForDay(data.medications, data.doseLogs, m.id, now, now, data.settings.lateMinutes)) {
     const text = {
-      taken: `Đã uống thuốc ${s.time} · ${s.pills} viên`,
+      taken: `Đã uống thuốc ${s.time} · ${pillsText(s.pills)}`,
       skipped: `Bỏ thuốc ${s.time} (báo hết thuốc / không uống được)`,
       due: `Thuốc ${s.time} · đang chờ xác nhận`,
       late: `Thuốc ${s.time} · chưa uống, trễ ${s.minutesLate} phút`,
