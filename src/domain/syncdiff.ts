@@ -12,6 +12,7 @@ export const COLLECTIONS = [
   'checkins',
   'bpReadings',
   'sosEvents',
+  'messages',
 ] as const;
 export type CollectionName = (typeof COLLECTIONS)[number];
 
@@ -19,7 +20,7 @@ export type CollectionName = (typeof COLLECTIONS)[number];
  * Sự kiện từ máy bố mẹ (uống thuốc, điểm danh, huyết áp, SOS): gộp kiểu hợp nhất,
  * để sự kiện chưa kịp gửi (mất mạng) không bị mất khi máy nhận bản từ máy chủ.
  */
-export const EVENT_COLLECTIONS: readonly CollectionName[] = ['doseLogs', 'checkins', 'bpReadings', 'sosEvents'];
+export const EVENT_COLLECTIONS: readonly CollectionName[] = ['doseLogs', 'checkins', 'bpReadings', 'sosEvents', 'messages'];
 
 /** Cài đặt gia đình: danh sách người, thuốc, lịch khám... Bản trên máy chủ là bản đúng. */
 export const CONFIG_COLLECTIONS: readonly CollectionName[] = ['members', 'caregivers', 'medications', 'appointments'];
@@ -89,11 +90,12 @@ export function diffData(
   const out: SyncWrite[] = [];
   for (const coll of COLLECTIONS) {
     const prev = new Map<string, string>();
-    for (const item of before[coll] as Item<typeof coll>[]) {
+    // `?? []`: bản lưu từ phiên bản cũ có thể chưa có danh sách mới (vd messages).
+    for (const item of (before[coll] ?? []) as Item<typeof coll>[]) {
       prev.set(docId(coll, item), JSON.stringify(toDoc(coll, item)));
     }
     const seen = new Set<string>();
-    for (const item of after[coll] as Item<typeof coll>[]) {
+    for (const item of (after[coll] ?? []) as Item<typeof coll>[]) {
       const id = docId(coll, item);
       seen.add(id);
       const data = toDoc(coll, item);
@@ -117,6 +119,7 @@ export interface RemoteSnapshot {
   checkins?: AppData['checkins'];
   bpReadings?: AppData['bpReadings'];
   sosEvents?: AppData['sosEvents'];
+  messages?: AppData['messages'];
   settings?: AlertSettings;
   /** Tín hiệu "còn sống" của từng máy bố mẹ, theo memberId. */
   heartbeats?: Record<string, { at: string; battery?: number }>;
@@ -145,7 +148,7 @@ export function mergeRemote<T extends SharedData>(local: T, remote: RemoteSnapsh
     const r = remote[coll] as Item<typeof coll>[] | undefined;
     if (!r) continue;
     const byId = new Map<string, Item<typeof coll>>();
-    for (const item of local[coll] as Item<typeof coll>[]) byId.set(docId(coll, item), item);
+    for (const item of (local[coll] ?? []) as Item<typeof coll>[]) byId.set(docId(coll, item), item);
     for (const item of r) byId.set(docId(coll, item), item);
     const merged = [...byId.values()].sort((a, b) => eventTime(a).localeCompare(eventTime(b)));
     (next as SharedData)[coll] = merged as never;
@@ -190,6 +193,7 @@ export function shared(d: AppData): SharedData {
     checkins: d.checkins,
     bpReadings: d.bpReadings,
     sosEvents: d.sosEvents,
+    messages: d.messages ?? [],
     settings: d.settings,
   };
 }
@@ -205,6 +209,7 @@ export function emptyShared(settings: AlertSettings): SharedData {
     checkins: [],
     bpReadings: [],
     sosEvents: [],
+    messages: [],
     settings,
   };
 }

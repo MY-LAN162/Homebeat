@@ -1,7 +1,7 @@
 // Gửi thông báo đẩy tới máy các con qua dịch vụ Expo Push (miễn phí), gửi thẳng từ điện thoại,
 // không cần máy chủ riêng. Máy con cần có mã nhận thông báo (đã đăng ký khi mở app, xem store.tsx).
 import type { PushMessage } from '../domain/pushRules';
-import { ALERT_CHANNEL } from './notifications';
+import { levelOf, pushOptions } from '../domain/levels';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
@@ -12,7 +12,12 @@ export async function sendPush(tokens: string[], msg: PushMessage): Promise<numb
     const res = await fetch(EXPO_PUSH_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(tokens.map((to) => ({ to, ...msg, sound: 'default', priority: 'high', channelId: ALERT_CHANNEL }))),
+      body: JSON.stringify(
+        tokens.map((to) => {
+          const { level, ...rest } = msg;
+          return { to, ...rest, ...pushOptions(level ?? levelOf(msg.data.kind as string)) };
+        }),
+      ),
     });
     if (!res.ok) return 0;
     const json = (await res.json()) as { data?: { status: string }[] };

@@ -14,6 +14,8 @@ export interface Member {
   self: SelfName;
   phone?: string;
   note?: string;
+  /** Cỡ chữ trên máy của bố/mẹ này (1 Lớn … 1.6 Khổng lồ). Đồng bộ để con chỉnh hộ được. */
+  textScale?: number;
   /** Lần cuối máy của bố mẹ gửi tín hiệu (ISO). Chỉ có khi đã nối máy chủ đồng bộ. */
   lastSeenAt?: string;
   battery?: number;
@@ -84,6 +86,22 @@ export interface SosEvent {
   cancelled: boolean;
   lat?: number;
   lng?: number;
+  /** Con đầu tiên bấm "Con đã thấy" (tên) và lúc nào, để máy bố mẹ yên tâm. */
+  ackBy?: string;
+  ackAt?: string;
+}
+
+/** Lời nhắn của con gửi bố/mẹ (hiện chữ to, đọc to trên máy bố mẹ). */
+export interface Message {
+  id: string;
+  /** Gửi cho bố/mẹ nào. */
+  memberId: string;
+  /** Tên người gửi (con). */
+  from: string;
+  text: string;
+  at: string;
+  /** Lúc bố mẹ bấm "Đã xem". */
+  seenAt?: string;
 }
 
 export interface Appointment {
@@ -143,6 +161,7 @@ export interface AppData {
   checkins: Checkin[];
   bpReadings: BpReading[];
   sosEvents: SosEvent[];
+  messages: Message[];
   appointments: Appointment[];
   settings: AlertSettings;
   pairing?: Pairing;
@@ -154,6 +173,8 @@ export interface AppData {
   dismissed?: string[];
   /** Bố mẹ đã xem hướng dẫn lần đầu trên máy này. */
   guideSeen?: boolean;
+  /** Máy của con: tên người dùng máy này (ký tên khi nhắn bố mẹ, khi bấm "Con đã thấy"). */
+  myName?: string;
   /** Cỡ chữ trên máy này: 1 bình thường, 1.15 lớn, 1.3 rất lớn (không đồng bộ sang máy khác). */
   textScale?: number;
   /** Máy bố mẹ đã gửi yêu cầu vào gia đình, đang chờ con bấm Đồng ý. */
@@ -191,6 +212,7 @@ export const emptyData = (): AppData => ({
   checkins: [],
   bpReadings: [],
   sosEvents: [],
+  messages: [],
   appointments: [],
   settings: { ...DEFAULT_SETTINGS },
 });

@@ -1,6 +1,6 @@
 # Chính sách quyền riêng tư — An Tâm
 
-Phiên bản 1, cập nhật 01/11/2026. **Bản nháp — cần luật sư xem lại trước khi phát hành** (thông tin sức khỏe là dữ liệu cá nhân nhạy cảm theo pháp luật Việt Nam về bảo vệ dữ liệu cá nhân).
+Phiên bản 2, cập nhật 01/11/2026. **Bản nháp — cần luật sư xem lại trước khi phát hành** (thông tin sức khỏe là dữ liệu cá nhân nhạy cảm theo pháp luật Việt Nam về bảo vệ dữ liệu cá nhân).
 
 ## Tóm tắt
 
@@ -15,6 +15,7 @@ Phiên bản 1, cập nhật 01/11/2026. **Bản nháp — cần luật sư xem 
 - Thuốc, giờ uống, việc đã uống / bỏ qua, số viên còn lại.
 - Điểm danh mỗi ngày, mức khỏe và triệu chứng bố mẹ tự báo; số đo huyết áp, nhịp tim.
 - Vị trí của bố mẹ, chỉ khi bố mẹ bấm SOS.
+- Lời nhắn con gửi bố mẹ, lúc bố mẹ bấm "Đã xem", và tên người con bấm "Đã thấy" khi bố mẹ bấm SOS.
 - Lịch khám, câu hỏi cho bác sĩ. Lời bác sĩ đã ghi chỉ giữ trên máy ghi, trừ khi bạn bấm chia sẻ với cả nhà.
 - Mức pin và thời điểm máy bố mẹ còn hoạt động (để báo khi máy mất tín hiệu).
 - Mã nhận thông báo của máy (để gửi cảnh báo), loại máy (Android / iPhone).

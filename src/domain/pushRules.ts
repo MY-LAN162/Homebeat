@@ -1,12 +1,15 @@
 // Khi nào máy bố mẹ tự gửi thông báo đẩy cho các con, và nội dung gửi. Không cần máy chủ riêng.
 import { displayName } from './address';
 import { isBpHigh } from './alerts';
+import type { NotifyLevel } from './levels';
 import type { AlertSettings, Member, Mood } from './types';
 
 export interface PushMessage {
   title: string;
   body: string;
   data: Record<string, unknown>;
+  /** Mức thông báo. Trống thì tính theo data.kind (xem levels.ts). */
+  level?: NotifyLevel;
 }
 
 export function sosPush(m: Member, at: Date, loc?: { lat: number; lng: number }): PushMessage {
@@ -16,6 +19,27 @@ export function sosPush(m: Member, at: Date, loc?: { lat: number; lng: number })
     title: `🆘 ${displayName(m)} bấm SOS`,
     body: `Lúc ${t}. Gọi ngay cho ${m.call.toLowerCase()}.${where}`,
     data: { kind: 'sos', memberId: m.id },
+    level: 'urgent',
+  };
+}
+
+/** Máy bố mẹ: con đã thấy SOS. */
+export function sosAckPush(m: Member, by: string): PushMessage {
+  return {
+    title: `${m.self} ${by} đã thấy`,
+    body: `${m.self} đang gọi cho ${m.call.toLowerCase()}. ${m.call} giữ máy bên cạnh nhé.`,
+    data: { kind: 'sos-ack', memberId: m.id },
+    level: 'warn',
+  };
+}
+
+/** Máy bố mẹ: lời nhắn của con. */
+export function messagePush(m: Member, from: string, text: string): PushMessage {
+  return {
+    title: `${m.self} ${from} nhắn ${m.call.toLowerCase()}`,
+    body: `“${text}”`,
+    data: { kind: 'message', memberId: m.id },
+    level: 'warn',
   };
 }
 

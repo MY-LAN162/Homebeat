@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { goBack } from '../../../services/nav';
 import { View } from 'react-native';
-import { Back, Btn, Card, H1, Screen, T } from '../../../components/ui';
+import { Back, Btn, Card, Chip, H1, Screen, T } from '../../../components/ui';
+import { PARENT_SIZES } from '../../../domain/textSize';
 import { displayName } from '../../../domain/address';
 import { isBpHigh } from '../../../domain/alerts';
 import { slotsForDay } from '../../../domain/schedule';
@@ -16,7 +17,7 @@ const MOOD = { good: 'Khỏe', tired: 'Hơi mệt', unwell: 'Không khỏe' };
 
 export default function MemberDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, now } = useStore();
+  const { data, now, updateMember } = useStore();
   const m = data.members.find((x) => x.id === id);
   if (!m) return null;
   const today = dateKey(now);
@@ -53,6 +54,21 @@ export default function MemberDetail() {
         {!!m.phone && <Btn label={`Gọi ${m.call.toLowerCase()}`} height={44} size={15} onPress={() => call(m.phone)} />}
       </View>
 
+      <Btn
+        variant="blue"
+        label={`💬 Nhắn ${m.call.toLowerCase()}`}
+        height={48}
+        size={16}
+        onPress={() => router.push({ pathname: '/child/message', params: { memberId: m.id } })}
+      />
+      <Card style={{ gap: 8 }}>
+        <T size={14} weight="700">Cỡ chữ trên máy của {m.call.toLowerCase()}</T>
+        <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+          {PARENT_SIZES.map((s) => (
+            <Chip key={s.k} label={s.label} on={(m.textScale ?? 1) === s.k} size={14} onPress={() => updateMember(m.id, { textScale: s.k })} />
+          ))}
+        </View>
+      </Card>
       <Btn
         variant="secondary"
         label="Xem tình hình 30 ngày (đưa bác sĩ xem)"

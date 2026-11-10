@@ -128,6 +128,12 @@ p.on('pageerror', (e) => errs.push(e.message));
   await step('Trang chủ › cảnh báo › Quay lại', async () => { await tap('Xem chi tiết ›'); await expectScreen(/Hôm nay của/); await back(); await expectScreen('Bố mẹ hôm nay'); });
   await step('Trang chủ › Bố Hùng › Quay lại', async () => { await tap(/Bố Hùng ›/); await expectScreen('Xem tình hình 30 ngày (đưa bác sĩ xem)'); await back(); await expectScreen('Bố mẹ hôm nay'); });
   await step('Bố Hùng › Bảng 30 ngày › Quay lại về Bố Hùng', async () => { await tap(/Bố Hùng ›/); await tap('Xem tình hình 30 ngày (đưa bác sĩ xem)'); await expectScreen(/Tình hình 30 ngày/); await back(); await expectScreen('Xem tình hình 30 ngày (đưa bác sĩ xem)'); await back(); await expectScreen('Bố mẹ hôm nay'); });
+  await step('Trang chủ › Nhắn bố › chọn câu có sẵn › Gửi › thấy trong "đã nhắn" › Quay lại', async () => {
+    await tap('💬 Nhắn bố'); await expectScreen('Chọn nhanh');
+    await tap('Bố nhớ uống thuốc nhé', { exact: true }); await tap('Gửi cho bố', { exact: true });
+    await expectScreen(/Đã lưu \(bản thử/); await expectScreen('Bố chưa xem', 3000).catch(() => expectScreen(/Bố chưa xem/));
+    await back(); await expectScreen('Bố mẹ hôm nay');
+  });
   // Thuốc
   await step('Tab Thuốc', async () => { await tab('Thuốc'); await expectScreen('Thuốc của bố mẹ'); });
   await step('Thuốc › Quét đơn › Quay lại về Thuốc', async () => { await tap('📷  Quét đơn thuốc'); await expectScreen('Thử với đơn thuốc mẫu'); await back(); await expectScreen('Thuốc của bố mẹ'); });
@@ -176,6 +182,17 @@ p.on('pageerror', (e) => errs.push(e.message));
     await p.reload(); await expectScreen('Con ơi, bố ổn', 15000);
     if (await onScreen('Hướng dẫn · 1/3')) throw new Error('hướng dẫn hiện lại');
     await tap('Xem lại hướng dẫn'); await expectScreen('Hướng dẫn · 1/3'); await tap('Bỏ qua hướng dẫn'); await expectScreen('Con ơi, bố ổn');
+  });
+  await step('Bố thấy lời nhắn của con thật to → Đã xem', async () => {
+    await expectScreen('“Bố nhớ uống thuốc nhé”'); await expectScreen('Con Hà nhắn bố', 3000).catch(() => expectScreen(/Con Hà nhắn bố/));
+    await tap('Đã xem', { exact: true }); await p.waitForTimeout(300);
+    if (await onScreen('“Bố nhớ uống thuốc nhé”')) throw new Error('lời nhắn vẫn còn sau khi bấm Đã xem');
+  });
+  await step('Bố › Chữ to hơn › chọn "Cực lớn" › chữ to lên › về trang chủ', async () => {
+    await tap(/Chữ to hơn/); await expectScreen('Chọn cỡ chữ');
+    await tap('Dùng cỡ Cực lớn', { exact: true }); await expectScreen('✓ Đang dùng');
+    await tap('Xong', { exact: true }); await expectScreen(/đang: Cực lớn/);
+    await tap(/Chữ to hơn/); await tap('Dùng cỡ Lớn', { exact: true }); await tap('Xong', { exact: true }); await expectScreen(/đang: Lớn\)/);
   });
   await step('Bố: bấm "ổn"', async () => { await tap('Con ơi, bố ổn'); await expectScreen(/Đã báo cho các con lúc/); });
   await step('Bố › thuốc › "Bố đã uống" › về trang chủ bố', async () => { await tap(/Thuốc lần tới|Thuốc bây giờ|Đến giờ/); await expectScreen('Bố đã uống'); await tap('Bố đã uống'); await expectScreen('Con ơi, bố ổn'); });

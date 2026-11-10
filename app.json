@@ -28,7 +28,8 @@
         "POST_NOTIFICATIONS",
         "SCHEDULE_EXACT_ALARM",
         "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
+        "VIBRATE",
+        "ACCESS_NOTIFICATION_POLICY"
       ]
     },
     "web": {
@@ -43,7 +44,10 @@
         {
           "icon": "./assets/android-icon-monochrome.png",
           "color": "#1F6F5C",
-          "defaultChannel": "thuoc"
+          "defaultChannel": "thuoc",
+          "sounds": [
+            "./assets/sounds/sos.wav"
+          ]
         }
       ],
       [

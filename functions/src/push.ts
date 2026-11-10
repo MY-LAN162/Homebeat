@@ -1,8 +1,8 @@
 // Gửi thông báo đẩy qua dịch vụ Expo Push (máy con dùng Expo push token).
 // https://docs.expo.dev/push-notifications/sending-notifications/
+import { levelOf, pushOptions } from '../../src/domain/levels';
+
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
-/** Trùng ALERT_CHANNEL trong src/services/notifications.ts. */
-export const ALERT_CHANNEL = 'canh-bao';
 
 export interface PushMessage {
   title: string;
@@ -17,7 +17,7 @@ export async function sendPush(tokens: string[], msg: PushMessage): Promise<stri
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(
-      tokens.map((to) => ({ to, ...msg, sound: 'default', priority: 'high', channelId: ALERT_CHANNEL })),
+      tokens.map((to) => ({ to, ...msg, ...pushOptions(levelOf(msg.data?.kind as string | undefined)) })),
     ),
   });
   if (!res.ok) throw new Error(`Expo push lỗi ${res.status}: ${await res.text()}`);

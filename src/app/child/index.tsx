@@ -130,6 +130,13 @@ export default function ChildHome() {
                 <Stat label="Huyết áp gần nhất" value={bp ? `${bp.sys}/${bp.dia}` : 'Chưa đo'} />
                 <Stat label="Triệu chứng" value={c?.symptoms.length ? c.symptoms.join(', ') : 'Không'} />
               </View>
+              <Btn
+                variant="secondary"
+                height={44}
+                size={15}
+                label={`💬 Nhắn ${m.call.toLowerCase()}`}
+                onPress={() => router.push({ pathname: '/child/message', params: { memberId: m.id } })}
+              />
             </Card>
           </Pressable>
         );

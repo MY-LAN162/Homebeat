@@ -34,9 +34,9 @@ service cloud.firestore {
     function optList(d, k, max) { return !(k in d) || list(d[k], max); }
     function validDoc(coll, id, d) {
       return (coll == 'members'
-          && d.keys().hasOnly(['id', 'name', 'call', 'self', 'phone', 'note'])
+          && d.keys().hasOnly(['id', 'name', 'call', 'self', 'phone', 'note', 'textScale'])
           && d.id == id && str(d.name, 60) && d.call in ['Bố', 'Mẹ', 'Ông', 'Bà'] && d.self in ['Con', 'Cháu']
-          && optStr(d, 'phone', 20) && optStr(d, 'note', 300))
+          && optStr(d, 'phone', 20) && optStr(d, 'note', 300) && optNum(d, 'textScale', 0.8, 2))
         || (coll == 'caregivers'
           && d.keys().hasOnly(['id', 'name', 'phone', 'order', 'sosOnly'])
           && d.id == id && str(d.name, 60) && str(d.phone, 20) && num(d.order, 0, 100) && optBool(d, 'sosOnly'))
@@ -63,9 +63,14 @@ service cloud.firestore {
           && str(d.memberId, 80) && str(d.at, 40)
           && num(d.sys, 40, 300) && num(d.dia, 20, 200) && num(d.pulse, 20, 250))
         || (coll == 'sosEvents'
-          && d.keys().hasOnly(['id', 'memberId', 'at', 'cancelled', 'lat', 'lng'])
+          && d.keys().hasOnly(['id', 'memberId', 'at', 'cancelled', 'lat', 'lng', 'ackBy', 'ackAt'])
           && d.id == id && str(d.memberId, 80) && str(d.at, 40) && d.cancelled is bool
-          && optNum(d, 'lat', -90, 90) && optNum(d, 'lng', -180, 180));
+          && optNum(d, 'lat', -90, 90) && optNum(d, 'lng', -180, 180)
+          && optStr(d, 'ackBy', 60) && optStr(d, 'ackAt', 40))
+        || (coll == 'messages'
+          && d.keys().hasOnly(['id', 'memberId', 'from', 'text', 'at', 'seenAt'])
+          && d.id == id && str(d.memberId, 80) && str(d.from, 60) && str(d.text, 200) && d.text.size() > 0
+          && str(d.at, 40) && optStr(d, 'seenAt', 40));
     }
     function validSettings(s) {
       return s is map
@@ -134,10 +139,10 @@ service cloud.firestore {
       match /{coll}/{docId} {
         allow read: if isMember(familyId)
           && coll in ['members', 'caregivers', 'medications', 'appointments',
-                      'doseLogs', 'checkins', 'bpReadings', 'sosEvents'];
+                      'doseLogs', 'checkins', 'bpReadings', 'sosEvents', 'messages'];
         allow delete: if isMember(familyId) && canDeleteData(familyId)
           && coll in ['members', 'caregivers', 'medications', 'appointments',
-                      'doseLogs', 'checkins', 'bpReadings', 'sosEvents'];
+                      'doseLogs', 'checkins', 'bpReadings', 'sosEvents', 'messages'];
         allow create, update: if isMember(familyId) && validDoc(coll, docId, request.resource.data);
       }
       // Nhịp "còn sống" của máy bố mẹ.

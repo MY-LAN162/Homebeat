@@ -3,14 +3,13 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { medPrompt } from '../domain/address';
-import { followUps } from '../domain/reminders';
+import { LEVEL_CHANNEL, levelOf, SOS_SOUND, type NotifyLevel } from '../domain/levels';
+import { followUps, visitReminders } from '../domain/reminders';
 import { slotsForDay } from '../domain/schedule';
 import type { AppData } from '../domain/types';
 import { toMinutes } from '../domain/time';
 
 const CHANNEL = 'thuoc';
-/** Kênh cho cảnh báo máy chủ gửi về máy con (phải trùng channelId trong functions/src/push.ts). */
-export const ALERT_CHANNEL = 'canh-bao';
 const supported = Platform.OS !== 'web';
 /** Nhóm thông báo nhắc thuốc, có nút "Đã uống" ngay trên thông báo. */
 export const DOSE_CATEGORY = 'nhac-thuoc';
@@ -19,12 +18,11 @@ export const TAKEN_ACTION = 'da-uong';
 export function setupNotifications() {
   if (!supported) return;
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
+    // Đang mở app: mức "Thông tin" chỉ nằm trong danh sách, không bật lên, không kêu.
+    handleNotification: async (n) => {
+      const quiet = levelOf((n.request.content.data as { kind?: string } | undefined)?.kind) === 'info';
+      return { shouldShowBanner: !quiet, shouldShowList: true, shouldPlaySound: !quiet, shouldSetBadge: false };
+    },
   });
   // Nút "Đã uống" trên thông báo: bấm là mở app và ghi nhận luôn (mở app để chắc chắn ghi được,
   // kể cả khi app đã bị tắt hẳn).
@@ -38,11 +36,30 @@ export function setupNotifications() {
       vibrationPattern: [0, 400, 200, 400],
       sound: 'default',
     }).catch(() => undefined);
-    Notifications.setNotificationChannelAsync(ALERT_CHANNEL, {
-      name: 'Cảnh báo về bố mẹ',
+    // Ba mức cảnh báo (xem domain/levels.ts). Kênh Android đã tạo thì không đổi được âm/rung nữa,
+    // nên mỗi mức một kênh riêng; người dùng tự chỉnh thêm trong Cài đặt điện thoại được.
+    Notifications.setNotificationChannelAsync(LEVEL_CHANNEL.urgent, {
+      name: 'SOS khẩn cấp',
+      description: 'Bố mẹ bấm SOS. Âm báo riêng, rung dài.',
       importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 600, 200, 600],
+      vibrationPattern: [0, 1000, 400, 1000, 400, 1000, 400, 1000],
+      sound: SOS_SOUND,
+      bypassDnd: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    }).catch(() => undefined);
+    Notifications.setNotificationChannelAsync(LEVEL_CHANNEL.warn, {
+      name: 'Cảnh báo cần chú ý',
+      description: 'Trễ thuốc, không khỏe, huyết áp cao, mất tín hiệu, lời nhắn, lịch khám.',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 400, 200, 400],
       sound: 'default',
+    }).catch(() => undefined);
+    Notifications.setNotificationChannelAsync(LEVEL_CHANNEL.info, {
+      name: 'Thông tin',
+      description: 'Pin yếu, sắp hết thuốc, đổi lịch thuốc. Không kêu, không rung.',
+      importance: Notifications.AndroidImportance.LOW,
+      sound: null,
+      enableVibrate: false,
     }).catch(() => undefined);
   }
 }
@@ -65,8 +82,8 @@ export async function getPushToken(): Promise<string | undefined> {
 export async function showAlertNow(title: string, body: string, data: Record<string, string>): Promise<void> {
   if (!supported || !(await hasPermission())) return;
   await Notifications.scheduleNotificationAsync({
-    content: { title, body, data, sound: 'default' },
-    trigger: Platform.OS === 'android' ? { channelId: ALERT_CHANNEL } : null,
+    content: { title, body, data, sound: soundOf(levelOf(data.kind)) },
+    trigger: Platform.OS === 'android' ? { channelId: LEVEL_CHANNEL[levelOf(data.kind)] } : null,
   });
 }
 
@@ -78,16 +95,18 @@ export async function askPermission(): Promise<boolean> {
   return req.granted;
 }
 
-/** Báo nhẹ cho bố mẹ (vd con vừa đổi lịch thuốc), dùng kênh nhắc thuốc. */
+/** Báo nhẹ cho bố mẹ (vd con vừa đổi lịch thuốc): mức Thông tin, không kêu. */
 export async function showNotice(title: string, body: string): Promise<void> {
   if (!supported || !(await hasPermission())) return;
   await Notifications.scheduleNotificationAsync({
-    content: { title, body, data: { kind: 'notice' }, sound: 'default' },
-    trigger: Platform.OS === 'android' ? { channelId: CHANNEL } : null,
+    content: { title, body, data: { kind: 'schedule' } },
+    trigger: Platform.OS === 'android' ? { channelId: LEVEL_CHANNEL.info } : null,
   });
 }
 
 /** Máy này có thông báo không (bản trình duyệt thì không). */
+const soundOf = (l: NotifyLevel) => (l === 'urgent' ? SOS_SOUND : l === 'warn' ? 'default' : undefined);
+
 export const notificationsSupported = supported;
 
 /** Tình trạng quyền thông báo: 'granted' đã cho; 'ask' còn hỏi được; 'blocked' đã chặn, phải vào Cài đặt mở lại. */
@@ -143,6 +162,12 @@ export async function rescheduleMedReminders(data: AppData): Promise<number> {
         categoryIdentifier: DOSE_CATEGORY,
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: f.at, channelId: CHANNEL },
+    });
+  }
+  for (const v of visitReminders(data, member.id, now)) {
+    await Notifications.scheduleNotificationAsync({
+      content: { title: v.title, body: v.body, data: { kind: 'visit', memberId: member.id }, sound: 'default' },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: v.at, channelId: LEVEL_CHANNEL.warn },
     });
   }
   return slots.length;

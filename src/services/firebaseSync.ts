@@ -214,6 +214,13 @@ export class FirebaseSync implements FamilySync {
     return qs.docs.map((d) => d.get('pushToken') as string | undefined).filter((t): t is string => !!t);
   }
 
+  async parentPushTokens(familyId: string, memberId: string): Promise<string[]> {
+    const qs = await fb.getDocs(
+      fb.query(fb.collection(this.db, 'families', familyId, 'devices'), fb.where('role', '==', 'parent'), fb.where('memberId', '==', memberId)),
+    );
+    return qs.docs.map((d) => d.get('pushToken') as string | undefined).filter((t): t is string => !!t);
+  }
+
   async apply(familyId: string, writes: SyncWrite[]): Promise<void> {
     if (!writes.length) return;
     const fam = fb.doc(this.db, 'families', familyId);
@@ -251,9 +258,10 @@ export class FirebaseSync implements FamilySync {
   async readSchedule(familyId: string) {
     await this.signIn();
     const fam = fb.doc(this.db, 'families', familyId);
-    const [f, qs] = await Promise.all([fb.getDoc(fam), fb.getDocs(fb.collection(fam, 'medications'))]);
+    const [f, qs, ap] = await Promise.all([fb.getDoc(fam), fb.getDocs(fb.collection(fam, 'medications')), fb.getDocs(fb.collection(fam, 'appointments'))]);
     return {
       medications: qs.docs.map((d) => d.data()) as AppData['medications'],
+      appointments: ap.docs.map((d) => d.data()) as AppData['appointments'],
       settings: f.data()?.settings as AlertSettings | undefined,
     };
   }

@@ -2,7 +2,7 @@
 // Dùng chung cho màn hình trong app và file PRIVACY.md (scripts/privacy-md.mjs).
 
 /** Đổi nội dung chính sách thì tăng số này: người dùng sẽ được hỏi đồng ý lại. */
-export const PRIVACY_VERSION = 1;
+export const PRIVACY_VERSION = 2;
 export const PRIVACY_UPDATED = '01/11/2026';
 
 /** Tóm tắt ngắn trên màn hình xin đồng ý. */
@@ -26,6 +26,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       'Thuốc, giờ uống, việc đã uống / bỏ qua, số viên còn lại.',
       'Điểm danh mỗi ngày, mức khỏe và triệu chứng bố mẹ tự báo; số đo huyết áp, nhịp tim.',
       'Vị trí của bố mẹ, chỉ khi bố mẹ bấm SOS.',
+      'Lời nhắn con gửi bố mẹ, lúc bố mẹ bấm "Đã xem", và tên người con bấm "Đã thấy" khi bố mẹ bấm SOS.',
       'Lịch khám, câu hỏi cho bác sĩ. Lời bác sĩ đã ghi chỉ giữ trên máy ghi, trừ khi bạn bấm chia sẻ với cả nhà.',
       'Mức pin và thời điểm máy bố mẹ còn hoạt động (để báo khi máy mất tín hiệu).',
       'Mã nhận thông báo của máy (để gửi cảnh báo), loại máy (Android / iPhone).',

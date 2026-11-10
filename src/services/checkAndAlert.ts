@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Battery from 'expo-battery';
 import { Platform } from 'react-native';
 import { backgroundPushes, childSignalAlerts, scheduleKey, scheduleNotice, withSchedule } from '../domain/background';
-import type { AppData } from '../domain/types';
+import { emptyData, type AppData } from '../domain/types';
 import { BG_LAST_KEY, BG_SCHED_KEY, BG_SENT_KEY, BG_SIGNAL_KEY, DATA_KEY } from '../state/keys';
 import { getFamilySync } from './firebaseSync';
 import { rescheduleMedReminders, showAlertNow, showNotice } from './notifications';
@@ -33,7 +33,7 @@ export async function checkAndAlert(now = new Date()): Promise<void> {
   try {
     const raw = await readSecure(DATA_KEY);
     if (!raw) return;
-    const data = JSON.parse(raw) as AppData;
+    const data: AppData = { ...emptyData(), ...(JSON.parse(raw) as AppData) };
     if (data.role === 'child' && data.familyId && !data.demo) {
       await checkSignals(data, now);
       return;
@@ -86,6 +86,6 @@ export async function updateReminders(data: AppData, notice = true): Promise<voi
   if (old === key) return;
   await rescheduleMedReminders(data);
   await AsyncStorage.setItem(BG_SCHED_KEY, key);
-  const n = scheduleNotice(data);
+  const n = scheduleNotice(data, old ?? undefined);
   if (notice && old !== null && n) await showNotice(n.title, n.body);
 }

@@ -20,7 +20,7 @@ import type {
 import { emptyData } from '../domain/types';
 import { emptyShared, mergeRemote, shared, type SharedData } from '../domain/syncdiff';
 import { PRIVACY_VERSION } from '../domain/privacy';
-import { bpPush, checkinPush, sosPush, type PushMessage } from '../domain/pushRules';
+import { bpPush, checkinPush, messagePush, sosAckPush, sosPush, type PushMessage } from '../domain/pushRules';
 import { getFamilySync } from '../services/firebaseSync';
 import { setBackgroundEnabled } from '../services/background';
 import { checkAndAlert } from '../services/checkAndAlert';
@@ -96,6 +96,12 @@ interface Store {
   addBp: (memberId: string, sys: number, dia: number, pulse: number) => void;
   startSos: (memberId: string, loc?: { lat: number; lng: number }) => string;
   cancelSos: (id: string) => void;
+  /** Máy con: bấm "Con đã thấy" SOS, máy bố mẹ hiện để yên tâm. */
+  ackSos: (id: string) => void;
+  /** Máy con: gửi lời nhắn cho bố/mẹ. */
+  sendMessage: (memberId: string, text: string, from: string) => void;
+  /** Máy bố mẹ: bấm "Đã xem" lời nhắn. */
+  markMessageSeen: (id: string) => void;
   upsertAppointment: (a: Omit<Appointment, 'id'> & { id?: string }) => void;
   updateSettings: (patch: Partial<AlertSettings>) => void;
   /** Con bấm "ổn rồi, tắt cảnh báo" (chỉ ẩn trong hôm nay, trên máy này). */
@@ -250,6 +256,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
     data.settings.lateMinutes,
     data.settings.timeZone,
     data.medications.map((m) => [m.memberId, m.name, m.pillsPerDose, m.times]),
+    data.appointments.map((a) => [a.memberId, a.at, a.title, a.place, a.companion]),
     data.doseLogs.filter((l) => l.memberId === data.currentMemberId).length,
   ]);
   useEffect(() => {
@@ -279,6 +286,15 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
         .then((tokens) => sendPush(tokens, msg))
         .catch(() => undefined);
     };
+    // Máy con báo cho máy bố mẹ (con đã thấy SOS, lời nhắn). Chạy ngầm.
+    const alertParent = (memberId: string, msg: PushMessage) => {
+      if (!sync || !familyId || data.role !== 'child') return;
+      sync
+        .parentPushTokens(familyId, memberId)
+        .then((tokens) => sendPush(tokens, msg))
+        .catch(() => undefined);
+    };
+    const myName = () => data.myName ?? [...data.caregivers].sort((a, b) => a.order - b.order).find((c) => !c.sosOnly)?.name ?? '';
     return {
       ready,
       data,
@@ -448,6 +464,23 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
       },
       cancelSos: (id) =>
         update((d) => ({ ...d, sosEvents: d.sosEvents.map((e) => (e.id === id ? { ...e, cancelled: true } : e)) })),
+      ackSos: (id) => {
+        const ev = data.sosEvents.find((e) => e.id === id);
+        if (!ev || ev.ackBy) return;
+        const by = myName() || 'Con';
+        update((d) => ({ ...d, sosEvents: d.sosEvents.map((e) => (e.id === id ? { ...e, ackBy: by, ackAt: iso() } : e)) }));
+        const m = data.members.find((x) => x.id === ev.memberId);
+        if (m) alertParent(m.id, sosAckPush(m, by));
+      },
+      sendMessage: (memberId, text, from) => {
+        const t = text.trim().slice(0, 100);
+        if (!t) return;
+        update((d) => ({ ...d, myName: from, messages: [...(d.messages ?? []), { id: newId('msg'), memberId, from, text: t, at: iso() }] }));
+        const m = data.members.find((x) => x.id === memberId);
+        if (m) alertParent(m.id, messagePush(m, from, t));
+      },
+      markMessageSeen: (id) =>
+        update((d) => ({ ...d, messages: (d.messages ?? []).map((x) => (x.id === id && !x.seenAt ? { ...x, seenAt: iso() } : x)) })),
       upsertAppointment: (a) =>
         update((d) => {
           const id = a.id ?? newId('k');

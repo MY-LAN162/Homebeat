@@ -78,6 +78,8 @@ export interface FamilySync {
   decideJoin(familyId: string, req: JoinRequest, approve: boolean): Promise<void>;
   /** Mã nhận thông báo đẩy của các máy con (để máy bố mẹ tự gửi cảnh báo, không cần máy chủ riêng). */
   childPushTokens(familyId: string): Promise<string[]>;
+  /** Mã nhận thông báo đẩy của các máy bố mẹ của một người (để con báo "Con đã thấy", gửi lời nhắn). */
+  parentPushTokens(familyId: string, memberId: string): Promise<string[]>;
   /** Danh sách máy trong gia đình. */
   listDevices(familyId: string): Promise<FamilyDevice[]>;
   /** Chủ gia đình gỡ một máy (máy mất, máy lạ), hoặc máy tự rời. */
@@ -93,7 +95,7 @@ export interface FamilySync {
   /** Đọc một lần nhịp "còn sống" mới nhất của các máy bố mẹ (máy con dùng khi chạy nền). */
   readHeartbeats(familyId: string): Promise<Record<string, { at: string; battery?: number }>>;
   /** Đọc một lần lịch thuốc và cài đặt mới nhất (máy bố mẹ chạy nền: cập nhật giờ nhắc khi con đổi lịch). */
-  readSchedule(familyId: string): Promise<{ medications: AppData['medications']; settings?: AlertSettings }>;
+  readSchedule(familyId: string): Promise<{ medications: AppData['medications']; appointments: AppData['appointments']; settings?: AlertSettings }>;
   /** Ghi thông tin máy này (vai trò, mã nhận thông báo). */
   registerDevice(familyId: string, info: DeviceInfo): Promise<void>;
   /**

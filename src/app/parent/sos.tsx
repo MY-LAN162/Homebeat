@@ -63,6 +63,7 @@ export default function ParentSos() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [left]);
 
+  const ack = sentId ? data.sosEvents.find((e) => e.id === sentId) : undefined;
   if (!m) return null;
   const callName = m.call.toLowerCase();
   const kids = m.self.toLowerCase();
@@ -111,6 +112,7 @@ export default function ParentSos() {
           />
           )}
           {!loc && sentId && <T size={15} color={colors.white}>Không lấy được vị trí (chưa cho phép hoặc mất GPS).</T>}
+          {ack?.ackBy && <Line ok text={`${m.self} ${ack.ackBy} đã thấy lúc ${ack.ackAt ? hm(new Date(ack.ackAt)) : ''}, đang lo cho ${callName}`} />}
         </View>
       )}
 

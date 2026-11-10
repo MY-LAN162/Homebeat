@@ -211,3 +211,21 @@ describe('chống máy bố mẹ bị nhiễm mã độc', () => {
     await assertSucceeds(deleteDoc(doc(as('con'), 'families', FAM, 'joinRequests', 'bo')));
   });
 });
+
+test('lời nhắn, "con đã thấy" SOS, cỡ chữ của bố mẹ: ghi được đúng dạng, sai dạng bị từ chối', async () => {
+  const MSG = { id: 'm1', memberId: 'bo', from: 'Hà', text: 'Bố nhớ uống thuốc nhé', at: '2026-11-10T12:00:00.000Z' };
+  await assertSucceeds(setDoc(doc(as('con'), 'families', FAM, 'messages', 'm1'), MSG));
+  await assertSucceeds(updateDoc(doc(as('bo'), 'families', FAM, 'messages', 'm1'), { seenAt: '2026-11-10T12:05:00.000Z' }));
+  await assertFails(setDoc(doc(as('con'), 'families', FAM, 'messages', 'm2'), { ...MSG, id: 'm2', text: '' }));
+  await assertFails(setDoc(doc(as('con'), 'families', FAM, 'messages', 'm3'), { ...MSG, id: 'm3', text: 'x'.repeat(201) }));
+  await assertFails(setDoc(doc(as('la'), 'families', FAM, 'messages', 'm4'), { ...MSG, id: 'm4' }));
+  await assertFails(getDoc(doc(as('la'), 'families', FAM, 'messages', 'm1')));
+
+  await assertSucceeds(setDoc(doc(as('bo'), 'families', FAM, 'sosEvents', 's'), SOS));
+  await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM, 'sosEvents', 's'), { ackBy: 'Hà', ackAt: '2026-10-01T00:06:00.000Z' }));
+  await assertFails(updateDoc(doc(as('con'), 'families', FAM, 'sosEvents', 's'), { ackBy: 'x'.repeat(61) }));
+
+  const BO = { id: 'bo', name: 'Hùng', call: 'Bố', self: 'Con' };
+  await assertSucceeds(setDoc(doc(as('bo'), 'families', FAM, 'members', 'bo'), { ...BO, textScale: 1.4 }));
+  await assertFails(setDoc(doc(as('bo'), 'families', FAM, 'members', 'bo'), { ...BO, textScale: 9 }));
+});

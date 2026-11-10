@@ -2,8 +2,10 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { JoinRequests } from '../../components/JoinRequests';
+import { ParentInbox } from '../../components/ParentInbox';
 import { Btn, H1, HoldButton, Screen, SpeakButton, T } from '../../components/ui';
 import { greeting, okLabel } from '../../domain/address';
+import { sizeLabel } from '../../domain/textSize';
 import { currentSlot, slotsForDay } from '../../domain/schedule';
 import { dateKey, formatLongDate, formatShortDate, hm } from '../../domain/time';
 import { track } from '../../services/usage';
@@ -65,6 +67,7 @@ export default function ParentHome() {
       </View>
 
       <JoinRequests big />
+      <ParentInbox m={m} />
 
       <View style={{ backgroundColor: colors.green, borderRadius: 22, padding: 20, gap: 14 }}>
         <T size={20} weight="600" color={colors.white}>
@@ -111,6 +114,7 @@ export default function ParentHome() {
         hint="Giữ nút đến khi vạch đậm chạy hết (3 giây)"
         onComplete={() => router.push('/parent/sos')}
       />
+      <Btn variant="secondary" size={20} height={60} label={`Aa  Chữ to hơn (đang: ${sizeLabel(m.textScale)})`} onPress={() => router.push('/parent/text-size')} />
       <Btn variant="ghost" size={17} label="Xem lại hướng dẫn" onPress={() => router.push('/parent/guide')} />
       {!!data.familyId && !data.demo && (
         <Btn variant="ghost" size={17} label={`${m.self} đổi điện thoại? Bấm vào đây`} onPress={() => router.push('/parent/devices')} />

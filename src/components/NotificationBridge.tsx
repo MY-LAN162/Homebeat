@@ -31,6 +31,11 @@ export function NotificationBridge() {
       router.push({ pathname: '/child/alert', params: { memberId: info.memberId, kind: info.kind } });
       return;
     }
+    // Máy bố mẹ bấm vào lời nhắn / "con đã thấy" / nhắc lịch khám: về trang chủ (hiện to ở đầu trang).
+    if (info?.kind && info.kind !== 'dose' && latest.current.data.role === 'parent') {
+      router.replace('/parent');
+      return;
+    }
     if (info?.kind !== 'dose') return;
     const { data: d, markSlot: mark } = latest.current;
     const memberId = d.role === 'parent' ? d.currentMemberId : undefined;

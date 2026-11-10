@@ -89,18 +89,54 @@ export function scheduleKey(data: AppData): string {
     .filter((m) => m.memberId === data.currentMemberId)
     .map((m) => [m.id, m.name, m.pillsPerDose, [...m.times].sort()])
     .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-  return JSON.stringify([data.currentMemberId, meds, data.settings.lateMinutes, data.settings.timeZone ?? '']);
+  const visits = data.appointments
+    .filter((a) => a.memberId === data.currentMemberId)
+    .map((a) => [a.id, a.at, a.title, a.place ?? '', a.companion ?? ''])
+    .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  return JSON.stringify([data.currentMemberId, meds, visits, data.settings.lateMinutes, data.settings.timeZone ?? '']);
 }
 
 /** Thay lịch thuốc và cài đặt trên máy bằng bản mới nhất đọc từ máy chủ (chỉ dùng trong bộ nhớ, không ghi đè dữ liệu đã lưu). */
-export function withSchedule(data: AppData, remote: { medications: AppData['medications']; settings?: AppData['settings'] }): AppData {
-  return { ...data, medications: remote.medications, settings: { ...data.settings, ...(remote.settings ?? {}) } };
+export function withSchedule(
+  data: AppData,
+  remote: { medications: AppData['medications']; appointments?: AppData['appointments']; settings?: AppData['settings'] },
+): AppData {
+  return {
+    ...data,
+    medications: remote.medications,
+    appointments: remote.appointments ?? data.appointments,
+    settings: { ...data.settings, ...(remote.settings ?? {}) },
+  };
 }
 
-/** Lời báo cho bố mẹ khi con vừa đổi lịch thuốc: giờ uống mới trong ngày. */
-export function scheduleNotice(data: AppData): { title: string; body: string } | undefined {
+/**
+ * Lời báo cho bố mẹ khi con vừa đổi lịch: lịch thuốc (giờ uống mới), hoặc lịch đi khám (lần khám tới).
+ * `oldKey`: dấu lịch trước đó (scheduleKey) để biết đổi phần nào. Không đổi gì đáng báo thì undefined.
+ */
+export function scheduleNotice(data: AppData, oldKey?: string): { title: string; body: string } | undefined {
   const m = data.members.find((x) => x.id === data.currentMemberId);
   if (!m) return undefined;
+  let medsChanged = true;
+  let visitsChanged = false;
+  try {
+    const [o, n] = [JSON.parse(oldKey ?? 'null') as unknown[] | null, JSON.parse(scheduleKey(data)) as unknown[]];
+    if (o) {
+      medsChanged = JSON.stringify(o[1]) !== JSON.stringify(n[1]);
+      visitsChanged = JSON.stringify(o[2]) !== JSON.stringify(n[2]);
+    }
+  } catch {
+    /* dấu cũ hỏng: coi như đổi lịch thuốc */
+  }
+  if (!medsChanged) {
+    if (!visitsChanged) return undefined;
+    const next = data.appointments
+      .filter((a) => a.memberId === m.id && new Date(a.at) > new Date())
+      .sort((a, b) => a.at.localeCompare(b.at))[0];
+    return {
+      title: `${m.self} vừa cập nhật lịch đi khám của ${m.call.toLowerCase()}`,
+      body: next ? `Lần tới: ${next.title}, ${new Date(next.at).toLocaleDateString('vi-VN')}. Hôm trước máy sẽ nhắc.` : 'Hiện không có lịch khám sắp tới.',
+    };
+  }
   const times = [...new Set(data.medications.filter((x) => x.memberId === m.id).flatMap((x) => x.times))].sort();
   return {
     title: `${m.self} vừa cập nhật lịch thuốc cho ${m.call.toLowerCase()}`,

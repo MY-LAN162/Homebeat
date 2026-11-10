@@ -184,6 +184,30 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 
 **Cách quyết định tiếp:** thử với 5–10 gia đình trong 2 tuần, xem màn hình *Mức sử dụng app* (tỷ lệ uống đúng giờ, số lần phải nhắc lại, màn hình nào không ai mở), rồi giữ, bỏ hoặc làm tiếp theo số liệu.
 
+## Bổ sung lần 6 (10/11/2026): thông báo hai chiều, cỡ chữ cho bố mẹ
+
+Trang xem trước (duyệt trước khi làm): https://claude.ai/artifact/1KS8hCHJLUFoUfYMtNTPUm
+
+- **Máy con xin quyền thông báo** ở bước tạo mã và trên trang chủ (thẻ vàng nếu chưa bật, nút "Mở Cài đặt" nếu đã chặn). Trước đây máy con không bao giờ xin quyền, nên không nhận được cảnh báo nào.
+- **Ba mức thông báo**, mỗi mức một kênh Android (`src/domain/levels.ts`):
+
+  | Mức | Dùng cho | Âm thanh | Rung |
+  |---|---|---|---|
+  | Khẩn cấp (kênh `sos`) | SOS | Âm riêng `assets/sounds/sos.wav`, dài | Rung dài 4 lần; xin vượt chế độ Không làm phiền (người dùng phải cho phép) |
+  | Cần chú ý (`canh-bao`) | Trễ thuốc, không khỏe, huyết áp cao, mất tín hiệu, lời nhắn, lịch khám, con đã thấy SOS | Âm thường | Rung 2 lần |
+  | Thông tin (`thong-tin`) | Pin yếu, đổi lịch thuốc / lịch khám | Không kêu | Không rung |
+
+  iPhone: SOS dùng âm riêng nhưng **không kêu khi máy để im lặng** (cần Apple duyệt quyền Critical Alerts, chưa xin).
+- **Màn hình SOS đỏ toàn trang trên máy con**: gọi bố mẹ, nút "Con đã thấy, đang xử lý", vị trí, gọi hàng xóm, 115.
+- **"Con đã thấy"**: con bấm thì máy bố mẹ hiện thẻ xanh "Con Hà đã thấy SOS" (trên màn SOS và trang chủ) và nhận thông báo.
+- **Nhắn bố mẹ**: 5 câu có sẵn theo cách xưng hô hoặc tự viết (tối đa 100 chữ). Máy bố mẹ hiện chữ thật to, tự đọc to, bấm "Đã xem"; máy con thấy "Bố đã xem lúc …".
+- **Nhắc lịch khám cho bố mẹ**: 19:00 tối hôm trước và 2 tiếng trước giờ khám (thông báo trên máy, không cần mạng).
+- **Con đổi lịch thuốc / lịch khám khi máy bố mẹ không mở app**: máy bố mẹ tự cập nhật giờ nhắc khi chạy nền (15–60 phút), báo nhẹ "Con vừa cập nhật lịch…". Cảnh báo trễ thuốc cũng dùng lịch mới.
+- **Cỡ chữ máy bố mẹ**: nút "Aa Chữ to hơn" trên trang chủ, 4 mức (Lớn, Rất lớn, Cực lớn, Khổng lồ). Lưu theo từng bố/mẹ nên con chỉnh hộ được ở trang chi tiết của bố/mẹ. App vẫn theo cỡ chữ đã chỉnh trong cài đặt điện thoại.
+- Chính sách quyền riêng tư lên phiên bản 2 (thêm lời nhắn và "đã thấy"): mở app sẽ hỏi đồng ý lại.
+
+Đã chạy: typecheck, lint, 81 kiểm thử app, 5 logic máy chủ, `npm run e2e` 41/41, `test:rules` 17/17, `npm run e2e:sync` 19/19 (có thêm: con nhắn → bố đã xem; bố SOS → con "đã thấy" → máy bố thấy). **Chưa kiểm tra được** (cần điện thoại thật): âm SOS, rung, kênh thông báo, vượt chế độ im lặng, thông báo khi máy khóa.
+
 ## Bổ sung lần 5 (10/11/2026): mất tín hiệu, pin yếu, người nhà cùng theo dõi, bảo mật
 
 - **Máy con tự báo khi máy bố mẹ mất tín hiệu** (quá số giờ con đặt, mặc định 3 giờ) **hoặc pin còn ≤ 15%**. Máy con chạy nền, đọc nhịp "còn sống" của máy bố mẹ và tự hiện thông báo, nên vẫn báo được khi máy bố mẹ đã tắt / hết pin. Miễn phí (không cần Cloud Functions). Bấm vào thông báo mở thẳng chi tiết cảnh báo.

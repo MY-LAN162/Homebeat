@@ -25,7 +25,7 @@ function Fact({ label, value, warn }: { label: string; value: string; warn?: boo
 
 export default function AlertDetail() {
   const { memberId, kind } = useLocalSearchParams<{ memberId: string; kind: AlertKind }>();
-  const { data, now, dismissAlert } = useStore();
+  const { data, now, dismissAlert, ackSos } = useStore();
   const [howTo, setHowTo] = useState(false);
   const m = data.members.find((x) => x.id === memberId);
   if (!m) {
@@ -56,6 +56,47 @@ export default function AlertDetail() {
     dismissAlert(alertKey(m.id, kind, now));
     goBack('/child');
   };
+
+  // SOS: màn hình đỏ toàn trang, việc cần làm xếp theo thứ tự: gọi bố mẹ → báo "Con đã thấy" → người gần nhà → 115.
+  if (kind === 'sos' && a && sos) {
+    const white = { color: colors.white };
+    return (
+      <Screen bg={colors.red}>
+        <Back onPress={() => goBack('/child')} />
+        <T size={15} weight="700" style={white}>KHẨN CẤP · bấm lúc {hm(local(sos.at))}</T>
+        <H1 size={30} color={colors.white}>{displayName(m)} bấm SOS</H1>
+        <T size={17} style={white}>
+          {sos.lat != null ? 'Có vị trí kèm theo.' : 'Không có vị trí (máy chưa cho phép hoặc mất GPS).'}
+          {m.battery != null ? ` Pin máy ${callName} ${m.battery}%.` : ''}
+        </T>
+        {m.phone ? (
+          <Btn variant="light" height={72} size={22} label={`📞 Gọi ${callName} ngay`} onPress={() => call(m.phone)} />
+        ) : (
+          <Btn variant="light" label={`Thêm số điện thoại của ${callName} để gọi nhanh`} onPress={() => router.push('/child/family')} />
+        )}
+        {sos.ackBy ? (
+          <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 16, padding: 14 }}>
+            <T size={17} weight="700" style={white}>✓ {sos.ackBy} đã báo “đã thấy” lúc {sos.ackAt ? hm(local(sos.ackAt)) : ''}</T>
+            <T size={15} style={white}>Máy của {callName} đang hiện: “{m.self} {sos.ackBy} đã thấy, đang gọi cho {callName}”.</T>
+          </View>
+        ) : (
+          <Btn variant="secondary" height={60} size={18} label="✓ Con đã thấy, đang xử lý" onPress={() => ackSos(sos.id)} />
+        )}
+        {sos.lat != null && sos.lng != null && (
+          <Btn variant="secondary" label="Xem vị trí trên bản đồ" onPress={() => Linking.openURL(mapsLink(sos.lat!, sos.lng!))} />
+        )}
+        {neighbors.map((c) => (
+          <Btn key={c.id} variant="secondary" label={`Gọi ${c.name} (gần nhà)`} onPress={() => call(c.phone)} />
+        ))}
+        {others.map((o) => (
+          <Btn key={o.id} variant="secondary" label={`Gọi ${o.call.toLowerCase()} ${o.name}`} onPress={() => call(o.phone)} />
+        ))}
+        <Btn variant="secondary" label="Gọi cấp cứu 115" onPress={() => call('115')} />
+        <View style={{ flex: 1 }} />
+        <Btn variant="light" label={`Đã liên lạc, ${callName} ổn rồi`} onPress={close} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen bg={urgent ? colors.redSoft : colors.bg}>

@@ -181,6 +181,11 @@ export class MemorySync implements FamilySync {
     return [...f.devices.values()].filter((d) => d.role === 'child' && d.pushToken).map((d) => d.pushToken!);
   }
 
+  async parentPushTokens(familyId: string, memberId: string) {
+    const f = this.server.family(familyId, this.uid);
+    return [...f.devices.values()].filter((d) => d.role === 'parent' && d.memberId === memberId && d.pushToken).map((d) => d.pushToken!);
+  }
+
   async apply(familyId: string, writes: SyncWrite[]) {
     const f = this.server.family(familyId, this.uid);
     for (const w of writes) {
@@ -198,7 +203,10 @@ export class MemorySync implements FamilySync {
 
   async readSchedule(familyId: string) {
     const f = this.server.family(familyId, this.uid);
-    return { medications: [...f.colls.medications.values()].map((d) => clone(d)) as unknown as AppData['medications'], settings: f.settings ? clone(f.settings) : undefined };
+    return {
+      medications: [...f.colls.medications.values()].map((d) => clone(d)) as unknown as AppData['medications'],
+      appointments: [...f.colls.appointments.values()].map((d) => clone(d)) as unknown as AppData['appointments'],
+      settings: f.settings ? clone(f.settings) : undefined };
   }
 
   async heartbeat(familyId: string, memberId: string, battery?: number) {

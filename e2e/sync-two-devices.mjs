@@ -122,6 +122,28 @@ const fsGet = async (p) => (await fetch(`http://127.0.0.1:8080/v1/projects/demo-
     await con.goto(URL + 'child');
     await vis(con, /^\d{2,3}\/\d{2,3}$/).waitFor({ timeout: 15000 });
   });
+  await step('Con nhắn bố → máy bố hiện to → bố bấm Đã xem → máy con thấy "Bố đã xem"', async () => {
+    await con.goto(URL + 'child/message');
+    await vis(con, 'Bố nhớ uống thuốc nhé').click();
+    await vis(con, 'Gửi cho bố').click();
+    await vis(con, /Đã gửi\./).waitFor({ timeout: 10000 });
+    await bo.goto(URL + 'parent');
+    await vis(bo, '“Bố nhớ uống thuốc nhé”').waitFor({ timeout: 15000 });
+    await vis(bo, 'Đã xem').click();
+    await vis(con, /Bố đã xem lúc/).waitFor({ timeout: 15000 });
+  });
+  await step('Bố bấm SOS → máy con: màn hình đỏ → "Con đã thấy" → máy bố hiện con đã thấy', async () => {
+    await bo.goto(URL + 'parent');
+    const btn = vis(bo, /SOS · Gọi các con/); const box = await btn.boundingBox();
+    await bo.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await bo.mouse.down(); await bo.waitForTimeout(3300); await bo.mouse.up();
+    await vis(bo, /ĐÃ BÁO SOS|ĐANG GỬI SOS|CHƯA BÁO ĐƯỢC/).waitFor({ timeout: 15000 });
+    await con.goto(URL + 'child');
+    await vis(con, /bấm SOS/).first().click();
+    await vis(con, '✓ Con đã thấy, đang xử lý').click();
+    await vis(con, /đã báo “đã thấy”/).waitFor({ timeout: 10000 });
+    await vis(bo, /đã thấy lúc/).waitFor({ timeout: 15000 });
+    await vis(bo, /Bố ổn rồi, hủy cảnh báo/).click();
+  });
   await step('Máy lạ dùng lại mã cũ → báo mã chưa đúng', async () => {
     await firstOpen(la); await la.getByText('Tôi là bố, mẹ').click(); await enterCode(la, code);
     await vis(la, /Mã chưa đúng/).waitFor({ timeout: 15000 });

@@ -61,6 +61,9 @@ export function demoData(now: Date): AppData {
     checkins: [...past.checkins, { memberId: 'bo', at: morning, mood: 'good', symptoms: [] }],
     bpReadings: [...past.bpReadings, { memberId: 'bo', at: atTime(now, '08:00').toISOString(), sys: 135, dia: 85, pulse: 76 }],
     sosEvents: [],
+    messages: [
+      { id: 'msg1', memberId: 'bo', from: 'Hà', text: 'Cuối tuần con về thăm bố mẹ', at: atTime(now, '06:30').toISOString(), seenAt: atTime(now, '07:15').toISOString() },
+    ],
     appointments: [
       {
         id: 'ap1',
