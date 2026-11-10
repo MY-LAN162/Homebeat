@@ -19,6 +19,8 @@ export interface Member {
   /** Lần cuối máy của bố mẹ gửi tín hiệu (ISO). Chỉ có khi đã nối máy chủ đồng bộ. */
   lastSeenAt?: string;
   battery?: number;
+  /** Máy của bố/mẹ đang tắt thông báo (theo nhịp còn sống gần nhất). Chỉ trên máy, không gửi lên. */
+  notifOff?: boolean;
 }
 
 /** Người nhận cảnh báo (con, cháu, hàng xóm). Thứ tự gọi theo `order`. */
@@ -150,6 +152,8 @@ export interface AlertSettings {
   timeZone?: string;
   /** Tự đọc to khi mở màn hình nhắc thuốc trên máy bố mẹ. Trống = bật. */
   autoSpeak?: boolean;
+  /** Nhắc bố mẹ đo huyết áp mỗi ngày lúc này ("HH:MM"). Trống = không nhắc. */
+  bpRemind?: string;
 }
 
 export interface Pairing {
@@ -182,6 +186,8 @@ export interface AppData {
   dismissed?: string[];
   /** Bố mẹ đã xem hướng dẫn lần đầu trên máy này. */
   guideSeen?: boolean;
+  /** Máy của con: nhận tóm tắt buổi tối (20:00) về bố mẹ. Trống = có. */
+  eveningSummary?: boolean;
   /** Máy của con: tên người dùng máy này (ký tên khi nhắn bố mẹ, khi bấm "Con đã thấy"). */
   myName?: string;
   /** Cỡ chữ trên máy này: 1 bình thường, 1.15 lớn, 1.3 rất lớn (không đồng bộ sang máy khác). */

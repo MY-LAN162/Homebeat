@@ -13,7 +13,7 @@ export const SOS_SOUND = 'sos.wav';
 /** Mức của từng loại cảnh báo / thông báo. */
 export function levelOf(kind: AlertKind | string | undefined): NotifyLevel {
   if (kind === 'sos') return 'urgent';
-  if (kind === 'low-battery' || kind === 'low-stock' || kind === 'tired' || kind === 'schedule') return 'info';
+  if (kind === 'low-battery' || kind === 'low-stock' || kind === 'tired' || kind === 'schedule' || kind === 'summary') return 'info';
   return 'warn';
 }
 

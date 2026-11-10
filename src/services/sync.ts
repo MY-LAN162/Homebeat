@@ -91,11 +91,14 @@ export interface FamilySync {
   /** Ghi các thay đổi lên máy chủ. */
   apply(familyId: string, writes: SyncWrite[]): Promise<void>;
   /** Máy bố mẹ báo "còn sống" (thời điểm, pin). */
-  heartbeat(familyId: string, memberId: string, battery?: number): Promise<void>;
+  /** `notifOff`: máy bố mẹ đang tắt thông báo (sẽ không kêu nhắc thuốc), để máy con báo. */
+  heartbeat(familyId: string, memberId: string, battery?: number, notifOff?: boolean): Promise<void>;
   /** Đọc một lần nhịp "còn sống" mới nhất của các máy bố mẹ (máy con dùng khi chạy nền). */
-  readHeartbeats(familyId: string): Promise<Record<string, { at: string; battery?: number }>>;
+  readHeartbeats(familyId: string): Promise<Record<string, { at: string; battery?: number; notifOff?: boolean }>>;
   /** Đọc một lần lịch thuốc và cài đặt mới nhất (máy bố mẹ chạy nền: cập nhật giờ nhắc khi con đổi lịch). */
   readSchedule(familyId: string): Promise<{ medications: AppData['medications']; appointments: AppData['appointments']; settings?: AlertSettings }>;
+  /** Đọc một lần sự kiện từ `sinceIso` (uống thuốc, điểm danh, huyết áp): máy con làm tóm tắt buổi tối khi chạy nền. */
+  readEvents(familyId: string, sinceIso: string): Promise<Pick<AppData, 'doseLogs' | 'checkins' | 'bpReadings'>>;
   /** Ghi thông tin máy này (vai trò, mã nhận thông báo). */
   registerDevice(familyId: string, info: DeviceInfo): Promise<void>;
   /**

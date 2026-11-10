@@ -7,7 +7,7 @@ import { toZone } from './tz';
 
 export type AlertLevel = 'urgent' | 'warn' | 'info';
 
-export type AlertKind = 'sos' | 'late-dose' | 'skipped-dose' | 'no-checkin' | 'unwell' | 'bp-high' | 'low-stock' | 'no-signal' | 'low-battery';
+export type AlertKind = 'sos' | 'late-dose' | 'skipped-dose' | 'no-checkin' | 'unwell' | 'bp-high' | 'low-stock' | 'no-signal' | 'low-battery' | 'notif-off';
 
 /** Pin máy bố mẹ từ mức này trở xuống thì nhắc con (khi máy vẫn còn tín hiệu). */
 export const LOW_BATTERY = 15;
@@ -127,6 +127,16 @@ export function memberAlerts(data: AppData, member: Member, realNow: Date): Fami
         detail: `Nhắc ${member.call.toLowerCase()} cắm sạc để không lỡ nhắc thuốc và SOS`,
       });
     }
+  }
+
+  if (member.notifOff) {
+    out.push({
+      memberId: member.id,
+      level: 'warn',
+      kind: 'notif-off',
+      title: `Máy của ${member.call.toLowerCase()} đang tắt thông báo`,
+      detail: `Máy sẽ không kêu nhắc ${member.call.toLowerCase()} uống thuốc. Gọi ${member.call.toLowerCase()} bật lại: Cài đặt › Ứng dụng › An Tâm › Thông báo`,
+    });
   }
 
   for (const med of data.medications.filter((m) => m.memberId === member.id && !courseEnded(m, now))) {

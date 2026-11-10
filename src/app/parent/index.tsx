@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { JoinRequests } from '../../components/JoinRequests';
 import { ParentInbox } from '../../components/ParentInbox';
+import { ParentNotifCard } from '../../components/ParentNotifCard';
 import { Btn, H1, HoldButton, Screen, SpeakButton, T } from '../../components/ui';
 import { greeting, okLabel } from '../../domain/address';
 import { sizeLabel } from '../../domain/textSize';
@@ -84,6 +85,7 @@ export default function ParentHome() {
       </View>
 
       <JoinRequests big />
+      <ParentNotifCard />
       <ParentInbox m={m} />
 
       <View style={{ backgroundColor: colors.green, borderRadius: 22, padding: 20, gap: 14 }}>

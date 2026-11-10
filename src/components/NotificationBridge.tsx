@@ -26,12 +26,21 @@ export function NotificationBridge() {
   const handle = (resp: Notifications.NotificationResponse) => {
     const info = resp.notification.request.content.data as DoseData & { memberId?: string };
     // Máy con bấm vào cảnh báo (từ máy bố mẹ gửi, hoặc máy con tự báo): mở thẳng chi tiết cảnh báo.
+    if ((info?.kind === 'summary' || info?.kind === 'test') && latest.current.data.role === 'child') {
+      router.replace('/child');
+      return;
+    }
     if (info?.kind && info.kind !== 'dose' && info.memberId && latest.current.data.role === 'child') {
       track('alert_notification_opened');
       router.push({ pathname: '/child/alert', params: { memberId: info.memberId, kind: info.kind } });
       return;
     }
     // Máy bố mẹ bấm vào lời nhắn / "con đã thấy" / nhắc lịch khám: về trang chủ (hiện to ở đầu trang).
+    if (info?.kind === 'bp' && latest.current.data.role === 'parent') {
+      track('bp_reminder_opened');
+      router.push('/parent/bp');
+      return;
+    }
     if (info?.kind && info.kind !== 'dose' && latest.current.data.role === 'parent') {
       router.replace('/parent');
       return;

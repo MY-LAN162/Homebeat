@@ -53,7 +53,7 @@ function safeId(s: string): string {
 }
 
 /** Trường chỉ thuộc về máy (không gửi lên danh sách người). */
-const MEMBER_LOCAL_FIELDS: (keyof Member)[] = ['lastSeenAt', 'battery'];
+const MEMBER_LOCAL_FIELDS: (keyof Member)[] = ['lastSeenAt', 'battery', 'notifOff'];
 
 /** Bỏ trường `undefined` (Firestore không nhận) và trường chỉ có trên máy. */
 export function toDoc<C extends CollectionName>(coll: C, item: Item<C>): Record<string, unknown> {
@@ -122,7 +122,7 @@ export interface RemoteSnapshot {
   messages?: AppData['messages'];
   settings?: AlertSettings;
   /** Tín hiệu "còn sống" của từng máy bố mẹ, theo memberId. */
-  heartbeats?: Record<string, { at: string; battery?: number }>;
+  heartbeats?: Record<string, { at: string; battery?: number; notifOff?: boolean }>;
 }
 
 /**
@@ -153,7 +153,11 @@ export function mergeRemote<T extends SharedData>(local: T, remote: RemoteSnapsh
     const merged = [...byId.values()].sort((a, b) => eventTime(a).localeCompare(eventTime(b)));
     (next as SharedData)[coll] = merged as never;
   }
-  if (remote.settings) next.settings = { ...local.settings, ...remote.settings };
+  if (remote.settings) {
+    next.settings = { ...local.settings, ...remote.settings };
+    // Cài đặt không bắt buộc mà máy chủ không còn (vd con tắt nhắc đo huyết áp) thì bỏ trên máy này luôn.
+    for (const k of ['bpRemind', 'timeZone', 'autoSpeak'] as const) if (!(k in remote.settings)) delete next.settings[k];
+  }
   // Danh sách người lấy từ máy chủ không có lastSeenAt/battery: giữ lại giá trị cũ rồi ghi đè bằng nhịp mới.
   next.members = mergeHeartbeats(next.members, remote.heartbeats ?? {}, local.members);
   return next;
@@ -162,7 +166,7 @@ export function mergeRemote<T extends SharedData>(local: T, remote: RemoteSnapsh
 /** Gắn nhịp "còn sống" mới nhất (thời điểm, pin) vào từng người; không có nhịp mới thì giữ giá trị cũ. */
 export function mergeHeartbeats(
   members: Member[],
-  heartbeats: Record<string, { at: string; battery?: number }>,
+  heartbeats: Record<string, { at: string; battery?: number; notifOff?: boolean }>,
   previous: Member[] = members,
 ): Member[] {
   const oldSeen = new Map(previous.map((m) => [m.id, m] as const));
@@ -174,6 +178,8 @@ export function mergeHeartbeats(
     const out: Member = { ...m };
     if (lastSeenAt !== undefined) out.lastSeenAt = lastSeenAt;
     if (battery !== undefined) out.battery = battery;
+    const notifOff = hb ? hb.notifOff : (m.notifOff ?? old?.notifOff);
+    if (notifOff !== undefined) out.notifOff = notifOff;
     return out;
   });
 }

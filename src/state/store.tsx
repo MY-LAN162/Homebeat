@@ -112,6 +112,7 @@ interface Store {
   dismissAlert: (key: string) => void;
   markGuideSeen: () => void;
   setTextScale: (k: number) => void;
+  setEveningSummary: (on: boolean) => void;
   setAppLock: (on: boolean) => void;
   loadDemo: () => void;
   reset: () => void;
@@ -259,6 +260,7 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
     data.currentMemberId,
     data.settings.lateMinutes,
     data.settings.timeZone,
+    data.settings.bpRemind,
     data.medications.map((m) => [m.memberId, m.name, m.pillsPerDose, m.times, m.start, m.until, m.every, m.weekdays]),
     dateKey(now),
     data.appointments.map((a) => [a.memberId, a.at, a.title, a.place, a.companion]),
@@ -513,9 +515,16 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
           const next = { ...a, id } as Appointment;
           return { ...d, appointments: exists ? d.appointments.map((x) => (x.id === id ? next : x)) : [...d.appointments, next] };
         }),
-      updateSettings: (patch) => update((d) => ({ ...d, settings: { ...d.settings, ...patch } })),
+      updateSettings: (patch) =>
+        update((d) => {
+          // Bỏ khóa undefined (vd tắt nhắc đo huyết áp): máy chủ không nhận giá trị undefined.
+          const settings = { ...d.settings, ...patch } as Record<string, unknown>;
+          for (const k of Object.keys(settings)) if (settings[k] === undefined) delete settings[k];
+          return { ...d, settings: settings as unknown as AlertSettings };
+        }),
       setAppLock: (on) => update((d) => ({ ...d, appLock: on })),
       setTextScale: (k) => update((d) => ({ ...d, textScale: k })),
+      setEveningSummary: (on) => update((d) => ({ ...d, eveningSummary: on })),
       markGuideSeen: () => update((d) => ({ ...d, guideSeen: true })),
       dismissAlert: (key) => update((d) => ({ ...d, dismissed: [...(d.dismissed ?? []).slice(-50), key] })),
       loadDemo: () =>

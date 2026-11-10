@@ -1,7 +1,8 @@
 // Việc máy bố mẹ làm khi chạy nền (khoảng 15 phút một lần, tùy điện thoại cho phép):
 // tìm cảnh báo cần báo cho con mà chưa báo. Hàm thuần, không gọi máy chủ.
+import { displayName } from './address';
 import { memberAlerts, type AlertKind } from './alerts';
-import { isPlainDaily } from './schedule';
+import { isPlainDaily, slotsForDay } from './schedule';
 import { mergeHeartbeats } from './syncdiff';
 import type { PushMessage } from './pushRules';
 import type { AppData } from './types';
@@ -39,7 +40,7 @@ export function backgroundPushes(data: AppData, now: Date, sent: string[]): { pu
 }
 
 /** Loại cảnh báo máy CON tự kiểm tra (không cần máy bố mẹ còn chạy): mất tín hiệu, pin yếu. */
-export const SIGNAL_KINDS: readonly AlertKind[] = ['no-signal', 'low-battery'];
+export const SIGNAL_KINDS: readonly AlertKind[] = ['no-signal', 'low-battery', 'notif-off'];
 
 export interface LocalAlert {
   title: string;
@@ -54,7 +55,7 @@ export interface LocalAlert {
  */
 export function childSignalAlerts(
   data: AppData,
-  heartbeats: Record<string, { at: string; battery?: number }>,
+  heartbeats: Record<string, { at: string; battery?: number; notifOff?: boolean }>,
   now: Date,
   sent: string[],
 ): { alerts: LocalAlert[]; sent: string[] } {
@@ -66,7 +67,7 @@ export function childSignalAlerts(
   for (const m of merged.members) {
     for (const a of memberAlerts(merged, m, now)) {
       if (!SIGNAL_KINDS.includes(a.kind)) continue;
-      const key = a.kind === 'no-signal' ? `no-signal|${m.id}|${m.lastSeenAt}` : `${today}|${m.id}|low-battery`;
+      const key = a.kind === 'no-signal' ? `no-signal|${m.id}|${m.lastSeenAt}` : `${today}|${m.id}|${a.kind}`;
       if (keep.includes(key)) continue;
       keep.push(key);
       alerts.push({
@@ -96,7 +97,7 @@ export function scheduleKey(data: AppData): string {
     .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
   // Có thuốc không uống hằng ngày: nhắc được đặt cho 7 ngày tới, nên mỗi ngày đặt lại một lần.
   const rolling = data.medications.some((m) => m.memberId === data.currentMemberId && !isPlainDaily(m)) ? dateKey(new Date()) : '';
-  return JSON.stringify([data.currentMemberId, meds, visits, data.settings.lateMinutes, data.settings.timeZone ?? '', rolling]);
+  return JSON.stringify([data.currentMemberId, meds, visits, data.settings.lateMinutes, data.settings.timeZone ?? '', rolling, data.settings.bpRemind ?? '']);
 }
 
 /** Thay lịch thuốc và cài đặt trên máy bằng bản mới nhất đọc từ máy chủ (chỉ dùng trong bộ nhớ, không ghi đè dữ liệu đã lưu). */
@@ -145,4 +146,32 @@ export function scheduleNotice(data: AppData, oldKey?: string): { title: string;
     title: `${m.self} vừa cập nhật lịch thuốc cho ${m.call.toLowerCase()}`,
     body: times.length ? `Giờ uống mới: ${times.join(', ')}. Đến giờ máy sẽ nhắc.` : 'Hiện không còn thuốc nào cần nhắc.',
   };
+}
+
+/** Giờ gửi tóm tắt buổi tối cho con (theo giờ nơi bố mẹ sống). */
+export const SUMMARY_AT = '20:00';
+
+/**
+ * Tóm tắt một ngày của bố mẹ cho con: "Bố Hùng: thuốc 3/3 lần, báo ổn 7:10, huyết áp 130/80".
+ * Chỉ tính những lần uống đã tới giờ. undefined nếu chưa có ai.
+ */
+export function eveningSummary(data: AppData, now: Date): { title: string; body: string } | undefined {
+  if (!data.members.length) return undefined;
+  const local = toZone(now, data.settings.timeZone);
+  const today = dateKey(local);
+  const lines = data.members.map((m) => {
+    const slots = slotsForDay(data.medications, data.doseLogs, m.id, local, local, data.settings.lateMinutes).filter((s) => s.status !== 'upcoming');
+    const taken = slots.filter((s) => s.status === 'taken').length;
+    const missed = slots.filter((s) => s.status !== 'taken').map((s) => s.time);
+    const c = [...data.checkins].reverse().find((x) => x.memberId === m.id && dateKey(toZone(new Date(x.at), data.settings.timeZone)) === today);
+    const bp = [...data.bpReadings].reverse().find((x) => x.memberId === m.id && dateKey(toZone(new Date(x.at), data.settings.timeZone)) === today);
+    const mood = c ? { good: 'báo ổn', tired: 'báo hơi mệt', unwell: 'báo không khỏe' }[c.mood] : 'chưa điểm danh';
+    const parts = [
+      slots.length ? `thuốc ${taken}/${slots.length} lần${missed.length ? ` (chưa uống ${missed.join(', ')})` : ''}` : '',
+      c ? `${mood} lúc ${toZone(new Date(c.at), data.settings.timeZone).toTimeString().slice(0, 5)}` : mood,
+      bp ? `huyết áp ${bp.sys}/${bp.dia}` : '',
+    ].filter(Boolean);
+    return `${displayName(m)}: ${parts.join(', ')}`;
+  });
+  return { title: 'Hôm nay của bố mẹ', body: lines.join('\n') };
 }

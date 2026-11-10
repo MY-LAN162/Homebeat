@@ -6,11 +6,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Battery from 'expo-battery';
 import { Platform } from 'react-native';
-import { backgroundPushes, childSignalAlerts, scheduleKey, scheduleNotice, withSchedule } from '../domain/background';
+import { backgroundPushes, childSignalAlerts, eveningSummary, scheduleKey, scheduleNotice, SUMMARY_AT, withSchedule } from '../domain/background';
+import { mergeRemote } from '../domain/syncdiff';
+import { dateKey, minutesOfDay, toMinutes } from '../domain/time';
+import { toZone } from '../domain/tz';
 import { emptyData, type AppData } from '../domain/types';
-import { BG_LAST_KEY, BG_SCHED_KEY, BG_SENT_KEY, BG_SIGNAL_KEY, DATA_KEY } from '../state/keys';
+import { BG_LAST_KEY, BG_SCHED_KEY, BG_SENT_KEY, BG_SIGNAL_KEY, BG_SUMMARY_KEY, DATA_KEY } from '../state/keys';
 import { getFamilySync } from './firebaseSync';
-import { rescheduleMedReminders, showAlertNow, showNotice } from './notifications';
+import { hasPermission, rescheduleMedReminders, showAlertNow, showNotice } from './notifications';
 import { sendPush } from './push';
 import { readSecure } from './vault';
 
@@ -42,7 +45,8 @@ export async function checkAndAlert(now = new Date()): Promise<void> {
     const sync = getFamilySync();
     if (!sync) return;
     await sync.signIn();
-    await sync.heartbeat(data.familyId, data.currentMemberId, await batteryPercent()).catch(() => undefined);
+    const notifOff = Platform.OS === 'web' ? undefined : !(await hasPermission().catch(() => true));
+    await sync.heartbeat(data.familyId, data.currentMemberId, await batteryPercent(), notifOff).catch(() => undefined);
     // Con đổi lịch thuốc khi máy bố mẹ không mở app: đọc lịch mới, đặt lại giờ nhắc, báo nhẹ cho bố mẹ.
     const remote = await sync.readSchedule(data.familyId).catch(() => undefined);
     const fresh = remote ? withSchedule(data, remote) : data;
@@ -73,6 +77,7 @@ async function checkSignals(data: AppData, now: Date): Promise<void> {
   const r = childSignalAlerts(data, heartbeats, now, sent);
   for (const a of r.alerts) await showAlertNow(a.title, a.body, a.data);
   await AsyncStorage.setItem(BG_SIGNAL_KEY, JSON.stringify(r.sent));
+  await maybeEveningSummary(data, now).catch(() => undefined);
   await AsyncStorage.setItem(BG_LAST_KEY, now.toISOString());
 }
 
@@ -88,4 +93,21 @@ export async function updateReminders(data: AppData, notice = true): Promise<voi
   await AsyncStorage.setItem(BG_SCHED_KEY, key);
   const n = scheduleNotice(data, old ?? undefined);
   if (notice && old !== null && n) await showNotice(n.title, n.body);
+}
+
+/** Máy con: sau 20:00 (giờ nơi bố mẹ sống), mỗi ngày một lần, hiện tóm tắt ngày của bố mẹ (im lặng). */
+async function maybeEveningSummary(data: AppData, now: Date): Promise<void> {
+  if (data.eveningSummary === false || !data.familyId) return;
+  const local = toZone(now, data.settings.timeZone);
+  if (minutesOfDay(local) < toMinutes(SUMMARY_AT)) return;
+  const today = dateKey(local);
+  if ((await AsyncStorage.getItem(BG_SUMMARY_KEY)) === today) return;
+  const sync = getFamilySync();
+  if (!sync) return;
+  // Dữ liệu trên máy có thể cũ (con chưa mở app): đọc sự kiện 30 giờ qua từ máy chủ.
+  const fresh = await sync.readEvents(data.familyId, new Date(now.getTime() - 30 * 3600_000).toISOString()).catch(() => undefined);
+  const merged = fresh ? mergeRemote(data, fresh) : data;
+  const s = eveningSummary(merged, now);
+  if (s) await showAlertNow(s.title, s.body, { kind: 'summary', memberId: data.members[0]?.id ?? '' });
+  await AsyncStorage.setItem(BG_SUMMARY_KEY, today);
 }

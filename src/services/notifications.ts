@@ -7,7 +7,7 @@ import { LEVEL_CHANNEL, levelOf, SOS_SOUND, type NotifyLevel } from '../domain/l
 import { doseReminderPlan, followUps, visitReminders } from '../domain/reminders';
 import { pillsText, slotsForDay, type DoseSlot } from '../domain/schedule';
 import type { AppData } from '../domain/types';
-import { toMinutes } from '../domain/time';
+import { isValidTime, toMinutes } from '../domain/time';
 
 const CHANNEL = 'thuoc';
 const supported = Platform.OS !== 'web';
@@ -190,6 +190,14 @@ export async function rescheduleMedReminders(data: AppData): Promise<number> {
         categoryIdentifier: DOSE_CATEGORY,
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: f.at, channelId: CHANNEL },
+    });
+  }
+  // Nhắc đo huyết áp hằng ngày (con bật trong Cài đặt).
+  if (data.settings.bpRemind && isValidTime(data.settings.bpRemind)) {
+    const mins = toMinutes(data.settings.bpRemind);
+    await Notifications.scheduleNotificationAsync({
+      content: { title: `Đến giờ đo huyết áp rồi ${member.call.toLowerCase()} ơi`, body: `Đo xong ${member.call.toLowerCase()} bấm vào đây để ghi số.`, data: { kind: 'bp' }, sound: 'default' },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: Math.floor(mins / 60), minute: mins % 60, channelId: CHANNEL },
     });
   }
   for (const v of visitReminders(data, member.id, now)) {

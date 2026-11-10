@@ -235,22 +235,23 @@ export class FirebaseSync implements FamilySync {
     }
   }
 
-  async heartbeat(familyId: string, memberId: string, battery?: number): Promise<void> {
+  async heartbeat(familyId: string, memberId: string, battery?: number, notifOff?: boolean): Promise<void> {
     const uid = await this.signIn();
     await fb.setDoc(fb.doc(this.db, 'families', familyId, 'heartbeats', memberId), {
       at: new Date().toISOString(),
       battery,
       uid,
+      ...(notifOff !== undefined ? { notifOff } : {}),
     });
   }
 
-  async readHeartbeats(familyId: string): Promise<Record<string, { at: string; battery?: number }>> {
+  async readHeartbeats(familyId: string): Promise<Record<string, { at: string; battery?: number; notifOff?: boolean }>> {
     await this.signIn();
     const qs = await fb.getDocs(fb.collection(this.db, 'families', familyId, 'heartbeats'));
-    const out: Record<string, { at: string; battery?: number }> = {};
+    const out: Record<string, { at: string; battery?: number; notifOff?: boolean }> = {};
     for (const d of qs.docs) {
-      const v = d.data() as { at: string; battery?: number };
-      out[d.id] = { at: v.at, battery: v.battery };
+      const v = d.data() as { at: string; battery?: number; notifOff?: boolean };
+      out[d.id] = { at: v.at, battery: v.battery, notifOff: v.notifOff };
     }
     return out;
   }
@@ -263,6 +264,18 @@ export class FirebaseSync implements FamilySync {
       medications: qs.docs.map((d) => d.data()) as AppData['medications'],
       appointments: ap.docs.map((d) => d.data()) as AppData['appointments'],
       settings: f.data()?.settings as AlertSettings | undefined,
+    };
+  }
+
+  async readEvents(familyId: string, sinceIso: string) {
+    await this.signIn();
+    const fam = fb.doc(this.db, 'families', familyId);
+    const read = async (c: string) => (await fb.getDocs(fb.query(fb.collection(fam, c), fb.where('at', '>=', sinceIso)))).docs.map((d) => d.data());
+    const [doseLogs, checkins, bpReadings] = await Promise.all([read('doseLogs'), read('checkins'), read('bpReadings')]);
+    return {
+      doseLogs: doseLogs as AppData['doseLogs'],
+      checkins: checkins as AppData['checkins'],
+      bpReadings: bpReadings as AppData['bpReadings'],
     };
   }
 
@@ -319,8 +332,8 @@ export class FirebaseSync implements FamilySync {
         (qs) => {
           const heartbeats: NonNullable<RemoteSnapshot['heartbeats']> = {};
           for (const d of qs.docs) {
-            const v = d.data() as { at: string; battery?: number };
-            heartbeats[d.id] = { at: v.at, battery: v.battery };
+            const v = d.data() as { at: string; battery?: number; notifOff?: boolean };
+            heartbeats[d.id] = { at: v.at, battery: v.battery, notifOff: v.notifOff };
           }
           onData({ heartbeats }, qs.metadata.hasPendingWrites);
         },

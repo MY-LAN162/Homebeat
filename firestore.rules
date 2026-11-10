@@ -77,11 +77,11 @@ service cloud.firestore {
     }
     function validSettings(s) {
       return s is map
-        && s.keys().hasOnly(['lateMinutes', 'stillHours', 'checkinBy', 'bpSys', 'bpDia', 'excludeSleep', 'sleepStart', 'sleepEnd', 'timeZone', 'autoSpeak'])
+        && s.keys().hasOnly(['lateMinutes', 'stillHours', 'checkinBy', 'bpSys', 'bpDia', 'excludeSleep', 'sleepStart', 'sleepEnd', 'timeZone', 'autoSpeak', 'bpRemind'])
         && optNum(s, 'lateMinutes', 5, 240) && optNum(s, 'stillHours', 1, 48)
         && (!('checkinBy' in s) || hhmm(s.checkinBy)) && optNum(s, 'bpSys', 80, 250) && optNum(s, 'bpDia', 40, 150)
         && optBool(s, 'excludeSleep') && (!('sleepStart' in s) || hhmm(s.sleepStart)) && (!('sleepEnd' in s) || hhmm(s.sleepEnd))
-        && optStr(s, 'timeZone', 60) && optBool(s, 'autoSpeak');
+        && optStr(s, 'timeZone', 60) && optBool(s, 'autoSpeak') && (!('bpRemind' in s) || hhmm(s.bpRemind));
     }
 
     function removesAllowed() {
@@ -153,7 +153,8 @@ service cloud.firestore {
         allow read: if isMember(familyId);
         allow delete: if isOwner(familyId);
         allow write: if isMember(familyId) && request.resource.data.uid == request.auth.uid
-          && request.resource.data.keys().hasOnly(['at', 'battery', 'uid'])
+          && request.resource.data.keys().hasOnly(['at', 'battery', 'uid', 'notifOff'])
+          && (!('notifOff' in request.resource.data) || request.resource.data.notifOff is bool)
           && str(request.resource.data.at, 40) && optNum(request.resource.data, 'battery', 0, 100);
       }
       // Thông tin từng máy (vai trò, mã nhận thông báo): mỗi máy chỉ sửa của chính mình.

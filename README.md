@@ -184,6 +184,21 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 
 **Cách quyết định tiếp:** thử với 5–10 gia đình trong 2 tuần, xem màn hình *Mức sử dụng app* (tỷ lệ uống đúng giờ, số lần phải nhắc lại, màn hình nào không ai mở), rồi giữ, bỏ hoặc làm tiếp theo số liệu.
 
+## Bổ sung lần 8 (10/11/2026): các mục còn lại từ đợt rà
+
+- **Huyết áp**: bấm vào số để gõ thẳng, giữ nút + / − để số chạy nhanh, xem 3 lần đo trước kèm câu "cao/thấp hơn lần trước". Nút "🩺 Ghi huyết áp" trên trang chủ bố mẹ.
+- **Nhắc đo huyết áp** mỗi ngày (con chọn 07:00 / 08:00 / 20:00 hoặc không nhắc trong Cài đặt). Bấm thông báo mở thẳng màn nhập.
+- **Máy bố mẹ tắt thông báo**: trang chủ bố mẹ hiện thẻ đỏ "Máy chưa bật chuông nhắc thuốc" kèm nút bật. Nhịp "còn sống" gửi kèm cờ này nên máy con có cảnh báo "Máy của bố đang tắt thông báo" (mỗi ngày một lần).
+- **Lịch khám**: sửa, xóa (hỏi lại), chọn ngày bằng nút (14 ngày tới) và giờ hay khám, ô bệnh viện (chọn lại nơi đã khám), nút "🗺 Chỉ đường" mở Google Maps.
+- **Thuốc theo đợt / cách ngày / theo thứ**: chọn "Dùng lâu dài" hoặc 5/7/10/14/30 ngày, hết đợt máy tự dừng nhắc và không báo "sắp hết thuốc". Có thuốc không uống hằng ngày thì máy bố mẹ đặt nhắc cho từng ngày (7 ngày tới, chạy nền đặt lại mỗi ngày).
+- **Tóm tắt buổi tối cho con** lúc 20:00 (giờ nơi bố mẹ sống), không kêu: "Bố Hùng: thuốc 2/3 lần (chưa uống 19:00), báo ổn lúc 07:10, huyết áp 130/80". Tắt được trong Cài đặt. Máy con đọc dữ liệu mới nhất từ máy chủ trước khi tóm tắt.
+- **Người nhận cảnh báo**: sửa, đổi thứ tự (↑ ↓), báo số điện thoại sai và không cho lưu.
+- **Hướng dẫn "giữ app chạy"** hiện theo loại máy của bố mẹ (iPhone / Android), không theo máy của con.
+- **Tin gửi mã kết nối** có 3 bước làm và link tải app (`EXPO_PUBLIC_DOWNLOAD_URL`; chưa có link thì ghi "người gửi sẽ gửi file cài", không bịa link).
+- Cài đặt đổi chữ "không di chuyển" thành "Không nhận được tín hiệu từ máy bố mẹ" (app không đo việc đi lại).
+
+Đã chạy: typecheck, lint, 93 kiểm thử app, `npm run e2e` 46/46, `test:rules` 20/20, `npm run e2e:sync` 19/19. **Cần điện thoại thật**: chuông nhắc đo huyết áp, tóm tắt 20:00 khi chạy nền (iPhone không đảm bảo giờ chạy nền), thẻ "chưa bật chuông" khi tắt thông báo.
+
 ## Bổ sung lần 7 (10/11/2026): gói an toàn khi dùng hằng ngày
 
 Từ đợt rà toàn bộ app (chỗ có thể làm bố mẹ uống sai thuốc, hoặc cả nhà không biết khi có chuyện):
@@ -198,8 +213,6 @@ Từ đợt rà toàn bộ app (chỗ có thể làm bố mẹ uống sai thuố
 - **SOS**: ghi đúng "Đã mở số của Hà, nếu chưa nghe chuông bấm nút gọi màu xanh" và đọc to câu đó, vì trình gọi điện có thể chỉ hiện số. Vị trí lấy vị trí hiện tại (chờ tối đa 6 giây), lâu quá mới dùng vị trí cũ (chỉ nhận nếu dưới 30 phút).
 
 Đã chạy: typecheck, lint, 84 kiểm thử app, `npm run e2e` 42/42 (có hoàn tác "ổn", "Đã ghi" khi uống thuốc, chặn uống sớm), `test:rules` 18/18, `npm run e2e:sync` 19/19. **Cần điện thoại thật**: thử chuông, đọc to khi SOS, vị trí.
-
-Việc còn lại từ đợt rà (chưa làm): nhập huyết áp nhanh hơn và đưa ra trang chủ; báo cho con khi máy bố mẹ tắt thông báo; sửa/xóa lịch khám, chọn ngày bằng lịch; hướng dẫn "giữ app chạy" theo loại máy bố mẹ; đổi thứ tự, sửa số người nhận cảnh báo; thuốc theo đợt / cách ngày; nhắc đo huyết áp; tóm tắt buổi tối cho con; tin gửi mã kèm link tải app.
 
 ## Bổ sung lần 6 (10/11/2026): thông báo hai chiều, cỡ chữ cho bố mẹ
 

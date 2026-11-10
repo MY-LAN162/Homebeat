@@ -10,7 +10,7 @@ interface FamilyDoc {
   owner: string;
   settings?: AlertSettings;
   colls: Record<CollectionName, Map<string, Record<string, unknown>>>;
-  heartbeats: Map<string, { at: string; battery?: number }>;
+  heartbeats: Map<string, { at: string; battery?: number; notifOff?: boolean }>;
   devices: Map<string, DeviceInfo>;
   requests: Map<string, JoinRequest>;
 }
@@ -181,6 +181,17 @@ export class MemorySync implements FamilySync {
     return [...f.devices.values()].filter((d) => d.role === 'child' && d.pushToken).map((d) => d.pushToken!);
   }
 
+  async readEvents(familyId: string, sinceIso: string) {
+    const f = this.server.family(familyId, this.uid);
+    const read = (c: 'doseLogs' | 'checkins' | 'bpReadings') =>
+      [...f.colls[c].values()].filter((d) => String(d.at) >= sinceIso).map((d) => clone(d)) as unknown[];
+    return {
+      doseLogs: read('doseLogs') as AppData['doseLogs'],
+      checkins: read('checkins') as AppData['checkins'],
+      bpReadings: read('bpReadings') as AppData['bpReadings'],
+    };
+  }
+
   async parentPushTokens(familyId: string, memberId: string) {
     const f = this.server.family(familyId, this.uid);
     return [...f.devices.values()].filter((d) => d.role === 'parent' && d.memberId === memberId && d.pushToken).map((d) => d.pushToken!);
@@ -198,7 +209,7 @@ export class MemorySync implements FamilySync {
 
   async readHeartbeats(familyId: string) {
     const f = this.server.family(familyId, this.uid);
-    return Object.fromEntries(f.heartbeats) as Record<string, { at: string; battery?: number }>;
+    return Object.fromEntries(f.heartbeats) as Record<string, { at: string; battery?: number; notifOff?: boolean }>;
   }
 
   async readSchedule(familyId: string) {
@@ -209,9 +220,9 @@ export class MemorySync implements FamilySync {
       settings: f.settings ? clone(f.settings) : undefined };
   }
 
-  async heartbeat(familyId: string, memberId: string, battery?: number) {
+  async heartbeat(familyId: string, memberId: string, battery?: number, notifOff?: boolean) {
     const f = this.server.family(familyId, this.uid);
-    f.heartbeats.set(memberId, { at: this.server.now().toISOString(), battery });
+    f.heartbeats.set(memberId, { at: this.server.now().toISOString(), battery, notifOff });
     this.server.notify(familyId);
   }
 

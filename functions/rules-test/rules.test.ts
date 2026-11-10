@@ -243,3 +243,10 @@ test('thuốc theo đợt / cách ngày / theo thứ: đúng dạng thì nhận'
   await assertFails(setDoc(ref, { ...MED, until: '16/11/2026' }));
   await assertFails(setDoc(ref, { ...MED, every: 0 }));
 });
+
+test('nhịp còn sống có cờ tắt thông báo; cài đặt có giờ nhắc đo huyết áp', async () => {
+  await assertSucceeds(setDoc(doc(as('bo'), 'families', FAM, 'heartbeats', 'bo'), { at: '2026-11-10T01:00:00.000Z', battery: 80, uid: 'bo', notifOff: true }));
+  await assertFails(setDoc(doc(as('bo'), 'families', FAM, 'heartbeats', 'bo'), { at: '2026-11-10T01:00:00.000Z', uid: 'bo', notifOff: 'có' }));
+  await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { settings: { lateMinutes: 30, bpRemind: '07:00' } }));
+  await assertFails(updateDoc(doc(as('con'), 'families', FAM), { settings: { lateMinutes: 30, bpRemind: '7h' } }));
+});

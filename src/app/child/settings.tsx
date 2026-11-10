@@ -168,7 +168,7 @@ function DataCard({ connected }: { connected: boolean }) {
 }
 
 export default function AlertSettings() {
-  const { data, updateSettings, setTextScale, syncEnabled } = useStore();
+  const { data, updateSettings, setTextScale, setEveningSummary, syncEnabled } = useStore();
   const connected = syncEnabled && !!data.familyId && !data.demo;
   const scale = data.textScale ?? 1;
   const s = data.settings;
@@ -228,6 +228,20 @@ export default function AlertSettings() {
           </View>
         )}
       </Card>
+      <Group
+        title="Tóm tắt ngày của bố mẹ lúc 20:00 (không kêu)"
+        options={['on', 'off']}
+        value={data.eveningSummary === false ? 'off' : 'on'}
+        onPick={(v) => setEveningSummary(v === 'on')}
+        label={(v) => (v === 'on' ? 'Có' : 'Không')}
+      />
+      <Group
+        title="Nhắc bố mẹ đo huyết áp mỗi ngày"
+        options={['', '07:00', '08:00', '20:00']}
+        value={s.bpRemind ?? ''}
+        onPick={(v) => updateSettings({ bpRemind: v || undefined })}
+        label={(v) => v || 'Không nhắc'}
+      />
       <Group title="Trễ thuốc quá" options={[15, 30, 60]} value={s.lateMinutes} onPick={(v) => updateSettings({ lateMinutes: v })} label={(v) => `${v} phút`} />
       <Group title="Không nhận được tín hiệu từ máy bố mẹ quá" options={[2, 3, 5]} value={s.stillHours} onPick={(v) => updateSettings({ stillHours: v })} label={(v) => `${v} giờ`} />
       <Group title='Chưa bấm "ổn" trước' options={['09:00', '10:00', '12:00']} value={s.checkinBy} onPick={(v) => updateSettings({ checkinBy: v })} label={(v) => v} />
