@@ -18,7 +18,7 @@ import {
   type RemoteSnapshot,
   type SyncWrite,
 } from '../domain/syncdiff';
-import type { Pairing, Role } from '../domain/types';
+import type { AlertSettings, AppData, Pairing, Role } from '../domain/types';
 import * as fb from './fbsdk';
 import { SyncError, type DeviceInfo, type FamilyDevice, type FamilySync, type JoinRequest } from './sync';
 
@@ -246,6 +246,16 @@ export class FirebaseSync implements FamilySync {
       out[d.id] = { at: v.at, battery: v.battery };
     }
     return out;
+  }
+
+  async readSchedule(familyId: string) {
+    await this.signIn();
+    const fam = fb.doc(this.db, 'families', familyId);
+    const [f, qs] = await Promise.all([fb.getDoc(fam), fb.getDocs(fb.collection(fam, 'medications'))]);
+    return {
+      medications: qs.docs.map((d) => d.data()) as AppData['medications'],
+      settings: f.data()?.settings as AlertSettings | undefined,
+    };
   }
 
   async registerDevice(familyId: string, info: DeviceInfo): Promise<void> {

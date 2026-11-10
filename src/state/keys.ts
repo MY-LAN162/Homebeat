@@ -8,3 +8,5 @@ export const BG_SENT_KEY = 'homebeat:bg-sent:v1';
 export const BG_LAST_KEY = 'homebeat:bg-last:v1';
 /** Cảnh báo mất tín hiệu / pin yếu máy con đã tự báo (chống báo trùng). */
 export const BG_SIGNAL_KEY = 'homebeat:bg-signal:v1';
+/** Lịch thuốc máy bố mẹ đã đặt giờ nhắc theo (để biết con vừa đổi lịch khi chạy nền). */
+export const BG_SCHED_KEY = 'homebeat:bg-sched:v1';

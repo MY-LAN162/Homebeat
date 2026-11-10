@@ -2,7 +2,7 @@
 // (mô phỏng hai máy: con và bố mẹ, dùng chung một "máy chủ").
 import { createPairing, checkCode } from '../domain/pairing';
 import { COLLECTIONS, type CollectionName, type RemoteSnapshot, type SyncWrite } from '../domain/syncdiff';
-import type { AlertSettings, Pairing, Role } from '../domain/types';
+import type { AlertSettings, AppData, Pairing, Role } from '../domain/types';
 import { SyncError, type DeviceInfo, type FamilyDevice, type FamilySync, type JoinRequest } from './sync';
 
 interface FamilyDoc {
@@ -194,6 +194,11 @@ export class MemorySync implements FamilySync {
   async readHeartbeats(familyId: string) {
     const f = this.server.family(familyId, this.uid);
     return Object.fromEntries(f.heartbeats) as Record<string, { at: string; battery?: number }>;
+  }
+
+  async readSchedule(familyId: string) {
+    const f = this.server.family(familyId, this.uid);
+    return { medications: [...f.colls.medications.values()].map((d) => clone(d)) as unknown as AppData['medications'], settings: f.settings ? clone(f.settings) : undefined };
   }
 
   async heartbeat(familyId: string, memberId: string, battery?: number) {

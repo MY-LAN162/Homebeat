@@ -78,6 +78,15 @@ export async function askPermission(): Promise<boolean> {
   return req.granted;
 }
 
+/** Báo nhẹ cho bố mẹ (vd con vừa đổi lịch thuốc), dùng kênh nhắc thuốc. */
+export async function showNotice(title: string, body: string): Promise<void> {
+  if (!supported || !(await hasPermission())) return;
+  await Notifications.scheduleNotificationAsync({
+    content: { title, body, data: { kind: 'notice' }, sound: 'default' },
+    trigger: Platform.OS === 'android' ? { channelId: CHANNEL } : null,
+  });
+}
+
 /** Máy này có thông báo không (bản trình duyệt thì không). */
 export const notificationsSupported = supported;
 

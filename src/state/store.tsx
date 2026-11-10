@@ -26,7 +26,8 @@ import { setBackgroundEnabled } from '../services/background';
 import { checkAndAlert } from '../services/checkAndAlert';
 import { readSecure, writeSecure } from '../services/vault';
 import { sendPush } from '../services/push';
-import { BASE_KEY, DATA_KEY } from './keys';
+import { scheduleKey } from '../domain/background';
+import { BASE_KEY, BG_SCHED_KEY, DATA_KEY } from './keys';
 import { getPushToken, rescheduleMedReminders } from '../services/notifications';
 import { SyncError, type FamilyDevice, type FamilySync, type JoinRequest } from '../services/sync';
 import { SyncEngine } from '../services/syncEngine';
@@ -247,12 +248,16 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
     data.role,
     data.currentMemberId,
     data.settings.lateMinutes,
-    data.medications.map((m) => [m.memberId, m.name, m.times]),
+    data.settings.timeZone,
+    data.medications.map((m) => [m.memberId, m.name, m.pillsPerDose, m.times]),
     data.doseLogs.filter((l) => l.memberId === data.currentMemberId).length,
   ]);
   useEffect(() => {
     if (!loaded.current) return;
-    rescheduleMedReminders(data).catch(() => undefined);
+    rescheduleMedReminders(data)
+      // Ghi lại lịch đã đặt nhắc, để phần chạy nền không báo "con vừa đổi lịch" cho thay đổi bố mẹ đã thấy trong app.
+      .then(() => (data.role === 'parent' ? AsyncStorage.setItem(BG_SCHED_KEY, scheduleKey(data)) : undefined))
+      .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [medKey, ready]);
 

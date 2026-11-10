@@ -1,4 +1,4 @@
-import { backgroundPushes, childSignalAlerts } from '../background';
+import { backgroundPushes, childSignalAlerts, scheduleKey, scheduleNotice, withSchedule } from '../background';
 import { emptyData, type AppData } from '../types';
 
 const data = (): AppData => ({
@@ -78,5 +78,30 @@ describe('máy con tự báo mất tín hiệu, pin yếu', () => {
   it('bỏ qua giờ ngủ nếu con đã bật', () => {
     const d = { ...child(), settings: { ...child().settings, excludeSleep: true, sleepStart: '22:00', sleepEnd: '06:00' } };
     expect(childSignalAlerts(d, { bo: { at: at(19).toISOString() } }, new Date(2026, 9, 1, 23, 30), []).alerts).toEqual([]);
+  });
+});
+
+describe('con đổi lịch thuốc khi máy bố mẹ không mở app', () => {
+  it('lịch mới từ máy chủ đổi dấu lịch nhắc và dùng cho cảnh báo trễ thuốc', () => {
+    const d = data();
+    const fresh = withSchedule(d, { medications: [{ ...d.medications[0], times: ['08:00', '20:00'] }] });
+    expect(scheduleKey(fresh)).not.toEqual(scheduleKey(d));
+    // 07:00 cũ không còn: lúc 07:45 không báo trễ thuốc.
+    const at = new Date(2026, 9, 1, 7, 45);
+    expect(backgroundPushes(d, at, []).pushes.some((p) => p.data.kind === 'late-dose')).toBe(true);
+    expect(backgroundPushes(fresh, at, []).pushes.some((p) => p.data.kind === 'late-dose')).toBe(false);
+    expect(scheduleNotice(fresh)).toEqual({
+      title: 'Con vừa cập nhật lịch thuốc cho bố',
+      body: 'Giờ uống mới: 08:00, 20:00. Đến giờ máy sẽ nhắc.',
+    });
+  });
+
+  it('thuốc của người khác hoặc thứ tự giờ đổi thì không tính là đổi lịch', () => {
+    const d = data();
+    const other = withSchedule(d, { medications: [...d.medications, { id: 'b', memberId: 'me', name: 'X', pillsPerDose: 1, times: ['09:00'] }] });
+    expect(scheduleKey(other)).toEqual(scheduleKey(d));
+    const two = { ...d, medications: [{ ...d.medications[0], times: ['19:00', '07:00'] }] };
+    const twoSorted = { ...d, medications: [{ ...d.medications[0], times: ['07:00', '19:00'] }] };
+    expect(scheduleKey(two)).toEqual(scheduleKey(twoSorted));
   });
 });

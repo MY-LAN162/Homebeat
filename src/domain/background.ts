@@ -79,3 +79,31 @@ export function childSignalAlerts(
   }
   return { alerts, sent: keep.slice(-100) };
 }
+
+/**
+ * Máy bố mẹ: dấu vân tay của lịch nhắc thuốc (thuốc của người dùng máy này, giờ uống, số viên, thời gian chờ, múi giờ).
+ * Đổi thì phải đặt lại giờ nhắc.
+ */
+export function scheduleKey(data: AppData): string {
+  const meds = data.medications
+    .filter((m) => m.memberId === data.currentMemberId)
+    .map((m) => [m.id, m.name, m.pillsPerDose, [...m.times].sort()])
+    .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  return JSON.stringify([data.currentMemberId, meds, data.settings.lateMinutes, data.settings.timeZone ?? '']);
+}
+
+/** Thay lịch thuốc và cài đặt trên máy bằng bản mới nhất đọc từ máy chủ (chỉ dùng trong bộ nhớ, không ghi đè dữ liệu đã lưu). */
+export function withSchedule(data: AppData, remote: { medications: AppData['medications']; settings?: AppData['settings'] }): AppData {
+  return { ...data, medications: remote.medications, settings: { ...data.settings, ...(remote.settings ?? {}) } };
+}
+
+/** Lời báo cho bố mẹ khi con vừa đổi lịch thuốc: giờ uống mới trong ngày. */
+export function scheduleNotice(data: AppData): { title: string; body: string } | undefined {
+  const m = data.members.find((x) => x.id === data.currentMemberId);
+  if (!m) return undefined;
+  const times = [...new Set(data.medications.filter((x) => x.memberId === m.id).flatMap((x) => x.times))].sort();
+  return {
+    title: `${m.self} vừa cập nhật lịch thuốc cho ${m.call.toLowerCase()}`,
+    body: times.length ? `Giờ uống mới: ${times.join(', ')}. Đến giờ máy sẽ nhắc.` : 'Hiện không còn thuốc nào cần nhắc.',
+  };
+}

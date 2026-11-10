@@ -6,7 +6,7 @@
 //
 // Chưa điền cấu hình Firebase (.env) thì app chạy như trước: chỉ lưu trên máy.
 import type { RemoteSnapshot, SyncWrite } from '../domain/syncdiff';
-import type { Pairing, Role } from '../domain/types';
+import type { AlertSettings, AppData, Pairing, Role } from '../domain/types';
 
 /** Lỗi khi bố mẹ nhập mã kết nối. */
 export type RedeemError = 'format' | 'wrong' | 'expired' | 'too-many' | 'network';
@@ -92,6 +92,8 @@ export interface FamilySync {
   heartbeat(familyId: string, memberId: string, battery?: number): Promise<void>;
   /** Đọc một lần nhịp "còn sống" mới nhất của các máy bố mẹ (máy con dùng khi chạy nền). */
   readHeartbeats(familyId: string): Promise<Record<string, { at: string; battery?: number }>>;
+  /** Đọc một lần lịch thuốc và cài đặt mới nhất (máy bố mẹ chạy nền: cập nhật giờ nhắc khi con đổi lịch). */
+  readSchedule(familyId: string): Promise<{ medications: AppData['medications']; settings?: AlertSettings }>;
   /** Ghi thông tin máy này (vai trò, mã nhận thông báo). */
   registerDevice(familyId: string, info: DeviceInfo): Promise<void>;
   /**

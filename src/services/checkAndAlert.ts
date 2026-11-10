@@ -6,11 +6,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Battery from 'expo-battery';
 import { Platform } from 'react-native';
-import { backgroundPushes, childSignalAlerts } from '../domain/background';
+import { backgroundPushes, childSignalAlerts, scheduleKey, scheduleNotice, withSchedule } from '../domain/background';
 import type { AppData } from '../domain/types';
-import { BG_LAST_KEY, BG_SENT_KEY, BG_SIGNAL_KEY, DATA_KEY } from '../state/keys';
+import { BG_LAST_KEY, BG_SCHED_KEY, BG_SENT_KEY, BG_SIGNAL_KEY, DATA_KEY } from '../state/keys';
 import { getFamilySync } from './firebaseSync';
-import { showAlertNow } from './notifications';
+import { rescheduleMedReminders, showAlertNow, showNotice } from './notifications';
 import { sendPush } from './push';
 import { readSecure } from './vault';
 
@@ -43,8 +43,12 @@ export async function checkAndAlert(now = new Date()): Promise<void> {
     if (!sync) return;
     await sync.signIn();
     await sync.heartbeat(data.familyId, data.currentMemberId, await batteryPercent()).catch(() => undefined);
+    // Con đổi lịch thuốc khi máy bố mẹ không mở app: đọc lịch mới, đặt lại giờ nhắc, báo nhẹ cho bố mẹ.
+    const remote = await sync.readSchedule(data.familyId).catch(() => undefined);
+    const fresh = remote ? withSchedule(data, remote) : data;
+    if (remote) await updateReminders(fresh);
     const sent = JSON.parse((await AsyncStorage.getItem(BG_SENT_KEY)) ?? '[]') as string[];
-    const r = backgroundPushes(data, now, sent);
+    const r = backgroundPushes(fresh, now, sent);
     if (r.pushes.length) {
       const tokens = await sync.childPushTokens(data.familyId);
       // Gửi được ít nhất một máy mới ghi là đã báo; mất mạng thì lần sau thử lại.
@@ -70,4 +74,18 @@ async function checkSignals(data: AppData, now: Date): Promise<void> {
   for (const a of r.alerts) await showAlertNow(a.title, a.body, a.data);
   await AsyncStorage.setItem(BG_SIGNAL_KEY, JSON.stringify(r.sent));
   await AsyncStorage.setItem(BG_LAST_KEY, now.toISOString());
+}
+
+/**
+ * Đặt lại giờ nhắc khi lịch thuốc khác lần trước. Gọi cả khi mở app (store) và khi chạy nền.
+ * `notice`: báo cho bố mẹ biết lịch vừa đổi (chạy nền: con đổi lịch lúc bố mẹ không mở app).
+ */
+export async function updateReminders(data: AppData, notice = true): Promise<void> {
+  const key = scheduleKey(data);
+  const old = await AsyncStorage.getItem(BG_SCHED_KEY);
+  if (old === key) return;
+  await rescheduleMedReminders(data);
+  await AsyncStorage.setItem(BG_SCHED_KEY, key);
+  const n = scheduleNotice(data);
+  if (notice && old !== null && n) await showNotice(n.title, n.body);
 }
