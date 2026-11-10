@@ -191,7 +191,7 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 - **Bảo mật:** chỉ máy của con hoặc máy quản lý xóa được dữ liệu; vai trò của máy lấy theo yêu cầu vào gia đình đã được Đồng ý (máy bố mẹ không tự đổi thành máy con).
 - **Thư viện:** cập nhật bản vá trong cùng phiên bản (Expo 57.0.32, Firebase 13.2.0); lỗ hổng đã biết 31 → 23 (còn lại cần lên phiên bản lớn hoặc nằm trong công cụ build).
 
-Đã chạy: 71 kiểm thử app, 5 logic máy chủ, typecheck, lint, đóng gói Android/web, `npm run e2e` 38/38. **Chưa chạy** (môi trường làm việc lần này không tải được Firestore Emulator): `npm --prefix functions run test:rules` (16 bài, có 3 bài mới) và `npm run e2e:sync`. Cần chạy 2 lệnh này trước khi đưa luật lên máy chủ.
+Đã chạy: 71 kiểm thử app, 5 logic máy chủ, typecheck, lint, đóng gói Android/web, `npm run e2e` 38/38, `npm --prefix functions run test:rules` 16/16, `npm run e2e:sync` 17/17 (chạy lại trên emulator ngày 10/11/2026, đều đạt).
 
 ## Kiểm tra lần 4 (1/11/2026): hướng dẫn, cỡ chữ, bản cài, đồng bộ miễn phí
 
