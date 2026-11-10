@@ -15,6 +15,50 @@ export interface DoseSlot {
   minutesLate: number;
 }
 
+/** Thuốc uống hằng ngày, không theo đợt (để đặt nhắc lặp lại mỗi ngày). */
+export function isPlainDaily(m: Medication): boolean {
+  return !m.until && !(m.every && m.every > 1) && !(m.weekdays && m.weekdays.length && m.weekdays.length < 7);
+}
+
+/** Ngày `day` có phải uống thuốc này không (theo đợt, cách ngày, theo thứ). */
+export function takesOn(m: Medication, day: Date): boolean {
+  const key = dateKey(day);
+  if (m.start && key < m.start) return false;
+  if (m.until && key > m.until) return false;
+  if (m.weekdays && m.weekdays.length && !m.weekdays.includes(day.getDay())) return false;
+  if (m.every && m.every > 1) {
+    const anchor = m.start ?? (m.createdAt ? dateKey(new Date(m.createdAt)) : key);
+    const [y, mo, d] = anchor.split('-').map(Number);
+    const diff = Math.round((new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime() - new Date(y, mo - 1, d).getTime()) / 86400_000);
+    if (diff % m.every !== 0) return false;
+  }
+  return true;
+}
+
+const WEEK = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+/** Cách uống bằng lời: "Cách ngày · còn 3 ngày", "T2, T4, T6", "Đã hết đợt (17/11)". Trống nếu hằng ngày, lâu dài. */
+export function scheduleText(m: Medication, now: Date): string {
+  const parts: string[] = [];
+  if (m.every && m.every > 1) parts.push(m.every === 2 ? 'Cách ngày' : `${m.every} ngày một lần`);
+  if (m.weekdays?.length && m.weekdays.length < 7) parts.push([...m.weekdays].sort().map((d) => WEEK[d]).join(', '));
+  if (m.until) {
+    const [y, mo, d] = m.until.split('-').map(Number);
+    const end = new Date(y, mo - 1, d);
+    if (courseEnded(m, now)) parts.push(`Đã hết đợt (${d}/${mo})`);
+    else {
+      const left = Math.round((end.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86400_000) + 1;
+      parts.push(`Theo đợt: còn ${left} ngày (tới ${d}/${mo})`);
+    }
+  }
+  return parts.join(' · ');
+}
+
+/** Thuốc đã hết đợt (qua ngày cuối). */
+export function courseEnded(m: Medication, now: Date): boolean {
+  return !!m.until && dateKey(now) > m.until;
+}
+
 /** Thuốc của một người, gom theo từng giờ uống trong ngày, sắp theo giờ. */
 export function slotsForDay(
   meds: Medication[],
@@ -27,7 +71,7 @@ export function slotsForDay(
   const date = dateKey(day);
   const byTime = new Map<string, Medication[]>();
   for (const med of meds) {
-    if (med.memberId !== memberId) continue;
+    if (med.memberId !== memberId || !takesOn(med, day)) continue;
     for (const t of med.times) {
       const list = byTime.get(t) ?? [];
       list.push(med);
@@ -72,7 +116,9 @@ export function currentSlot(slots: DoseSlot[]): DoseSlot | undefined {
 /** Số ngày còn thuốc, làm tròn xuống. undefined nếu không biết số viên còn lại. */
 export function daysOfStock(med: Medication): number | undefined {
   if (med.stockPills == null) return undefined;
-  const perDay = med.pillsPerDose * med.times.length;
+  // Trung bình mỗi ngày: cách ngày thì chia 2, theo thứ thì nhân số thứ / 7.
+  const freq = (med.every && med.every > 1 ? 1 / med.every : 1) * (med.weekdays?.length ? med.weekdays.length / 7 : 1);
+  const perDay = med.pillsPerDose * med.times.length * freq;
   if (perDay <= 0) return undefined;
   return Math.floor(med.stockPills / perDay);
 }

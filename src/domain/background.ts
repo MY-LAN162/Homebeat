@@ -1,6 +1,7 @@
 // Việc máy bố mẹ làm khi chạy nền (khoảng 15 phút một lần, tùy điện thoại cho phép):
 // tìm cảnh báo cần báo cho con mà chưa báo. Hàm thuần, không gọi máy chủ.
 import { memberAlerts, type AlertKind } from './alerts';
+import { isPlainDaily } from './schedule';
 import { mergeHeartbeats } from './syncdiff';
 import type { PushMessage } from './pushRules';
 import type { AppData } from './types';
@@ -87,13 +88,15 @@ export function childSignalAlerts(
 export function scheduleKey(data: AppData): string {
   const meds = data.medications
     .filter((m) => m.memberId === data.currentMemberId)
-    .map((m) => [m.id, m.name, m.pillsPerDose, [...m.times].sort()])
+    .map((m) => [m.id, m.name, m.pillsPerDose, [...m.times].sort(), m.start ?? '', m.until ?? '', m.every ?? 1, m.weekdays ?? []])
     .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
   const visits = data.appointments
     .filter((a) => a.memberId === data.currentMemberId)
     .map((a) => [a.id, a.at, a.title, a.place ?? '', a.companion ?? ''])
     .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-  return JSON.stringify([data.currentMemberId, meds, visits, data.settings.lateMinutes, data.settings.timeZone ?? '']);
+  // Có thuốc không uống hằng ngày: nhắc được đặt cho 7 ngày tới, nên mỗi ngày đặt lại một lần.
+  const rolling = data.medications.some((m) => m.memberId === data.currentMemberId && !isPlainDaily(m)) ? dateKey(new Date()) : '';
+  return JSON.stringify([data.currentMemberId, meds, visits, data.settings.lateMinutes, data.settings.timeZone ?? '', rolling]);
 }
 
 /** Thay lịch thuốc và cài đặt trên máy bằng bản mới nhất đọc từ máy chủ (chỉ dùng trong bộ nhớ, không ghi đè dữ liệu đã lưu). */

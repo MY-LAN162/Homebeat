@@ -146,10 +146,22 @@ p.on('pageerror', (e) => errs.push(e.message));
   await step('Chuẩn bị › Ghi buổi khám › Quay lại về Chuẩn bị', async () => { await tap(/câu hỏi cho bác sĩ ›/); await tap('Bắt đầu buổi khám'); await expectScreen('Ghi lại buổi khám'); await back(); await expectScreen('Chuẩn bị đi khám'); });
   await step('Chuẩn bị › Bảng 30 ngày › Quay lại về Chuẩn bị', async () => { await tap('Bảng huyết áp, uống thuốc 30 ngày cho bác sĩ'); await expectScreen(/Tình hình 30 ngày/); await back(); await expectScreen('Chuẩn bị đi khám'); await back(); await expectScreen('Lịch đi khám'); });
   await step('Đi khám › + Thêm lịch › lưu', async () => {
-    await tap('+ Thêm lịch'); await p.getByLabel('Khám gì').fill('Khám mắt'); await p.getByLabel('Ngày (ngày/tháng)').fill('20/11');
+    await tap('+ Thêm lịch'); await p.getByLabel('Khám gì').fill('Khám mắt'); await p.getByLabel('Hoặc gõ ngày khác (ngày/tháng)').fill('20/11');
     await tap('Lưu lịch khám'); await expectScreen(/Khám mắt/);
   });
   // Gia đình, cài đặt
+  await step('Đi khám › Chuẩn bị › Sửa ngày giờ, nơi khám › chọn bệnh viện › Lưu › thấy nơi khám', async () => {
+    await tap(/câu hỏi cho bác sĩ ›/); await tap('Sửa ngày giờ, nơi khám'); await expectScreen('Sửa lịch khám');
+    await p.getByRole('textbox', { name: 'Bệnh viện / phòng khám', exact: true }).first().fill('BV Thống Nhất');
+    await tap('Lưu lịch khám', { exact: true }); await expectScreen(/BV Thống Nhất/);
+  });
+  await step('Thuốc › + Thêm thuốc theo đợt 7 ngày, cách ngày › Lưu › danh sách ghi rõ', async () => {
+    await tab('Thuốc'); await p.mouse.move(195, 500); await p.mouse.wheel(0, 4000); await p.waitForTimeout(300); await tap('+ Thêm thuốc');
+    await p.getByRole('textbox', { name: 'Tên thuốc và hàm lượng', exact: true }).fill('Amoxicillin 500mg');
+    await tap('Cách ngày', { exact: true }); await tap('7 ngày', { exact: true }); await expectScreen(/sau đó máy tự dừng nhắc/);
+    await p.mouse.wheel(0, 4000); await p.waitForTimeout(300); await tap('Lưu và tạo lịch nhắc'); await expectScreen('Thuốc của bố mẹ');
+    await p.mouse.move(195, 500); await p.mouse.wheel(0, 4000); await p.waitForTimeout(300); await expectScreen(/Cách ngày · Theo đợt: còn 7 ngày/);
+  });
   await step('Tab Gia đình', async () => { await tab('Gia đình'); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
   await step('Gia đình › Cài đặt › Quay lại về Gia đình', async () => { await tap('Cài đặt (cảnh báo, cỡ chữ)'); await expectScreen('Cỡ chữ trên máy này'); await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
   await step('Cài đặt › Mức sử dụng › Quay lại về Cài đặt', async () => { await tap('Cài đặt (cảnh báo, cỡ chữ)'); await tap('Mức sử dụng app (thử nghiệm)'); await expectScreen('Mức sử dụng app'); await back(); await expectScreen('Cỡ chữ trên máy này'); await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });

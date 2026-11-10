@@ -236,3 +236,10 @@ test('nhật ký uống thuốc: lý do không uống chỉ nhận "out" / "unab
   await assertSucceeds(setDoc(ref('d2'), { ...DOSE, status: 'skipped', reason: 'unable' }));
   await assertFails(setDoc(ref('d3'), { ...DOSE, status: 'skipped', reason: 'khac' }));
 });
+
+test('thuốc theo đợt / cách ngày / theo thứ: đúng dạng thì nhận', async () => {
+  const ref = doc(as('con'), 'families', FAM, 'medications', 'amlo');
+  await assertSucceeds(setDoc(ref, { ...MED, start: '2026-11-10', until: '2026-11-16', every: 2, weekdays: [1, 3, 5] }));
+  await assertFails(setDoc(ref, { ...MED, until: '16/11/2026' }));
+  await assertFails(setDoc(ref, { ...MED, every: 0 }));
+});

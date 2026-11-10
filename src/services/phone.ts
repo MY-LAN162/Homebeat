@@ -28,6 +28,11 @@ export async function getLocation(): Promise<{ lat: number; lng: number } | unde
   }
 }
 
+/** Mở Google Maps chỉ đường tới một nơi (tên bệnh viện, địa chỉ). */
+export function directionsLink(place: string): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place)}`;
+}
+
 export function mapsLink(lat: number, lng: number): string {
   return `https://maps.google.com/?q=${lat.toFixed(6)},${lng.toFixed(6)}`;
 }

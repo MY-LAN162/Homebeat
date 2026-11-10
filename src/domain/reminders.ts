@@ -1,5 +1,5 @@
 // Lịch nhắc lại khi bố mẹ chưa bấm "Đã uống", và tìm lần uống từ một thông báo.
-import { slotsForDay, type DoseSlot } from './schedule';
+import { isPlainDaily, slotsForDay, type DoseSlot } from './schedule';
 import type { AppData } from './types';
 import { addDays, atTime, dateKey } from './time';
 
@@ -57,6 +57,30 @@ export function slotFromNotification(
   );
   if (!slot || slot.status === 'taken' || slot.status === 'skipped') return undefined;
   return slot;
+}
+
+/**
+ * Kế hoạch nhắc uống thuốc trên máy bố mẹ:
+ *  - mọi thuốc đều hằng ngày → nhắc lặp lại mỗi ngày theo giờ (không cần mở app);
+ *  - có thuốc theo đợt / cách ngày / theo thứ → đặt từng lần cho `days` ngày tới (máy tự đặt lại mỗi ngày khi chạy nền).
+ */
+export function doseReminderPlan(
+  data: AppData,
+  memberId: string,
+  now: Date,
+  days = 7,
+): { mode: 'daily'; slots: DoseSlot[] } | { mode: 'dated'; items: { at: Date; slot: DoseSlot }[] } {
+  const mine = data.medications.filter((m) => m.memberId === memberId);
+  if (mine.every(isPlainDaily)) return { mode: 'daily', slots: slotsForDay(mine, [], memberId, now, now, data.settings.lateMinutes) };
+  const items: { at: Date; slot: DoseSlot }[] = [];
+  for (let i = 0; i < days; i++) {
+    const day = addDays(now, i);
+    for (const slot of slotsForDay(mine, [], memberId, day, now, data.settings.lateMinutes)) {
+      const at = atTime(day, slot.time);
+      if (at > now) items.push({ at, slot });
+    }
+  }
+  return { mode: 'dated', items };
 }
 
 export interface VisitReminder {

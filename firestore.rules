@@ -41,7 +41,9 @@ service cloud.firestore {
           && d.keys().hasOnly(['id', 'name', 'phone', 'order', 'sosOnly'])
           && d.id == id && str(d.name, 60) && str(d.phone, 20) && num(d.order, 0, 100) && optBool(d, 'sosOnly'))
         || (coll == 'medications'
-          && d.keys().hasOnly(['id', 'memberId', 'name', 'purpose', 'pillsPerDose', 'times', 'afterMeal', 'stockPills', 'note', 'photoUri', 'createdAt'])
+          && d.keys().hasOnly(['id', 'memberId', 'name', 'purpose', 'pillsPerDose', 'times', 'afterMeal', 'stockPills', 'note', 'photoUri', 'createdAt', 'start', 'until', 'every', 'weekdays'])
+          && (!('start' in d) || day(d.start)) && (!('until' in d) || day(d.until))
+          && optNum(d, 'every', 1, 30) && optList(d, 'weekdays', 7)
           && d.id == id && str(d.memberId, 80) && str(d.name, 100) && d.name.size() > 0
           && num(d.pillsPerDose, 0, 20) && list(d.times, 12) && optBool(d, 'afterMeal')
           && optNum(d, 'stockPills', 0, 100000) && optStr(d, 'purpose', 100) && optStr(d, 'note', 300)

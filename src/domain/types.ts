@@ -48,6 +48,13 @@ export interface Medication {
   photoUri?: string;
   /** Ngày thêm thuốc (ISO). Tỷ lệ uống thuốc chỉ tính từ ngày này. */
   createdAt?: string;
+  /** Uống theo đợt: ngày đầu và ngày cuối của đợt ("YYYY-MM-DD"). Sau ngày cuối thì tự dừng nhắc. */
+  start?: string;
+  until?: string;
+  /** Cách mấy ngày uống một lần (2 = cách ngày), tính từ `start`. Trống = hằng ngày. */
+  every?: number;
+  /** Chỉ uống vào các thứ này (0 = Chủ nhật … 6 = Thứ bảy). Trống = mọi ngày. */
+  weekdays?: number[];
 }
 
 export type DoseStatus = 'taken' | 'skipped';

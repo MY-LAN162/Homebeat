@@ -1,7 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { goBack } from '../../services/nav';
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Linking, Pressable, View } from 'react-native';
+import { confirm } from '../../services/dialog';
+import { directionsLink } from '../../services/phone';
 import { Back, Btn, Card, Field, H1, Screen, T } from '../../components/ui';
 import { BRING_LIST, suggestQuestions } from '../../domain/visit';
 import { formatShortDate, hm } from '../../domain/time';
@@ -40,7 +42,7 @@ function Check({ label, on, onPress }: { label: string; on: boolean; onPress: ()
 
 export default function VisitPrep() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, now, upsertAppointment } = useStore();
+  const { data, now, upsertAppointment, removeAppointment } = useStore();
   const a = data.appointments.find((x) => x.id === id);
   const [newQ, setNewQ] = useState('');
   const [packed, setPacked] = useState<string[]>([]);
@@ -76,6 +78,25 @@ export default function VisitPrep() {
         </T>
         {a.companion && <T size={15} color="#E1EAF6">{a.companion} đưa đi</T>}
       </Card>
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        {!!a.place && (
+          <Btn variant="blue" label="🗺 Chỉ đường" height={44} size={15} onPress={() => void Linking.openURL(directionsLink(a.place!))} />
+        )}
+        <Btn variant="secondary" label="Sửa ngày giờ, nơi khám" height={44} size={15} onPress={() => router.push({ pathname: '/child/visits', params: { edit: a.id } })} />
+        <Btn
+          variant="ghost"
+          label="Xóa lịch này"
+          height={44}
+          size={15}
+          onPress={() =>
+            confirm('Xóa lịch khám này?', `${a.title}, ${formatShortDate(d)}. Câu hỏi đã chuẩn bị cũng bị xóa.`, 'Xóa').then((ok) => {
+              if (!ok) return;
+              removeAppointment(a.id);
+              goBack('/child/visits');
+            })
+          }
+        />
+      </View>
 
       <T size={17} weight="700">Câu hỏi cho bác sĩ</T>
       {a.questions.map((q) => (

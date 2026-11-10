@@ -4,7 +4,7 @@ import { Pressable, View } from 'react-native';
 import { Restock } from '../../components/Restock';
 import { Btn, Card, Chip, H1, Screen, T } from '../../components/ui';
 import { displayName } from '../../domain/address';
-import { adherence, daysOfStock, pillsText } from '../../domain/schedule';
+import { adherence, courseEnded, daysOfStock, pillsText, scheduleText } from '../../domain/schedule';
 import { useStore } from '../../state/store';
 import { colors } from '../../theme';
 
@@ -50,6 +50,9 @@ export default function ChildMeds() {
               <T size={13} color={colors.muted}>
                 {[m.purpose, `${pillsText(m.pillsPerDose)}/lần`, m.afterMeal ? 'sau ăn' : ''].filter(Boolean).join(' · ')}
               </T>
+              {!!scheduleText(m, new Date()) && (
+                <T size={13} weight="700" color={courseEnded(m, new Date()) ? colors.muted : colors.blue}>{scheduleText(m, new Date())}</T>
+              )}
               <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap' }}>
                 {m.times.map((t) => (
                   <View key={t} style={{ backgroundColor: colors.greenSoft, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>

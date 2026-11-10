@@ -1,6 +1,6 @@
 // Quy tắc cảnh báo cho con. Chỉ dựa trên dữ liệu đã có, không suy đoán bệnh.
 import { displayName } from './address';
-import { daysOfStock, slotsForDay } from './schedule';
+import { courseEnded, daysOfStock, slotsForDay } from './schedule';
 import type { AppData, Member } from './types';
 import { atTime, dateKey, formatDuration, inWindow } from './time';
 import { toZone } from './tz';
@@ -129,7 +129,7 @@ export function memberAlerts(data: AppData, member: Member, realNow: Date): Fami
     }
   }
 
-  for (const med of data.medications.filter((m) => m.memberId === member.id)) {
+  for (const med of data.medications.filter((m) => m.memberId === member.id && !courseEnded(m, now))) {
     const days = daysOfStock(med);
     if (days != null && days <= 5) {
       out.push({

@@ -4,8 +4,8 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { medPrompt } from '../domain/address';
 import { LEVEL_CHANNEL, levelOf, SOS_SOUND, type NotifyLevel } from '../domain/levels';
-import { followUps, visitReminders } from '../domain/reminders';
-import { pillsText, slotsForDay } from '../domain/schedule';
+import { doseReminderPlan, followUps, visitReminders } from '../domain/reminders';
+import { pillsText, slotsForDay, type DoseSlot } from '../domain/schedule';
 import type { AppData } from '../domain/types';
 import { toMinutes } from '../domain/time';
 
@@ -154,24 +154,32 @@ export async function rescheduleMedReminders(data: AppData): Promise<number> {
   if (!member) return 0;
   await Notifications.cancelAllScheduledNotificationsAsync();
   const now = new Date();
-  const slots = slotsForDay(data.medications, [], member.id, now, now, data.settings.lateMinutes);
-  for (const slot of slots) {
-    const mins = toMinutes(slot.time);
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: medPrompt(member),
-        body: `${slot.time} · ${slot.meds.map((m) => m.name).join(', ')} · ${pillsText(slot.pills)}`,
-        data: { kind: 'dose', time: slot.time },
-        categoryIdentifier: DOSE_CATEGORY,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: Math.floor(mins / 60),
-        minute: mins % 60,
-        channelId: CHANNEL,
-      },
-    });
+  const plan = doseReminderPlan(data, member.id, now);
+  const content = (slot: DoseSlot) => ({
+    title: medPrompt(member),
+    body: `${slot.time} · ${slot.meds.map((m) => m.name).join(', ')} · ${pillsText(slot.pills)}`,
+    data: { kind: 'dose', time: slot.time, date: slot.date },
+    categoryIdentifier: DOSE_CATEGORY,
+  });
+  if (plan.mode === 'daily') {
+    // Thuốc hằng ngày: lặp lại mỗi ngày (vẫn nhắc dù bố mẹ không mở app nhiều ngày).
+    for (const slot of plan.slots) {
+      const mins = toMinutes(slot.time);
+      await Notifications.scheduleNotificationAsync({
+        content: { ...content(slot), data: { kind: 'dose', time: slot.time } },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: Math.floor(mins / 60), minute: mins % 60, channelId: CHANNEL },
+      });
+    }
+  } else {
+    // Có thuốc theo đợt / cách ngày: đặt từng lần cho 7 ngày tới (chạy nền mỗi ngày đặt lại).
+    for (const { at, slot } of plan.items) {
+      await Notifications.scheduleNotificationAsync({
+        content: content(slot),
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at, channelId: CHANNEL },
+      });
+    }
   }
+  const slots = plan.mode === 'daily' ? plan.slots : plan.items.map((x) => x.slot);
   for (const f of followUps(data, member.id, now)) {
     const slot = slotsForDay(data.medications, data.doseLogs, member.id, f.at, now, data.settings.lateMinutes).find((s) => s.time === f.time);
     await Notifications.scheduleNotificationAsync({

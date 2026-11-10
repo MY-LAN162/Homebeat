@@ -27,6 +27,7 @@ import { checkAndAlert } from '../services/checkAndAlert';
 import { readSecure, writeSecure } from '../services/vault';
 import { sendPush } from '../services/push';
 import { scheduleKey } from '../domain/background';
+import { dateKey } from '../domain/time';
 import { BASE_KEY, BG_SCHED_KEY, DATA_KEY } from './keys';
 import { getPushToken, rescheduleMedReminders } from '../services/notifications';
 import { SyncError, type FamilyDevice, type FamilySync, type JoinRequest } from '../services/sync';
@@ -89,6 +90,7 @@ interface Store {
   removeCaregiver: (id: string) => void;
   upsertMedication: (m: Omit<Medication, 'id'> & { id?: string }) => void;
   removeMedication: (id: string) => void;
+  removeAppointment: (id: string) => void;
   /** Đã mua thêm thuốc: cộng thêm số viên còn lại. */
   restock: (medId: string, pills: number) => void;
   markSlot: (slot: DoseSlot, status: 'taken' | 'skipped') => void;
@@ -257,7 +259,8 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
     data.currentMemberId,
     data.settings.lateMinutes,
     data.settings.timeZone,
-    data.medications.map((m) => [m.memberId, m.name, m.pillsPerDose, m.times]),
+    data.medications.map((m) => [m.memberId, m.name, m.pillsPerDose, m.times, m.start, m.until, m.every, m.weekdays]),
+    dateKey(now),
     data.appointments.map((a) => [a.memberId, a.at, a.title, a.place, a.companion]),
     data.doseLogs.filter((l) => l.memberId === data.currentMemberId).length,
   ]);
@@ -434,6 +437,8 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
           ...d,
           medications: d.medications.map((m) => (m.id === medId ? { ...m, stockPills: (m.stockPills ?? 0) + pills } : m)),
         })),
+      removeAppointment: (id) =>
+        update((d) => ({ ...d, appointments: d.appointments.filter((a) => a.id !== id), deleted: markDeleted(d, `appointments/${id}`) })),
       removeMedication: (id) =>
         update((d) => ({ ...d, medications: d.medications.filter((m) => m.id !== id), deleted: markDeleted(d, `medications/${id}`) })),
       markSlot: (slot, status) =>
