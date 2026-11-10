@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { goBack } from '../../services/nav';
 import { useState } from 'react';
-import { Linking, Platform, View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { Back, Banner, Btn, Card, H1, Screen, T } from '../../components/ui';
 import { displayName } from '../../domain/address';
 import { alertKey, memberAlerts, type AlertKind } from '../../domain/alerts';
@@ -26,7 +26,8 @@ function Fact({ label, value, warn }: { label: string; value: string; warn?: boo
 
 export default function AlertDetail() {
   const { memberId, kind } = useLocalSearchParams<{ memberId: string; kind: AlertKind }>();
-  const { data, now, dismissAlert, ackSos, markSlot } = useStore();
+  const { data, now, dismissAlert, ackSos, markSlot, listDevices } = useStore();
+  const [parentOs, setParentOs] = useState<string>();
   const [howTo, setHowTo] = useState(false);
   const m = data.members.find((x) => x.id === memberId);
   if (!m) {
@@ -176,16 +177,31 @@ export default function AlertDetail() {
 
       {kind === 'no-signal' && (
         <>
-          <Btn variant="ghost" label={howTo ? 'Ẩn hướng dẫn' : 'Cách cài để máy không tắt An Tâm'} onPress={() => setHowTo((x) => !x)} />
+          <Btn
+            variant="ghost"
+            label={howTo ? 'Ẩn hướng dẫn' : 'Cách cài để máy không tắt An Tâm'}
+            onPress={() => {
+              setHowTo((x) => !x);
+              // Hướng dẫn theo loại máy CỦA BỐ MẸ (không phải máy con đang cầm).
+              if (!parentOs) {
+                listDevices()
+                  .then((list) => setParentOs(list.find((d) => d.role === 'parent' && d.memberId === m.id)?.platform ?? 'unknown'))
+                  .catch(() => setParentOs('unknown'));
+              }
+            }}
+          />
           {howTo && (
             <Banner tone="blue">
-              {Platform.OS === 'ios' ? (
+              {parentOs !== 'android' && (
                 <T size={15} color={colors.blueDark}>
-                  Trên iPhone của {callName}: Cài đặt › Cài đặt chung › Làm mới ứng dụng trong nền › bật cho An Tâm. Không vuốt tắt An Tâm khỏi danh sách ứng dụng.
+                  {parentOs === 'ios' ? `Máy của ${callName} là iPhone: ` : `Nếu máy của ${callName} là iPhone: `}
+                  Cài đặt › Cài đặt chung › Làm mới ứng dụng trong nền › bật cho An Tâm. Không vuốt tắt An Tâm khỏi danh sách ứng dụng.
                 </T>
-              ) : (
+              )}
+              {parentOs !== 'ios' && (
                 <T size={15} color={colors.blueDark}>
-                  Trên điện thoại Android của {callName}: Cài đặt › Ứng dụng › An Tâm › Pin › chọn “Không hạn chế”. Trên máy Xiaomi, Oppo, Vivo: bật thêm “Tự khởi động”.
+                  {parentOs === 'android' ? `Máy của ${callName} là Android: ` : `Nếu máy của ${callName} là Android: `}
+                  Cài đặt › Ứng dụng › An Tâm › Pin › chọn “Không hạn chế”. Trên máy Xiaomi, Oppo, Vivo: bật thêm “Tự khởi động”.
                 </T>
               )}
             </Banner>

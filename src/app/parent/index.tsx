@@ -130,6 +130,7 @@ export default function ParentHome() {
         </View>
       )}
 
+      <Btn variant="secondary" label="🩺 Ghi huyết áp" height={64} size={21} onPress={() => router.push('/parent/bp')} />
       <Btn variant="ghost" label={`Kể ${m.self.toLowerCase()} nghe hôm nay ${call} thấy thế nào`} onPress={() => router.push('/parent/checkin')} />
 
       {/* Gọi hỏi thăm bình thường, tách khỏi SOS để bố mẹ không phải bấm SOS chỉ để gọi con. */}

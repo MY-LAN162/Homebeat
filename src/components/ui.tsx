@@ -234,26 +234,73 @@ export function Stepper({
   min?: number;
   max?: number;
 }) {
+  // Giữ nút + / − thì số tự chạy (càng giữ lâu càng nhanh); bấm vào số để gõ thẳng.
+  const latest = useRef(value);
+  useEffect(() => {
+    latest.current = value;
+  }, [value]);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [typing, setTyping] = useState<string>();
+  const clamp = (v: number) => Math.min(max, Math.max(min, v));
+  const stop = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = undefined;
+  };
+  useEffect(() => stop, []);
+  const repeat = (delta: number, n = 0) => {
+    const next = clamp(latest.current + delta);
+    latest.current = next;
+    onChange(next);
+    timer.current = setTimeout(() => repeat(delta, n + 1), n < 5 ? 180 : 70);
+  };
   const btn = (txt: string, delta: number, filled: boolean) => (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${delta > 0 ? 'Tăng' : 'Giảm'} ${label}`}
-      onPress={() => onChange(Math.min(max, Math.max(min, value + delta)))}
+      accessibilityHint="Giữ để tăng giảm nhanh"
+      onPress={() => onChange(clamp(value + delta))}
+      onLongPress={() => repeat(delta)}
+      delayLongPress={350}
+      onPressOut={stop}
       style={[styles.step, filled ? { backgroundColor: colors.green, borderColor: colors.green } : null]}
     >
       <Text style={{ fontSize: 30, fontWeight: '700', color: filled ? colors.white : colors.ink }}>{txt}</Text>
     </Pressable>
   );
+  const k = useK();
   return (
     <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <View style={{ flex: 1 }}>
         <T size={19} weight="700">{label}</T>
-        <T size={14} color={colors.muted}>{sub}</T>
+        <T size={15} color={colors.muted}>{sub}</T>
       </View>
       {btn('−', -1, false)}
-      <Text accessibilityLiveRegion="polite" style={{ width: 64, textAlign: 'center', fontSize: 32, fontWeight: '700', color: colors.ink }}>
-        {value}
-      </Text>
+      {typing !== undefined ? (
+        <TextInput
+          autoFocus
+          accessibilityLabel={`Gõ ${label}`}
+          keyboardType="number-pad"
+          value={typing}
+          onChangeText={(v) => setTyping(v.replace(/\D/g, '').slice(0, 3))}
+          onBlur={() => {
+            const n = Number(typing);
+            if (typing && Number.isFinite(n)) onChange(clamp(n));
+            setTyping(undefined);
+          }}
+          onSubmitEditing={() => {
+            const n = Number(typing);
+            if (typing && Number.isFinite(n)) onChange(clamp(n));
+            setTyping(undefined);
+          }}
+          style={{ width: 72, textAlign: 'center', fontSize: 32 * k, fontWeight: '700', color: colors.ink, borderBottomWidth: 2, borderColor: colors.green }}
+        />
+      ) : (
+        <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${value}. Bấm để gõ số`} onPress={() => setTyping(String(value))}>
+          <Text accessibilityLiveRegion="polite" style={{ width: 72, textAlign: 'center', fontSize: 32 * k, fontWeight: '700', color: colors.ink, textDecorationLine: 'underline', textDecorationStyle: 'dotted' }}>
+            {value}
+          </Text>
+        </Pressable>
+      )}
       {btn('+', 1, true)}
     </Card>
   );

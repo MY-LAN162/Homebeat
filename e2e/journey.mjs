@@ -170,6 +170,14 @@ p.on('pageerror', (e) => errs.push(e.message));
     await tap('+ Thêm người nhận cảnh báo'); await p.getByRole('textbox', { name: 'Tên', exact: true }).fill('Cô Bảy'); await p.getByRole('textbox', { name: 'Số điện thoại', exact: true }).last().fill('0912345678');
     await tap('Thêm', { exact: true }); await expectScreen('Cô Bảy');
   });
+  await step('Gia đình › đổi thứ tự người nhận cảnh báo; sửa số sai thì chưa lưu được', async () => {
+    await p.getByRole('button', { name: 'Đưa Cô Bảy lên trước', exact: true }).first().click();
+    await p.getByRole('button', { name: 'Sửa', exact: true }).last().click();
+    await p.getByRole('textbox', { name: 'Số điện thoại', exact: true }).last().fill('123');
+    await expectScreen(/Số điện thoại chưa đúng/);
+    if (await p.getByRole('button', { name: 'Lưu', exact: true }).last().isEnabled()) throw new Error('số sai mà vẫn lưu được');
+    await tap('Hủy', { exact: true }); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC');
+  });
   // Màn hình bố mẹ
   await step('Gia đình › Xem màn hình của bố › hiện hướng dẫn lần đầu', async () => { await tap(/Xem màn hình của bố/); await expectScreen('Hướng dẫn · 1/3'); await expectScreen('Mỗi sáng, bấm nút trắng'); });
   await step('Hướng dẫn: đi hết 3 bước', async () => {
@@ -209,6 +217,13 @@ p.on('pageerror', (e) => errs.push(e.message));
     await tap('Về trang chủ'); await expectScreen('Con ơi, bố ổn');
   });
   await step('Bố › kể con nghe › Quay lại', async () => { await tap(/Kể con nghe/); await expectScreen(/thấy thế nào|Hôm nay/); await back(); await expectScreen('Con ơi, bố ổn'); });
+  await step('Bố › Ghi huyết áp › bấm vào số để gõ 165 › có mấy lần đo trước › Quay lại', async () => {
+    await tap('🩺 Ghi huyết áp'); await expectScreen('Huyết áp hôm nay');
+    await p.getByRole('button', { name: /^Số trên: \d+\. Bấm để gõ số$/ }).first().click();
+    const box = p.getByRole('textbox', { name: 'Gõ Số trên' }).first(); await box.fill('165'); await box.press('Enter');
+    await expectScreen('165'); await expectScreen('Mấy lần đo trước');
+    await back(); await expectScreen('Con ơi, bố ổn');
+  });
   await step('Bố › nhập huyết áp › lưu › về', async () => { await tap(/Kể con nghe/); await tap('Nhập huyết áp sáng nay'); await expectScreen(/Huyết áp/); await back(); await expectScreen(/thấy thế nào|Hôm nay/); await back(); await expectScreen('Con ơi, bố ổn'); });
   await step('Bố › SOS bấm nhầm, hủy › về trang chủ bố', async () => {
     const pt = await findPoint({ re: 'SOS · Gọi các con' }); if (!pt) throw new Error('không thấy nút SOS');

@@ -229,7 +229,7 @@ export default function AlertSettings() {
         )}
       </Card>
       <Group title="Trễ thuốc quá" options={[15, 30, 60]} value={s.lateMinutes} onPick={(v) => updateSettings({ lateMinutes: v })} label={(v) => `${v} phút`} />
-      <Group title="Mất tín hiệu / không di chuyển quá" options={[2, 3, 5]} value={s.stillHours} onPick={(v) => updateSettings({ stillHours: v })} label={(v) => `${v} giờ`} />
+      <Group title="Không nhận được tín hiệu từ máy bố mẹ quá" options={[2, 3, 5]} value={s.stillHours} onPick={(v) => updateSettings({ stillHours: v })} label={(v) => `${v} giờ`} />
       <Group title='Chưa bấm "ổn" trước' options={['09:00', '10:00', '12:00']} value={s.checkinBy} onPick={(v) => updateSettings({ checkinBy: v })} label={(v) => v} />
       <Group
         title="Huyết áp từ mức"

@@ -127,7 +127,7 @@ export interface Appointment {
 export interface AlertSettings {
   /** Trễ thuốc bao nhiêu phút thì báo. */
   lateMinutes: number;
-  /** Máy không di chuyển / mất tín hiệu bao nhiêu giờ thì báo. */
+  /** Không nhận được tín hiệu từ máy bố mẹ bao nhiêu giờ thì báo. */
   stillHours: number;
   /** Chưa bấm "ổn" trước giờ này thì báo, "HH:MM". */
   checkinBy: string;

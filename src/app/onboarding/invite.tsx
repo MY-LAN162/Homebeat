@@ -12,10 +12,8 @@ import { useStore } from '../../state/store';
 import { colors } from '../../theme';
 
 /** Số điện thoại hợp lệ: 9–11 chữ số (cho phép +84, dấu cách, dấu chấm). */
-const validPhone = (p?: string) => {
-  const d = (p ?? '').replace(/^\+84/, '0').replace(/\D/g, '');
-  return d.length >= 9 && d.length <= 11;
-};
+import { validPhone } from '../../domain/phoneNumber';
+import { parentInviteText } from '../../domain/inviteText';
 
 const CALLS: CallName[] = ['Bố', 'Mẹ', 'Ông', 'Bà'];
 const SELVES: SelfName[] = ['Con', 'Cháu'];
@@ -124,7 +122,7 @@ export default function InviteScreen() {
               label="Gửi mã (Zalo, tin nhắn...)"
               onPress={() =>
                 pairing &&
-                Share.share({ message: `Mã kết nối An Tâm của ${call.toLowerCase()}: ${formatCode(pairing.code)}` })
+                Share.share({ message: parentInviteText({ id: memberId ?? '', name, call, self }, pairing.code) })
               }
               style={{ alignSelf: 'stretch' }}
             />
