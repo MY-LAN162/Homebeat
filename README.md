@@ -184,6 +184,11 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 
 **Cách quyết định tiếp:** thử với 5–10 gia đình trong 2 tuần, xem màn hình *Mức sử dụng app* (tỷ lệ uống đúng giờ, số lần phải nhắc lại, màn hình nào không ai mở), rồi giữ, bỏ hoặc làm tiếp theo số liệu.
 
+## Thứ tự triển khai (Lan chốt 12/11/2026): việc tốn phí làm cuối
+
+1. **Miễn phí, làm trước:** Expo (build file cài Android, 30 lần/tháng miễn phí) → Firebase gói Spark (đồng bộ 2 máy, đưa trang web lên `*.web.app`) → thử trên điện thoại thật, sửa lỗi.
+2. **Tốn phí, làm cuối cùng:** Google Play Console (25 USD, một lần: thanh toán, mã giới thiệu, lên Google Play) · Apple Developer (99 USD/năm: bản iPhone) · Firebase Blaze (trả theo dùng: Cloud Functions báo đúng giờ hơn, kiểm tra hóa đơn) · tên miền riêng (vd antam.vn) · xin Apple quyền "Critical Alerts" cho SOS (đi kèm Apple Developer).
+
 ## Gói cước và giới thiệu bạn bè trong app (12/11/2026)
 
 - `src/domain/billing.ts`: dùng thử 30 ngày; giá Nhỏ 89.000đ / Vừa 119.000đ / Lớn 179.000đ (năm: trả 10 tháng); mỗi gia đình một **mã giới thiệu 6 ký tự** (không có 0, O, 1, I). Giảm **10%** cho gia đình được giới thiệu, **5%** cho người giới thiệu, trong 2 tháng đầu sau khi gia đình được giới thiệu bắt đầu trả phí. Giới thiệu nhiều nhà: không cộng %, mỗi nhà thêm 2 tháng giảm 5%. Hai loại giảm không cộng nhau (lấy mức cao hơn). Gói năm chỉ giảm phần 2 tháng đầu.
