@@ -56,7 +56,8 @@
     "e2e": "node e2e/journey.mjs",
     "test-page": "npx expo export -p web --clear --output-dir .e2e/web-demo && node scripts/make-test-page.mjs .e2e",
     "e2e:sync": "node e2e/sync-two-devices.mjs",
-    "privacy-md": "node --experimental-strip-types scripts/privacy-md.mjs"
+    "privacy-md": "node --experimental-strip-types scripts/privacy-md.mjs",
+    "audit:buttons": "node e2e/button-audit.mjs"
   },
   "private": true,
   "jest": {
