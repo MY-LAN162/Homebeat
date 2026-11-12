@@ -8,12 +8,15 @@ export const DOWNLOAD_URL = process.env.EXPO_PUBLIC_DOWNLOAD_URL ?? '';
 const howToGet = (url: string) =>
   url ? `1. Tải app An Tâm: ${url}` : '1. Cài app An Tâm (người gửi tin này sẽ gửi file cài hoặc cài giúp).';
 
+/** Trang web của An Tâm (vd https://an-tam.web.app). Có thì tin nhắn dẫn tới trang tải app kèm sẵn mã. */
+export const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? '';
+
 /** Tin gửi cho máy của bố/mẹ. */
-export function parentInviteText(m: Member, code: string, url = DOWNLOAD_URL): string {
+export function parentInviteText(m: Member, code: string, url = DOWNLOAD_URL, web = WEB_URL): string {
   const c = m.call.toLowerCase();
   return [
     `${m.self} cài An Tâm để nhắc ${c} uống thuốc và báo cho ${m.self.toLowerCase()} khi cần.`,
-    howToGet(url),
+    web ? `1. Mở trang này để tải app (mã đã có sẵn trên trang): ${web.replace(/\/$/, '')}/tai?ma=${code}` : howToGet(url),
     `2. Mở app, bấm “Tôi là bố, mẹ”.`,
     `3. Nhập mã: ${formatCode(code)} (dùng trong 24 giờ).`,
     `Xong ${c} chờ ${m.self.toLowerCase()} bấm Đồng ý là dùng được.`,

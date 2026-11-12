@@ -250,6 +250,20 @@ service cloud.firestore {
       }
     }
 
+    // Đăng ký dùng thử từ trang web: ai cũng gửi được (chưa cần đăng nhập), không ai đọc / sửa được từ web.
+    // Xem danh sách trong Firebase console. Nên bật App Check cho web khi có nhiều đăng ký rác.
+    match /signups/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['name', 'phone', 'email', 'role', 'phoneType', 'plan', 'ref', 'at'])
+        && str(request.resource.data.name, 80) && request.resource.data.name.size() > 0
+        && str(request.resource.data.phone, 20) && request.resource.data.phone.size() >= 9
+        && optStr(request.resource.data, 'email', 120) && optStr(request.resource.data, 'ref', 20)
+        && request.resource.data.role in ['child', 'parent']
+        && request.resource.data.phoneType in ['android', 'iphone', 'none', 'unknown']
+        && request.resource.data.plan in ['small', 'medium', 'large', 'undecided']
+        && str(request.resource.data.at, 40);
+      allow read, update, delete: if false;
+    }
+
     // pairingAttempts: chỉ máy chủ dùng (giới hạn số lần nhập mã).
   }
 }

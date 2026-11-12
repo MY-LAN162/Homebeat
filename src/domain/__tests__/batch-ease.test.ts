@@ -25,3 +25,10 @@ describe('số điện thoại', () => {
     expect(validPhone('')).toBe(false);
   });
 });
+
+describe('tin gửi mã khi đã có trang web', () => {
+  it('dẫn tới trang tải app kèm sẵn mã', () => {
+    const t = parentInviteText({ id: 'bo', name: 'Hùng', call: 'Bố', self: 'Con' }, '482913', '', 'https://an-tam.web.app/');
+    expect(t).toContain('https://an-tam.web.app/tai?ma=482913');
+  });
+});

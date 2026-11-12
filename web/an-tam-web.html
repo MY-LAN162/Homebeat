@@ -816,11 +816,20 @@ footer b { color: var(--pulse); }
     };
     var btn = form.querySelector('button[type=submit]'); btn.disabled = true;
     try {
-      var db = window.claude && window.claude.use ? await window.claude.use('db') : null;
-      var user = window.claude && window.claude.use ? await window.claude.use('user') : null;
-      if (!db || !user) { show('err', 'Bản xem trước này chưa nhận đăng ký được ở đây. Khi trang chạy chính thức, form sẽ lưu đăng ký của bạn.'); return; }
-      var id = await user.id();
-      await db.doc('signups/' + id).set(data);
+      if (window.claude && window.claude.use) {
+        // Bản xem trước trên claude.ai: lưu vào kho dữ liệu của trang.
+        var db = await window.claude.use('db'), user = await window.claude.use('user');
+        if (!db || !user) { show('err', 'Bản xem trước này chưa nhận đăng ký được ở đây. Khi trang chạy chính thức, form sẽ lưu đăng ký của bạn.'); return; }
+        await db.doc('signups/' + (await user.id())).set(data);
+      } else {
+        // Trang thật trên Firebase Hosting: lưu vào Firestore (bộ sưu tập signups, chỉ ghi, không ai đọc được từ web).
+        var cfg = await fetch('/__/firebase/init.json').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+        if (!cfg) { show('err', 'Chưa kết nối máy chủ đăng ký. Vui lòng thử lại sau.'); return; }
+        var app = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+        var fs = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+        var fdb = fs.getFirestore(app.initializeApp(cfg));
+        await fs.addDoc(fs.collection(fdb, 'signups'), data);
+      }
       show('ok', 'Đã nhận đăng ký của ' + name + '. Chúng tôi sẽ liên hệ qua số ' + phone + ' khi mở bản dùng thử.');
       form.reset();
     } catch (err) {

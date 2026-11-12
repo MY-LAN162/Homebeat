@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>An Tâm</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="An Tâm: nhắc bố mẹ uống thuốc, báo cho con khi cần. Chữ to, dễ dùng, miễn phí.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+<style>
+/* Trang giới thiệu và tải app An Tâm. Một cột, chữ to cho người lớn tuổi; màu lấy từ theme của app. */
+:root {
+  --bg: #F6F1E9; --card: #FFFFFF; --ink: #1F2A28; --muted: #5E6663; --line: #E7E0D4; --soft: #EFEAE1;
+  --green: #1F6F5C; --green-dark: #16503F; --green-soft: #DCEBE4; --on-green: #FFFFFF;
+  --amber-soft: #FBE9D9; --amber-dark: #7A3606; --red: #B42318;
+  --font: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141B19; --card: #1D2624; --ink: #EDE8DF; --muted: #A6AEAA; --line: #2E3936; --soft: #25302D;
+  --green: #4FB394; --green-dark: #95D8C1; --green-soft: #1B372F; --on-green: #0E1A16;
+  --amber-soft: #3A2716; --amber-dark: #F2C7A0; --red: #F07A6E; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141B19; --card: #1D2624; --ink: #EDE8DF; --muted: #A6AEAA; --line: #2E3936; --soft: #25302D;
+  --green: #4FB394; --green-dark: #95D8C1; --green-soft: #1B372F; --on-green: #0E1A16;
+  --amber-soft: #3A2716; --amber-dark: #F2C7A0; --red: #F07A6E; color-scheme: dark }
+
+* { box-sizing: border-box }
+html { -webkit-text-size-adjust: 100% }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 18px; line-height: 1.55 }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px }
+h1 { font-size: clamp(40px, 9vw, 56px); line-height: 1.05; margin: 0; font-weight: 800; letter-spacing: -0.5px }
+h2 { font-size: 26px; line-height: 1.2; margin: 0 0 12px; text-wrap: balance }
+h3 { font-size: 20px; margin: 0 0 6px }
+p { margin: 0 }
+.lead { font-size: 22px; line-height: 1.4; margin-top: 10px; text-wrap: balance; max-width: 30ch }
+.muted { color: var(--muted) }
+.mark { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; color: var(--green-dark); font-size: 17px }
+.mark svg { width: 34px; height: 34px }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 22px }
+.code { background: var(--green-soft); border: 3px solid var(--green); border-radius: 22px; padding: 22px; display: grid; gap: 8px }
+.code .digits { font-size: clamp(44px, 12vw, 64px); font-weight: 800; letter-spacing: 8px; color: var(--green-dark); font-variant-numeric: tabular-nums; line-height: 1.1 }
+
+.dl { display: grid; gap: 12px }
+.btn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 68px; border-radius: 18px; padding: 14px 20px; font: inherit; font-size: 21px; font-weight: 700; text-decoration: none; border: 2px solid transparent; cursor: pointer; text-align: center }
+.btn.primary { background: var(--green); color: var(--on-green) }
+.btn.secondary { background: var(--card); color: var(--ink); border-color: var(--line) }
+.btn[aria-disabled="true"] { opacity: .55; pointer-events: none }
+.btn:focus-visible, summary:focus-visible { outline: 3px solid var(--green); outline-offset: 3px }
+.note { background: var(--amber-soft); color: var(--amber-dark); border-radius: 16px; padding: 14px 16px; font-size: 17px }
+.qr { display: flex; gap: 18px; align-items: center; flex-wrap: wrap }
+.qr #qr { background: #FFFFFF; padding: 10px; border-radius: 12px; line-height: 0 }
+.qr #qr img, .qr #qr canvas { width: 150px; height: 150px }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px }
+@media (max-width: 620px) { .two { grid-template-columns: 1fr } }
+ol.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; counter-reset: s }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start }
+ol.steps li::before { content: counter(s); width: 40px; height: 40px; border-radius: 50%; background: var(--green); color: var(--on-green); font-weight: 800; display: grid; place-items: center; font-size: 19px }
+.who { font-size: 14px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px }
+
+.feats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px }
+@media (max-width: 620px) { .feats { grid-template-columns: 1fr } }
+.feat { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: grid; gap: 4px; align-content: start }
+.feat .ic { font-size: 28px; line-height: 1 }
+.feat p { color: var(--muted); font-size: 17px }
+
+details { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 4px 18px }
+details + details { margin-top: 10px }
+summary { cursor: pointer; font-weight: 700; padding: 14px 0; font-size: 19px; list-style: none }
+summary::-webkit-details-marker { display: none }
+summary::after { content: '＋'; float: right; color: var(--green) }
+details[open] summary::after { content: '－' }
+details p, details ol { padding-bottom: 16px; color: var(--muted); font-size: 17px }
+details ol { margin: 0; padding-left: 22px; display: grid; gap: 6px }
+
+footer { font-size: 15px; color: var(--muted); display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 18px }
+footer b { color: var(--red) }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <header>
+    <div class="mark">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="var(--green)"/><path d="M20 30s-9-5.6-9-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.4-9 12-9 12z" fill="var(--on-green)"/></svg>
+      An Tâm
+    </div>
+    <h1 style="margin-top:14px">Nhắc bố mẹ uống thuốc. Báo cho con khi cần.</h1>
+    <p class="lead muted">Cho con ở xa và bố mẹ ở nhà. Chữ to, bấm một nút là xong, miễn phí.</p>
+  </header>
+
+  <!-- Hiện khi mở từ tin nhắn có mã: an-tam.web.app/?ma=482913 -->
+  <section class="code" id="code-box" hidden aria-live="polite">
+    <div class="who" style="margin:0">Mã kết nối cho máy của bố mẹ</div>
+    <div class="digits" id="code-digits"></div>
+    <p>Cài app xong, chọn <b>“Tôi là bố, mẹ”</b> rồi nhập mã này. Mã dùng trong 24 giờ.</p>
+  </section>
+
+  <section class="card dl" aria-labelledby="dl-title">
+    <h2 id="dl-title">Tải An Tâm</h2>
+    <a class="btn primary" id="btn-android" href="#" aria-disabled="true">Tải cho điện thoại Android</a>
+    <a class="btn secondary" id="btn-ios" href="#" aria-disabled="true">Tải cho iPhone</a>
+    <p class="note" id="dl-note" hidden></p>
+    <div class="qr" id="qr-box" hidden>
+      <div id="qr" aria-label="Mã QR mở trang này trên điện thoại"></div>
+      <p class="muted" style="max-width:28ch">Đang xem trên máy tính? Dùng camera điện thoại quét mã này để mở trang và tải app.</p>
+    </div>
+    <details id="android-help">
+      <summary>Android hỏi “cài từ nguồn không rõ”?</summary>
+      <ol>
+        <li>Mở file vừa tải (An Tâm).</li>
+        <li>Máy hỏi cho phép cài từ nguồn này: bấm <b>Cài đặt</b> rồi bật <b>Cho phép</b>.</li>
+        <li>Google Play Protect báo “ứng dụng chưa xác minh”: bấm <b>Vẫn cài đặt</b>. Bước này chỉ có ở bản thử, khi An Tâm lên Google Play sẽ không còn.</li>
+        <li>Mở An Tâm.</li>
+      </ol>
+    </details>
+  </section>
+
+  <section aria-labelledby="how">
+    <h2 id="how">Bắt đầu trong 5 phút</h2>
+    <div class="two">
+      <div class="card">
+        <div class="who">Con làm</div>
+        <ol class="steps">
+          <li><div><h3>Cài An Tâm</h3><p class="muted">Chọn “Tôi là con, cháu”.</p></div></li>
+          <li><div><h3>Thêm bố mẹ</h3><p class="muted">Tên, cách gọi, số điện thoại của bạn để nhận cảnh báo.</p></div></li>
+          <li><div><h3>Thêm thuốc</h3><p class="muted">Quét đơn thuốc hoặc gõ tay, chọn giờ uống.</p></div></li>
+          <li><div><h3>Gửi mã cho bố mẹ</h3><p class="muted">Bấm “Gửi mã qua Zalo”. Bố mẹ nhập xong, bạn bấm Đồng ý.</p></div></li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="who">Bố mẹ làm</div>
+        <ol class="steps">
+          <li><div><h3>Cài An Tâm</h3><p class="muted">Hoặc nhờ con cài giúp.</p></div></li>
+          <li><div><h3>Chọn “Tôi là bố, mẹ”</h3><p class="muted">Nhập 6 số con gửi.</p></div></li>
+          <li><div><h3>Bấm “Cho phép”</h3><p class="muted">Để máy kêu nhắc uống thuốc.</p></div></li>
+          <li><div><h3>Mỗi sáng bấm “Con ơi, bố ổn”</h3><p class="muted">Các con biết bố mẹ vẫn khỏe.</p></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="feat">
+    <h2 id="feat">An Tâm làm gì</h2>
+    <div class="feats">
+      <div class="feat"><div class="ic">💊</div><h3>Nhắc uống thuốc đúng giờ</h3><p>Máy kêu và đọc to tên thuốc, số viên. Bố mẹ bấm “Đã uống”. Chưa uống thì nhắc lại 2 lần.</p></div>
+      <div class="feat"><div class="ic">🔔</div><h3>Báo cho con khi cần</h3><p>Trễ thuốc, báo không khỏe, huyết áp cao, máy bố mẹ mất tín hiệu hay hết pin: con nhận thông báo ngay.</p></div>
+      <div class="feat"><div class="ic">🆘</div><h3>Nút SOS</h3><p>Giữ 3 giây: gọi con, gửi tin nhắn kèm vị trí. Máy con hiện màn hình đỏ và nút “Con đã thấy”.</p></div>
+      <div class="feat"><div class="ic">🩺</div><h3>Đi khám dễ hơn</h3><p>Nhắc lịch khám, chuẩn bị câu hỏi, ghi lời bác sĩ thành chữ, bảng 30 ngày đưa bác sĩ xem.</p></div>
+      <div class="feat"><div class="ic">💬</div><h3>Con nhắn bố mẹ</h3><p>Lời nhắn hiện chữ thật to và tự đọc to. Bố mẹ bấm “Đã xem”, con biết ngay.</p></div>
+      <div class="feat"><div class="ic">🔠</div><h3>Chữ to, ít nút</h3><p>4 cỡ chữ cho bố mẹ chọn. Mỗi màn hình chỉ vài nút lớn, bấm nhầm thì hoàn tác được.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="faq">
+    <h2 id="faq">Hỏi đáp</h2>
+    <details><summary>Có tốn tiền không?</summary><p>Không. App miễn phí, chỉ cần điện thoại có mạng (wifi hoặc 4G) để báo cho con.</p></details>
+    <details><summary>Mất mạng thì có nhắc thuốc không?</summary><p>Có. Chuông nhắc thuốc nằm sẵn trong máy của bố mẹ, không cần mạng. Chỉ việc báo cho con mới cần mạng.</p></details>
+    <details><summary>Bố mẹ không rành điện thoại thì sao?</summary><p>Con cài và cài đặt giúp. Hằng ngày bố mẹ chỉ cần bấm “Đã uống” khi máy kêu và bấm “Con ơi, bố ổn” mỗi sáng.</p></details>
+    <details><summary>Ai xem được thông tin sức khỏe của bố mẹ?</summary><p>Chỉ các máy trong gia đình đã được bạn bấm Đồng ý. Dữ liệu trên điện thoại được mã hóa. Bạn xóa được toàn bộ dữ liệu gia đình bất cứ lúc nào trong Cài đặt.</p></details>
+    <details><summary>Có bản cho iPhone không?</summary><p id="faq-ios">Bản iPhone đang chuẩn bị. Hiện dùng được trên điện thoại Android.</p></details>
+  </section>
+
+  <footer>
+    <p><b>An Tâm không thay thế cấp cứu.</b> Khi nguy hiểm, gọi ngay 115.</p>
+    <p>An Tâm giúp nhắc lịch và báo tin trong gia đình, không thay thế tư vấn của bác sĩ, dược sĩ.</p>
+  </footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+// Link tải app. Điền khi có: link file .apk (bản thử) hoặc Google Play / App Store (bản chính thức).
+// Để trống thì nút tải mờ đi và trang ghi rõ là chưa có, không dẫn tới link sai.
+const LINKS = { android: '', ios: '' };
+
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const ua = navigator.userAgent || '';
+  const isAndroid = /Android/i.test(ua);
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document);
+  const isPhone = isAndroid || isIOS;
+
+  // Mã kết nối từ link trong tin nhắn: ?ma=482913 (hoặc #ma482913).
+  let code = '';
+  try { code = new URLSearchParams(location.search).get('ma') || ''; } catch (e) { /* bỏ qua */ }
+  if (!code) { const m = /^#ma(\d{6})$/.exec(location.hash || ''); if (m) code = m[1]; }
+  code = code.replace(/\D/g, '');
+  if (code.length === 6) {
+    $('code-digits').textContent = code.slice(0, 3) + ' ' + code.slice(3);
+    $('code-box').hidden = false;
+  }
+
+  const setBtn = (el, href) => {
+    if (href) { el.href = href; el.removeAttribute('aria-disabled'); el.rel = 'noopener'; }
+  };
+  setBtn($('btn-android'), LINKS.android);
+  setBtn($('btn-ios'), LINKS.ios);
+  if (!LINKS.ios) $('btn-ios').textContent = 'iPhone: sắp có';
+
+  // Đưa nút đúng loại máy lên trước.
+  if (isIOS) { $('btn-ios').className = 'btn primary'; $('btn-android').className = 'btn secondary'; $('btn-ios').after($('btn-android')); $('btn-ios').parentNode.insertBefore($('btn-ios'), $('btn-android')); }
+  if (!isAndroid) $('android-help').hidden = !LINKS.android;
+
+  const note = $('dl-note');
+  if (!LINKS.android && !LINKS.ios) {
+    note.textContent = 'Link tải đang được cập nhật. Trong lúc chờ, nhờ người nhà gửi file cài An Tâm qua Zalo.';
+    note.hidden = false;
+  } else if (isIOS && !LINKS.ios) {
+    note.textContent = 'Bản iPhone đang chuẩn bị. Hiện dùng được trên điện thoại Android.';
+    note.hidden = false;
+  }
+
+  // Máy tính: hiện mã QR mở chính trang này trên điện thoại (giữ cả mã kết nối).
+  if (!isPhone && window.QRCode) {
+    try {
+      new QRCode($('qr'), { text: location.href.split('#')[0] + (code && !location.search ? '?ma=' + code : ''), width: 150, height: 150, colorDark: '#1F2A28', colorLight: '#FFFFFF' });
+      $('qr-box').hidden = false;
+    } catch (e) { /* không có QR vẫn dùng được trang */ }
+  }
+})();
+</script>
+</body>
+</html>

@@ -279,3 +279,13 @@ test('gói cước và mã giới thiệu: không tự đổi ngày dùng thử,
   await assertSucceeds(getDocs(collection(as('con'), 'referralCodes', 'ABCDEF', 'uses')));
   await assertFails(getDocs(collection(as('x'), 'referralCodes', 'ABCDEF', 'uses')));
 });
+
+test('đăng ký dùng thử từ web: ai cũng gửi được đúng dạng, không ai đọc được', async () => {
+  const anon = env.unauthenticatedContext().firestore();
+  const S = { name: 'Hà', phone: '0901234567', email: '', role: 'child', phoneType: 'android', plan: 'medium', ref: 'ABCDEF', at: '2026-11-12T01:00:00.000Z' };
+  await assertSucceeds(setDoc(doc(anon, 'signups', 's1'), S));
+  await assertFails(setDoc(doc(anon, 'signups', 's2'), { ...S, name: '' }));
+  await assertFails(setDoc(doc(anon, 'signups', 's3'), { ...S, admin: true }));
+  await assertFails(getDoc(doc(anon, 'signups', 's1')));
+  await assertFails(getDoc(doc(as('con'), 'signups', 's1')));
+});
