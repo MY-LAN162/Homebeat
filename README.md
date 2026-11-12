@@ -184,6 +184,16 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 
 **Cách quyết định tiếp:** thử với 5–10 gia đình trong 2 tuần, xem màn hình *Mức sử dụng app* (tỷ lệ uống đúng giờ, số lần phải nhắc lại, màn hình nào không ai mở), rồi giữ, bỏ hoặc làm tiếp theo số liệu.
 
+## Gói cước và giới thiệu bạn bè trong app (12/11/2026)
+
+- `src/domain/billing.ts`: dùng thử 30 ngày; giá Nhỏ 89.000đ / Vừa 119.000đ / Lớn 179.000đ (năm: trả 10 tháng); mỗi gia đình một **mã giới thiệu 6 ký tự** (không có 0, O, 1, I). Giảm **10%** cho gia đình được giới thiệu, **5%** cho người giới thiệu, trong 2 tháng đầu sau khi gia đình được giới thiệu bắt đầu trả phí. Giới thiệu nhiều nhà: không cộng %, mỗi nhà thêm 2 tháng giảm 5%. Hai loại giảm không cộng nhau (lấy mức cao hơn). Gói năm chỉ giảm phần 2 tháng đầu.
+- Màn hình **Gia đình › 🎁 Gói của gia đình và giới thiệu bạn bè**: còn bao nhiêu ngày dùng thử, chọn gói (theo tháng / năm, giá đã trừ giảm), mã của gia đình + nút gửi qua Zalo, nhập mã của người quen. Trang chủ con nhắc khi còn ≤ 5 ngày dùng thử.
+- Máy chủ: `families/{id}/meta/billing`, `referralCodes/{mã}`, `referralCodes/{mã}/uses/{mã nhà được giới thiệu}`. Quy tắc: không đổi được ngày dùng thử / mã của mình / mã đã nhập; chỉ ghi được lượt giới thiệu khi gói của mình thật sự đã nhập mã đó.
+- **Chưa thu tiền thật**: `src/services/purchases.ts` báo "sắp mở thanh toán" cho tới khi có tài khoản Google Play Console (25 USD) / Apple Developer (99 USD/năm), tạo gói đăng ký đúng mã `antam.<gói>.<month|year>` và thêm thư viện thanh toán. `BILLING_ENFORCED = false`: chưa khóa tính năng nào. Khi bật: SOS và chuông nhắc thuốc trên máy bố mẹ **không bao giờ bị khóa**.
+- Giới hạn cần biết: Google Play / App Store không cho tự giảm giá một gói đang gia hạn; phần giảm 5% cho người giới thiệu sẽ phải làm bằng "ưu đãi" của cửa hàng hoặc tặng thêm ngày dùng (quyết khi mở cửa hàng). Ghi "đã trả" hiện do máy ghi sau khi cửa hàng báo thành công; khi có Cloud Functions (gói Blaze) nên để máy chủ kiểm tra hóa đơn.
+
+Trang **KeenDigital** (https://claude.ai/artifact/3xCLyN8phvqnebfcay3qLv): phần Homebeat dài đã rút thành một thẻ **An Tâm** (giá từ 89.000đ, dùng thử 30 ngày, −10% / −5%, SOS 0đ) dẫn sang trang sản phẩm; bỏ nút đổi tiền tệ; điều khoản sửa "dùng thử 30 ngày", "máy tự đọc đơn thuốc".
+
 ## Trang web sản phẩm (12/11/2026)
 
 - Bản xem trước: https://claude.ai/artifact/HF7CpDnLQPgve1Dcmec7tj (nguồn: `web/an-tam-web.html`). Tên **An Tâm**, giá 89.000 / 119.000 / 179.000đ mỗi tháng (theo năm: trả 10 tháng), dùng thử **30 ngày**, SOS miễn phí mãi mãi.
