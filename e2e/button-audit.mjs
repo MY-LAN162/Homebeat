@@ -97,7 +97,10 @@ const SCREENS = [
 const LIST = () => [...document.querySelectorAll('[role="button"],[role="checkbox"],[role="link"],button,a[href]')]
   .filter((e) => { const r = e.getBoundingClientRect(); const st = getComputedStyle(e); return r.width > 4 && r.height > 4 && st.visibility !== 'hidden' && !e.closest('[aria-hidden="true"]'); })
   .map((e) => ({ label: (e.getAttribute('aria-label') || e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90), disabled: e.getAttribute('aria-disabled') === 'true' || e.hasAttribute('disabled'), role: e.getAttribute('role') || e.tagName.toLowerCase() }));
-const TEXT = () => [...document.querySelectorAll('div,span')].filter((e) => e.childElementCount === 0 && e.textContent.trim() && e.getBoundingClientRect().width > 0).map((e) => e.textContent.trim()).join('\n');
+const TEXT = () => document.body.innerText;
+// Trạng thái nhìn thấy của nút: đã chọn / màu nền / màu viền (nút chọn thường chỉ đổi màu, không đổi chữ).
+const LOOK = (el) => { const st = getComputedStyle(el); const inner = el.firstElementChild ? getComputedStyle(el.firstElementChild) : st;
+  return [el.getAttribute('aria-checked'), el.getAttribute('aria-selected'), el.getAttribute('aria-pressed'), st.backgroundColor, st.borderColor, inner.backgroundColor, inner.color].join('|'); };
 
 const result = [];
 for (const [name, state, route] of SCREENS) {
@@ -123,11 +126,13 @@ for (const [name, state, route] of SCREENS) {
         .filter((e) => { const r = e.getBoundingClientRect(); const st = getComputedStyle(e); return r.width > 4 && r.height > 4 && st.visibility !== 'hidden' && !e.closest('[aria-hidden="true"]'); }));
       const el = await handles.evaluateHandle((arr, k) => arr[k], i);
       await el.asElement().scrollIntoViewIfNeeded().catch(() => undefined);
+      const lookBefore = await el.evaluate(new Function('el', 'return (' + LOOK.toString() + ')(el)'));
       await el.asElement().click({ timeout: 4000 });
       await t.p.waitForTimeout(900);
       await t.p.clock.runFor(1500).catch(() => undefined);
       const after = { url: t.p.url(), text: await t.p.evaluate(TEXT) };
       const ext = await t.p.evaluate(() => window.__ext);
+      const lookAfter = await el.evaluate(new Function('el', 'return el.isConnected ? (' + LOOK.toString() + ')(el) : ""')).catch(() => '');
       const path0 = new URL(before.url).pathname, path1 = new URL(after.url).pathname + new URL(after.url).search;
       const added = after.text.split('\n').filter((x) => !before.text.includes(x)).slice(0, 2).join(' | ');
       if (t.p.__errs.length) { outcome = 'LỖI: ' + t.p.__errs[0].slice(0, 120); kind = 'error'; }
@@ -135,6 +140,7 @@ for (const [name, state, route] of SCREENS) {
       else if (ext.length) { outcome = ext[0]; kind = 'external'; }
       else if (new URL(after.url).pathname !== path0) { outcome = 'mở ' + path1; kind = 'nav'; }
       else if (after.text !== before.text) { outcome = 'đổi trên màn hình' + (added ? ': ' + added.slice(0, 110) : ''); kind = 'change'; }
+      else if (lookAfter && lookAfter !== lookBefore) { outcome = 'được chọn (đổi màu)'; kind = 'select'; }
       else { outcome = 'không thấy thay đổi'; kind = 'none'; }
     } catch (e) {
       outcome = 'không bấm được: ' + String(e.message).split('\n')[0].slice(0, 100); kind = 'error';
