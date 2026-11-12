@@ -6,6 +6,7 @@
 //
 // Chưa điền cấu hình Firebase (.env) thì app chạy như trước: chỉ lưu trên máy.
 import type { RemoteSnapshot, SyncWrite } from '../domain/syncdiff';
+import type { Billing, ReferralUse } from '../domain/billing';
 import type { AlertSettings, AppData, Pairing, Role } from '../domain/types';
 
 /** Lỗi khi bố mẹ nhập mã kết nối. */
@@ -99,6 +100,16 @@ export interface FamilySync {
   readSchedule(familyId: string): Promise<{ medications: AppData['medications']; appointments: AppData['appointments']; settings?: AlertSettings }>;
   /** Đọc một lần sự kiện từ `sinceIso` (uống thuốc, điểm danh, huyết áp): máy con làm tóm tắt buổi tối khi chạy nền. */
   readEvents(familyId: string, sinceIso: string): Promise<Pick<AppData, 'doseLogs' | 'checkins' | 'bpReadings'>>;
+  /** Gói cước của gia đình (families/{id}/meta/billing) và các lượt giới thiệu thành công. Trả về hàm hủy. */
+  watchBilling(familyId: string, onData: (b: Billing | undefined, uses: ReferralUse[]) => void): () => void;
+  /** Tạo gói dùng thử và mã giới thiệu cho gia đình (một lần). Mã trùng thì thử mã khác. Trả về bản đã lưu. */
+  initBilling(familyId: string, trialStart: string): Promise<Billing>;
+  /** Cập nhật gói (mã giới thiệu đã nhập, gói đã trả). */
+  updateBilling(familyId: string, patch: Partial<Billing>): Promise<void>;
+  /** Mã giới thiệu có thật không (của một gia đình khác). */
+  refCodeExists(code: string): Promise<boolean>;
+  /** Gia đình được giới thiệu vừa trả phí lần đầu: ghi một lượt cho gia đình đã giới thiệu. */
+  recordReferralPaid(referrerCode: string, myCode: string, paidAt: string): Promise<void>;
   /** Ghi thông tin máy này (vai trò, mã nhận thông báo). */
   registerDevice(familyId: string, info: DeviceInfo): Promise<void>;
   /**

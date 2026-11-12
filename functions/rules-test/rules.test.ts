@@ -250,3 +250,32 @@ test('nhịp còn sống có cờ tắt thông báo; cài đặt có giờ nhắ
   await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { settings: { lateMinutes: 30, bpRemind: '07:00' } }));
   await assertFails(updateDoc(doc(as('con'), 'families', FAM), { settings: { lateMinutes: 30, bpRemind: '7h' } }));
 });
+
+test('gói cước và mã giới thiệu: không tự đổi ngày dùng thử, không ghi lượt giới thiệu giả', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'families', 'f2'), { ownerUid: 'x', uids: ['x'] });
+  });
+  // Mã giới thiệu: chỉ tạo cho gia đình của mình.
+  await assertSucceeds(setDoc(doc(as('con'), 'referralCodes', 'ABCDEF'), { familyId: FAM, createdBy: 'con' }));
+  await assertFails(setDoc(doc(as('la'), 'referralCodes', 'GHJKLM'), { familyId: FAM, createdBy: 'la' }));
+  await assertFails(setDoc(doc(as('con'), 'referralCodes', 'ABCDEF'), { familyId: FAM, createdBy: 'con' })); // không tạo đè
+  await assertFails(setDoc(doc(as('con'), 'referralCodes', 'ABC0EF'), { familyId: FAM, createdBy: 'con' })); // ký tự dễ nhầm
+  await assertSucceeds(getDoc(doc(as('x'), 'referralCodes', 'ABCDEF')));
+  // Gói: mã phải là của gia đình mình; ngày dùng thử, mã không đổi được; mã đã nhập không đổi sang mã khác.
+  const bill = doc(as('con'), 'families', FAM, 'meta', 'billing');
+  await assertFails(setDoc(bill, { trialStart: '2026-11-01T00:00:00.000Z', refCode: 'ZZZZZZ' }));
+  await assertSucceeds(setDoc(bill, { trialStart: '2026-11-01T00:00:00.000Z', refCode: 'ABCDEF' }));
+  await assertFails(updateDoc(bill, { trialStart: '2030-01-01T00:00:00.000Z' }));
+  await assertSucceeds(getDoc(doc(as('bo'), 'families', FAM, 'meta', 'billing')));
+  await assertFails(getDoc(doc(as('x'), 'families', FAM, 'meta', 'billing')));
+  // Gia đình f2 nhập mã ABCDEF rồi trả phí: ghi được một lượt; gia đình FAM đọc được, người khác không.
+  await assertSucceeds(setDoc(doc(as('x'), 'referralCodes', 'XYZWVU'), { familyId: 'f2', createdBy: 'x' }));
+  const bill2 = doc(as('x'), 'families', 'f2', 'meta', 'billing');
+  await assertSucceeds(setDoc(bill2, { trialStart: '2026-11-01T00:00:00.000Z', refCode: 'XYZWVU' }));
+  await assertFails(setDoc(doc(as('x'), 'referralCodes', 'ABCDEF', 'uses', 'XYZWVU'), { code: 'XYZWVU', paidAt: '2026-12-01T00:00:00.000Z' })); // chưa nhập mã
+  await assertSucceeds(updateDoc(bill2, { referredBy: 'ABCDEF' }));
+  await assertFails(updateDoc(bill2, { referredBy: 'GHJKLM' }));
+  await assertSucceeds(setDoc(doc(as('x'), 'referralCodes', 'ABCDEF', 'uses', 'XYZWVU'), { code: 'XYZWVU', paidAt: '2026-12-01T00:00:00.000Z' }));
+  await assertSucceeds(getDocs(collection(as('con'), 'referralCodes', 'ABCDEF', 'uses')));
+  await assertFails(getDocs(collection(as('x'), 'referralCodes', 'ABCDEF', 'uses')));
+});

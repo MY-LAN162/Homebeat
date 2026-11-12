@@ -27,6 +27,8 @@ import { checkAndAlert } from '../services/checkAndAlert';
 import { readSecure, writeSecure } from '../services/vault';
 import { sendPush } from '../services/push';
 import { scheduleKey } from '../domain/background';
+import { canEnterReferral, extendPaid, makeRefCode, normalizeRefCode, type Period, type PlanId } from '../domain/billing';
+import { buy } from '../services/purchases';
 import { dateKey } from '../domain/time';
 import { BASE_KEY, BG_SCHED_KEY, DATA_KEY } from './keys';
 import { getPushToken, rescheduleMedReminders } from '../services/notifications';
@@ -106,6 +108,10 @@ interface Store {
   sendMessage: (memberId: string, text: string, from: string) => void;
   /** Máy bố mẹ: bấm "Đã xem" lời nhắn. */
   markMessageSeen: (id: string) => void;
+  /** Nhập mã giới thiệu của gia đình khác (trước lần trả phí đầu). */
+  enterReferral: (code: string) => Promise<{ ok: true } | { ok: false; reason: string }>;
+  /** Trả phí một gói qua Google Play / App Store. */
+  purchase: (plan: PlanId, period: Period) => Promise<'ok' | 'not-ready' | 'cancelled' | 'error'>;
   upsertAppointment: (a: Omit<Appointment, 'id'> & { id?: string }) => void;
   updateSettings: (patch: Partial<AlertSettings>) => void;
   /** Con bấm "ổn rồi, tắt cảnh báo" (chỉ ẩn trong hôm nay, trên máy này). */
@@ -215,6 +221,27 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
       }
     });
   }, [ready, sync, pending]);
+
+  // Gói cước: nghe bản trên máy chủ; máy của con tạo gói dùng thử + mã giới thiệu nếu gia đình chưa có.
+  // Chưa nối máy chủ (hoặc dữ liệu mẫu): giữ gói trên máy.
+  const isChild = data.role === 'child';
+  const hasBilling = !!data.billing;
+  useEffect(() => {
+    if (!ready || !isChild) return;
+    if (!sync || !familyId || data.demo) {
+      if (hasBilling) return;
+      const t = setTimeout(() => setData((d) => (d.billing ? d : { ...d, billing: { trialStart: d.consentAt ?? new Date().toISOString(), refCode: makeRefCode() } })), 0);
+      return () => clearTimeout(t);
+    }
+    let created = false;
+    return sync.watchBilling(familyId, (b, uses) => {
+      if (b) setData((d) => ({ ...d, billing: b, refUses: uses }));
+      else if (!created) {
+        created = true;
+        sync.initBilling(familyId, new Date().toISOString()).catch(() => undefined);
+      }
+    });
+  }, [ready, sync, familyId, isChild, data.demo, hasBilling]);
 
   // Máy trong gia đình: nghe các yêu cầu vào gia đình đang chờ đồng ý.
   useEffect(() => {
@@ -505,6 +532,34 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
         update((d) => ({ ...d, myName: from, messages: [...(d.messages ?? []), { id: newId('msg'), memberId, from, text: t, at: iso() }] }));
         const m = data.members.find((x) => x.id === memberId);
         if (m) alertParent(m.id, messagePush(m, from, t));
+      },
+      enterReferral: async (input) => {
+        const code = normalizeRefCode(input);
+        const b = data.billing;
+        if (!b) return { ok: false, reason: 'Chưa tải xong thông tin gói, thử lại sau.' };
+        const chk = canEnterReferral(b, code);
+        if (!chk.ok) return chk;
+        if (sync && familyId && !data.demo) {
+          if (!(await sync.refCodeExists(code))) return { ok: false, reason: 'Không tìm thấy mã này. Kiểm tra lại từng chữ.' };
+          await sync.updateBilling(familyId, { referredBy: code });
+        }
+        update((d) => (d.billing ? { ...d, billing: { ...d.billing, referredBy: code } } : d));
+        return { ok: true };
+      },
+      purchase: async (plan, period) => {
+        const b = data.billing;
+        if (!b) return 'error';
+        const r = await buy(plan, period);
+        if (!r.ok) return r.reason;
+        const at = new Date(r.at);
+        const patch = { plan, period, paidUntil: extendPaid(b, period, at), firstPaidAt: b.firstPaidAt ?? r.at };
+        if (sync && familyId && !data.demo) {
+          await sync.updateBilling(familyId, patch);
+          // Lần trả đầu của gia đình được giới thiệu: ghi một lượt cho gia đình đã giới thiệu (họ được giảm 5%).
+          if (!b.firstPaidAt && b.referredBy) await sync.recordReferralPaid(b.referredBy, b.refCode, r.at).catch(() => undefined);
+        }
+        update((d) => (d.billing ? { ...d, billing: { ...d.billing, ...patch } } : d));
+        return 'ok';
       },
       markMessageSeen: (id) =>
         update((d) => ({ ...d, messages: (d.messages ?? []).map((x) => (x.id === id && !x.seenAt ? { ...x, seenAt: iso() } : x)) })),

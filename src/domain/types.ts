@@ -1,3 +1,4 @@
+import type { Billing, ReferralUse } from './billing';
 // Kiểu dữ liệu chính của An Tâm (Homebeat).
 
 export type Role = 'child' | 'parent';
@@ -204,6 +205,10 @@ export interface AppData {
   appLock?: boolean;
   /** Những gì người dùng đã bấm xóa trên máy này, dạng "medications/<id>" (để chỉ xóa đúng chúng trên máy chủ). */
   deleted?: string[];
+  /** Gói cước của gia đình (bản trên máy; bản gốc ở families/{id}/meta/billing). */
+  billing?: Billing;
+  /** Các gia đình mình đã giới thiệu đã bắt đầu trả phí (để tính phần giảm 5%). */
+  refUses?: ReferralUse[];
 }
 
 export const DEFAULT_SETTINGS: AlertSettings = {

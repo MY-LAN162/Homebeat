@@ -46,6 +46,7 @@ export default function ChildFamily() {
       <H1 size={26}>Gia đình</H1>
 
       <JoinRequests />
+      <Btn variant="secondary" label="🎁 Gói của gia đình và giới thiệu bạn bè" height={50} size={15} onPress={() => router.push('/child/plan')} />
       <T size={13} weight="700" color={colors.muted}>NGƯỜI ĐƯỢC CHĂM SÓC</T>
       {data.members.map((m) => {
         // Chỉ hiện mã còn hạn và chưa dùng (dùng rồi thì đã xóa khi con bấm Đồng ý).

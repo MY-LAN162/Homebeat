@@ -6,6 +6,7 @@ import { alertKey, familyAlerts, memberAlerts, memberStatus, type FamilyAlert } 
 import { daysOfStock, slotsForDay } from '../../domain/schedule';
 import { JoinRequests } from '../../components/JoinRequests';
 import { NotifCard } from '../../components/NotifCard';
+import { entitlement } from '../../domain/billing';
 import { Restock } from '../../components/Restock';
 import { dateKey, formatShortDate, hm } from '../../domain/time';
 import type { Member } from '../../domain/types';
@@ -64,6 +65,7 @@ export default function ChildHome() {
   const lowMeds = data.medications
     .map((med) => ({ med, days: daysOfStock(med), who: data.members.find((x) => x.id === med.memberId)?.call.toLowerCase() ?? '' }))
     .filter((x): x is { med: typeof x.med; days: number; who: string } => x.days != null && x.days <= 5);
+  const trial = data.billing ? entitlement(data.billing, now) : undefined;
   const me = [...data.caregivers].sort((a, b) => a.order - b.order)[0];
 
   return (
@@ -79,6 +81,17 @@ export default function ChildHome() {
       )}
 
       <NotifCard />
+
+      {trial && trial.state !== 'active' && trial.daysLeft <= 5 && (
+        <Pressable accessibilityRole="button" onPress={() => router.push('/child/plan')}>
+          <Card style={{ gap: 4, backgroundColor: colors.blueSoft }}>
+            <T size={15} weight="700" color={colors.blueDark}>
+              {trial.state === 'trial' ? `Còn ${trial.daysLeft} ngày dùng thử miễn phí` : 'Đã hết thời gian dùng thử'}
+            </T>
+            <T size={14} color={colors.blueDark}>Xem gói của gia đình và mã giới thiệu ›</T>
+          </Card>
+        </Pressable>
+      )}
 
       <JoinRequests />
 

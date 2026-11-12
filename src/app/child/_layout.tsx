@@ -35,6 +35,7 @@ export default function ChildLayout() {
       <Tabs.Screen name="usage" options={{ href: null }} />
       <Tabs.Screen name="devices" options={{ href: null }} />
       <Tabs.Screen name="message" options={{ href: null }} />
+      <Tabs.Screen name="plan" options={{ href: null }} />
     </Tabs>
   );
 }

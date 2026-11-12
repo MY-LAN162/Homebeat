@@ -75,6 +75,14 @@ service cloud.firestore {
           && d.id == id && str(d.memberId, 80) && str(d.from, 60) && str(d.text, 200) && d.text.size() > 0
           && str(d.at, 40) && optStr(d, 'seenAt', 40));
     }
+    function validBilling(b) {
+      return b.keys().hasOnly(['trialStart', 'refCode', 'referredBy', 'plan', 'period', 'paidUntil', 'firstPaidAt'])
+        && str(b.trialStart, 40) && b.refCode is string && b.refCode.matches('^[A-HJ-NP-Z2-9]{6}$')
+        && (!('referredBy' in b) || (b.referredBy is string && b.referredBy.matches('^[A-HJ-NP-Z2-9]{6}$') && b.referredBy != b.refCode))
+        && (!('plan' in b) || b.plan in ['small', 'medium', 'large'])
+        && (!('period' in b) || b.period in ['m', 'y'])
+        && optStr(b, 'paidUntil', 40) && optStr(b, 'firstPaidAt', 40);
+    }
     function validSettings(s) {
       return s is map
         && s.keys().hasOnly(['lateMinutes', 'stillHours', 'checkinBy', 'bpSys', 'bpDia', 'excludeSleep', 'sleepStart', 'sleepEnd', 'timeZone', 'autoSpeak', 'bpRemind'])
@@ -187,6 +195,21 @@ service cloud.firestore {
         allow delete: if signedIn() && (isOwner(familyId)
           || (request.auth.uid == uid && (resource.data.status != 'approved' || !isMember(familyId))));
       }
+      // Gói cước của gia đình. Người trong gia đình đọc / ghi; ngày bắt đầu dùng thử và mã giới thiệu
+      // không đổi được; mã giới thiệu đã nhập thì không đổi sang mã khác.
+      // Lưu ý: gói đã trả (paidUntil) do máy ghi sau khi Google Play / App Store báo thanh toán xong.
+      // Khi bật Cloud Functions (gói Blaze) nên chuyển phần này sang máy chủ kiểm tra hóa đơn.
+      match /meta/billing {
+        allow read: if isMember(familyId);
+        allow create: if isMember(familyId) && validBilling(request.resource.data)
+          && exists(/databases/$(database)/documents/referralCodes/$(request.resource.data.refCode))
+          && get(/databases/$(database)/documents/referralCodes/$(request.resource.data.refCode)).data.familyId == familyId;
+        allow update: if isMember(familyId) && validBilling(request.resource.data)
+          && request.resource.data.trialStart == resource.data.trialStart
+          && request.resource.data.refCode == resource.data.refCode
+          && (!('referredBy' in resource.data) || request.resource.data.referredBy == resource.data.referredBy);
+        allow delete: if isOwner(familyId);
+      }
       // sentAlerts: chỉ máy chủ dùng (chống gửi trùng, khi bật Cloud Functions).
     }
 
@@ -203,6 +226,28 @@ service cloud.firestore {
       // Liệt kê mã của gia đình mình (để xóa hết khi xóa gia đình).
       allow list: if isMember(resource.data.familyId);
       allow delete: if isMember(resource.data.familyId);
+    }
+
+    // Mã giới thiệu: mỗi gia đình một mã. Ai đăng nhập cũng kiểm tra được mã có thật (get), không ai liệt kê được.
+    // Tạo đè mã đang có bị tính là sửa → bị từ chối, app tự thử mã khác.
+    match /referralCodes/{code} {
+      allow create: if signedIn() && code.matches('^[A-HJ-NP-Z2-9]{6}$')
+        && request.resource.data.keys().hasOnly(['familyId', 'createdBy'])
+        && request.resource.data.createdBy == request.auth.uid
+        && isMember(request.resource.data.familyId);
+      allow get: if signedIn();
+      allow delete: if isMember(resource.data.familyId);
+      // Một lượt giới thiệu thành công: gia đình được giới thiệu tự ghi khi trả phí lần đầu (mã của họ làm mã tài liệu).
+      // Chỉ ghi được nếu gói của họ thật sự đã nhập mã này. Gia đình đã giới thiệu đọc được để tính phần giảm 5%.
+      match /uses/{useCode} {
+        allow create: if signedIn()
+          && request.resource.data.keys().hasOnly(['code', 'paidAt'])
+          && request.resource.data.code == useCode && str(request.resource.data.paidAt, 40)
+          && exists(/databases/$(database)/documents/referralCodes/$(useCode))
+          && isMember(get(/databases/$(database)/documents/referralCodes/$(useCode)).data.familyId)
+          && get(/databases/$(database)/documents/families/$(get(/databases/$(database)/documents/referralCodes/$(useCode)).data.familyId)/meta/billing).data.referredBy == code;
+        allow read: if isMember(get(/databases/$(database)/documents/referralCodes/$(code)).data.familyId);
+      }
     }
 
     // pairingAttempts: chỉ máy chủ dùng (giới hạn số lần nhập mã).

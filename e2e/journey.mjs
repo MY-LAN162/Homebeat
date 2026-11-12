@@ -163,6 +163,16 @@ p.on('pageerror', (e) => errs.push(e.message));
     await p.mouse.move(195, 500); await p.mouse.wheel(0, 4000); await p.waitForTimeout(300); await expectScreen(/Cách ngày · Theo đợt: còn 7 ngày/);
   });
   await step('Tab Gia đình', async () => { await tab('Gia đình'); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
+  await step('Gia đình › Gói của gia đình: đang dùng thử, có mã giới thiệu; mã sai bị báo; mã của chính mình bị từ chối', async () => {
+    await tap('🎁 Gói của gia đình và giới thiệu bạn bè'); await expectScreen(/Đang dùng thử miễn phí · còn \d+ ngày/);
+    await expectScreen('Mã giới thiệu của gia đình bạn'); await expectScreen('119.000đ');
+    const own = await p.evaluate(() => [...document.querySelectorAll('div')].map((d) => d.textContent.trim()).find((t) => /^[A-HJ-NP-Z2-9]{6}$/.test(t)));
+    await p.getByRole('textbox', { name: 'Mã giới thiệu (6 ký tự)' }).fill('ABC');
+    await tap('Áp dụng mã', { exact: true }); await expectScreen(/Mã gồm 6 chữ và số/);
+    await p.getByRole('textbox', { name: 'Mã giới thiệu (6 ký tự)' }).fill(own);
+    await tap('Áp dụng mã', { exact: true }); await expectScreen('Đây là mã của chính gia đình bạn.');
+    await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC');
+  });
   await step('Gia đình › Cài đặt › Quay lại về Gia đình', async () => { await tap('Cài đặt (cảnh báo, cỡ chữ)'); await expectScreen('Cỡ chữ trên máy này'); await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
   await step('Cài đặt › Mức sử dụng › Quay lại về Cài đặt', async () => { await tap('Cài đặt (cảnh báo, cỡ chữ)'); await tap('Mức sử dụng app (thử nghiệm)'); await expectScreen('Mức sử dụng app'); await back(); await expectScreen('Cỡ chữ trên máy này'); await back(); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });
   await step('Cài đặt › chọn chữ "Rất lớn" thì chữ to lên, chọn lại "Bình thường"', async () => {

@@ -18,6 +18,7 @@ import {
   type RemoteSnapshot,
   type SyncWrite,
 } from '../domain/syncdiff';
+import { makeRefCode, type Billing, type ReferralUse } from '../domain/billing';
 import type { AlertSettings, AppData, Pairing, Role } from '../domain/types';
 import * as fb from './fbsdk';
 import { SyncError, type DeviceInfo, type FamilyDevice, type FamilySync, type JoinRequest } from './sync';
@@ -277,6 +278,74 @@ export class FirebaseSync implements FamilySync {
       checkins: checkins as AppData['checkins'],
       bpReadings: bpReadings as AppData['bpReadings'],
     };
+  }
+
+  watchBilling(familyId: string, onData: (b: Billing | undefined, uses: ReferralUse[]) => void): () => void {
+    let billing: Billing | undefined;
+    let uses: ReferralUse[] = [];
+    let unUses: (() => void) | undefined;
+    const un = fb.onSnapshot(
+      fb.doc(this.db, 'families', familyId, 'meta', 'billing'),
+      (s) => {
+        billing = s.exists() ? (s.data() as Billing) : undefined;
+        onData(billing, uses);
+        if (billing?.refCode && !unUses) {
+          unUses = fb.onSnapshot(
+            fb.collection(this.db, 'referralCodes', billing.refCode, 'uses'),
+            (qs) => {
+              uses = qs.docs.map((d) => d.data() as ReferralUse);
+              onData(billing, uses);
+            },
+            () => undefined,
+          );
+        }
+      },
+      () => undefined,
+    );
+    return () => {
+      un();
+      unUses?.();
+    };
+  }
+
+  async initBilling(familyId: string, trialStart: string): Promise<Billing> {
+    const uid = await this.signIn();
+    const ref = fb.doc(this.db, 'families', familyId, 'meta', 'billing');
+    const cur = await fb.getDoc(ref);
+    if (cur.exists()) return cur.data() as Billing;
+    // Mã đã có người dùng thì máy chủ từ chối (luật chỉ cho tạo mới) → thử mã khác.
+    for (let i = 0; i < 5; i++) {
+      const refCode = makeRefCode();
+      try {
+        await fb.setDoc(fb.doc(this.db, 'referralCodes', refCode), { familyId, createdBy: uid });
+      } catch (e) {
+        if ((e as { code?: string }).code !== 'permission-denied' || i === 4) throw e;
+        continue;
+      }
+      const b: Billing = { trialStart, refCode };
+      await fb.setDoc(ref, b);
+      return b;
+    }
+    throw new Error('không tạo được mã giới thiệu');
+  }
+
+  async updateBilling(familyId: string, patch: Partial<Billing>): Promise<void> {
+    await this.signIn();
+    await fb.setDoc(fb.doc(this.db, 'families', familyId, 'meta', 'billing'), patch, { merge: true });
+  }
+
+  async refCodeExists(code: string): Promise<boolean> {
+    await this.signIn();
+    try {
+      return (await fb.getDoc(fb.doc(this.db, 'referralCodes', code))).exists();
+    } catch {
+      return false;
+    }
+  }
+
+  async recordReferralPaid(referrerCode: string, myCode: string, paidAt: string): Promise<void> {
+    await this.signIn();
+    await fb.setDoc(fb.doc(this.db, 'referralCodes', referrerCode, 'uses', myCode), { code: myCode, paidAt });
   }
 
   async registerDevice(familyId: string, info: DeviceInfo): Promise<void> {

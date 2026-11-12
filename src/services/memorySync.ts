@@ -2,6 +2,7 @@
 // (mô phỏng hai máy: con và bố mẹ, dùng chung một "máy chủ").
 import { createPairing, checkCode } from '../domain/pairing';
 import { COLLECTIONS, type CollectionName, type RemoteSnapshot, type SyncWrite } from '../domain/syncdiff';
+import { makeRefCode, type Billing, type ReferralUse } from '../domain/billing';
 import type { AlertSettings, AppData, Pairing, Role } from '../domain/types';
 import { SyncError, type DeviceInfo, type FamilyDevice, type FamilySync, type JoinRequest } from './sync';
 
@@ -24,6 +25,9 @@ export class MemoryServer {
   codes = new Map<string, Pairing & { familyId: string; role: Role }>();
   accounts = new Map<string, { uid: string; password: string }>();
   listeners = new Map<string, Set<Listener>>();
+  billing = new Map<string, Billing>();
+  refCodes = new Map<string, string>();
+  refUses = new Map<string, Map<string, ReferralUse>>();
   reqListeners = new Map<string, Set<() => void>>();
 
   notifyRequests(familyId: string) {
@@ -190,6 +194,54 @@ export class MemorySync implements FamilySync {
       checkins: read('checkins') as AppData['checkins'],
       bpReadings: read('bpReadings') as AppData['bpReadings'],
     };
+  }
+
+  watchBilling(familyId: string, onData: (b: Billing | undefined, uses: ReferralUse[]) => void) {
+    const f = this.server.families.get(familyId);
+    const fn = () => {
+      const b = this.server.billing.get(familyId);
+      onData(b ? clone(b) : undefined, b ? [...(this.server.refUses.get(b.refCode)?.values() ?? [])].map((u) => clone(u)) : []);
+    };
+    const set = this.server.reqListeners.get(familyId) ?? new Set();
+    set.add(fn);
+    this.server.reqListeners.set(familyId, set);
+    if (f) fn();
+    return () => void set.delete(fn);
+  }
+
+  async initBilling(familyId: string, trialStart: string) {
+    this.server.family(familyId, this.uid);
+    const cur = this.server.billing.get(familyId);
+    if (cur) return clone(cur);
+    let refCode = makeRefCode();
+    while (this.server.refCodes.has(refCode)) refCode = makeRefCode();
+    this.server.refCodes.set(refCode, familyId);
+    const b: Billing = { trialStart, refCode };
+    this.server.billing.set(familyId, b);
+    this.server.notifyRequests(familyId);
+    return clone(b);
+  }
+
+  async updateBilling(familyId: string, patch: Partial<Billing>) {
+    this.server.family(familyId, this.uid);
+    const cur = this.server.billing.get(familyId);
+    if (!cur) throw new Error('not-found');
+    if ((patch.trialStart && patch.trialStart !== cur.trialStart) || (patch.refCode && patch.refCode !== cur.refCode)) throw new Error('permission-denied');
+    if (patch.referredBy && cur.referredBy && patch.referredBy !== cur.referredBy) throw new Error('permission-denied');
+    this.server.billing.set(familyId, { ...cur, ...patch });
+    this.server.notifyRequests(familyId);
+  }
+
+  async refCodeExists(code: string) {
+    return this.server.refCodes.has(code);
+  }
+
+  async recordReferralPaid(referrerCode: string, myCode: string, paidAt: string) {
+    const m = this.server.refUses.get(referrerCode) ?? new Map<string, ReferralUse>();
+    m.set(myCode, { code: myCode, paidAt });
+    this.server.refUses.set(referrerCode, m);
+    const fam = this.server.refCodes.get(referrerCode);
+    if (fam) this.server.notifyRequests(fam);
   }
 
   async parentPushTokens(familyId: string, memberId: string) {
