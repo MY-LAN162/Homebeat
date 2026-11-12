@@ -184,6 +184,13 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 
 **Cách quyết định tiếp:** thử với 5–10 gia đình trong 2 tuần, xem màn hình *Mức sử dụng app* (tỷ lệ uống đúng giờ, số lần phải nhắc lại, màn hình nào không ai mở), rồi giữ, bỏ hoặc làm tiếp theo số liệu.
 
+## Trang web sản phẩm (12/11/2026)
+
+- Bản xem trước: https://claude.ai/artifact/HF7CpDnLQPgve1Dcmec7tj (nguồn: `web/an-tam-web.html`). Tên **An Tâm**, giá 89.000 / 119.000 / 179.000đ mỗi tháng (theo năm: trả 10 tháng), dùng thử **30 ngày**, SOS miễn phí mãi mãi.
+- **Giới thiệu bạn bè** (Lan chốt): gia đình được giới thiệu giảm **10%**, người giới thiệu giảm **5%**, trong **2 tháng đầu** sau khi gia đình được giới thiệu hết dùng thử và bắt đầu trả phí. Link `?gt=MÃ` điền sẵn mã giới thiệu; `?ma=482913` hiện mã kết nối cho bố mẹ.
+- Form đăng ký: trong bản xem trước lưu vào kho dữ liệu của trang (chỉ quản trị đọc). Khi đưa lên tên miền thật cần nối Firestore. App **chưa có** phần thanh toán và mã giới thiệu: phải làm trước khi thu phí.
+- `landing/index.html`: trang ngắn chỉ để tải app và nhập mã (Firebase Hosting).
+
 ## Bổ sung lần 8 (10/11/2026): các mục còn lại từ đợt rà
 
 - **Huyết áp**: bấm vào số để gõ thẳng, giữ nút + / − để số chạy nhanh, xem 3 lần đo trước kèm câu "cao/thấp hơn lần trước". Nút "🩺 Ghi huyết áp" trên trang chủ bố mẹ.
