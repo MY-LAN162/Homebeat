@@ -1,3 +1,4 @@
+import { whenReady } from '../../components/WhenReady';
 import { useLocalSearchParams } from 'expo-router';
 import { goBack } from '../../services/nav';
 import { useState } from 'react';
@@ -19,7 +20,7 @@ const fromKey = (k: string) => {
 const daysBetween = (a: string, b: string) => Math.round((fromKey(b).getTime() - fromKey(a).getTime()) / 86400_000);
 const PRESETS = ['06:00', '07:00', '08:00', '12:00', '17:00', '19:00', '20:00', '21:00'];
 
-export default function MedEdit() {
+function MedEdit() {
   const params = useLocalSearchParams<{ id?: string; memberId?: string }>();
   const { data, upsertMedication, removeMedication } = useStore();
   const existing = data.medications.find((m) => m.id === params.id);
@@ -173,3 +174,5 @@ export default function MedEdit() {
     </Screen>
   );
 }
+
+export default whenReady(MedEdit);

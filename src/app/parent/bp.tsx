@@ -1,3 +1,4 @@
+import { whenReady } from '../../components/WhenReady';
 
 import { goBack } from '../../services/nav';
 import { useState } from 'react';
@@ -8,7 +9,7 @@ import { isBpHigh } from '../../domain/alerts';
 import { useCurrentMember, useStore } from '../../state/store';
 import { colors } from '../../theme';
 
-export default function ParentBp() {
+function ParentBp() {
   const { data, addBp } = useStore();
   const m = useCurrentMember();
   const last = [...data.bpReadings].reverse().find((r) => r.memberId === m?.id);
@@ -63,3 +64,5 @@ export default function ParentBp() {
     </Screen>
   );
 }
+
+export default whenReady(ParentBp);

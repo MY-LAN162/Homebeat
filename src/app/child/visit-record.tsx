@@ -1,3 +1,4 @@
+import { whenReady } from '../../components/WhenReady';
 import { router, useLocalSearchParams } from 'expo-router';
 import { goBack } from '../../services/nav';
 import { useEffect, useRef, useState } from 'react';
@@ -10,7 +11,7 @@ import { colors } from '../../theme';
 
 const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
-export default function VisitRecord() {
+function VisitRecord() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, upsertAppointment } = useStore();
   const a = data.appointments.find((x) => x.id === id);
@@ -147,3 +148,5 @@ export default function VisitRecord() {
     </Screen>
   );
 }
+
+export default whenReady(VisitRecord);

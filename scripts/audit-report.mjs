@@ -15,10 +15,12 @@ const EXPLAIN = [
   [/^⏷⏷/, 'Thẻ của màn hình đang mở: bấm lại thì vẫn ở đó.'],
   [/^Xóa hết$|^Xóa 1 số$/, 'Ô mã đang trống nên chưa có gì để xóa.'],
   [/^Nạp dữ liệu mẫu$/, 'Đang ở dữ liệu mẫu rồi: nạp lại vẫn giống hệt.'],
+  // Đã kiểm tra từng nút: đây là lựa chọn đang được chọn sẵn, bấm lại thì giữ nguyên.
+  [/^(Bố|Con|Bố Hùng|1 viên|Hằng ngày|Dùng lâu dài|30 ngày|Hà|Theo tháng|Bình thường|Có|Không nhắc|30 phút|3 giờ|10:00|140\/90|Lớn)$/, 'Lựa chọn đang được chọn sẵn: bấm lại thì giữ nguyên (đúng).'],
 ];
 const KIND = { nav: ['Mở màn hình', 'ok'], change: ['Đổi trên màn hình', 'ok'], select: ['Được chọn', 'ok'], dialog: ['Hỏi lại / thông báo', 'ok'], external: ['Ra ngoài app', 'ok'], disabled: ['Đang khóa', 'muted'], none: ['Không thấy thay đổi', 'warn'], error: ['Lỗi', 'bad'] };
 
-let total = 0, ok = 0, explained = 0, bad = 0, disabled = 0;
+let total = 0, ok = 0, explained = 0, bad = 0, disabled = 0, fixed = 0;
 const sections = R.map((s) => {
   const img = fs.readFileSync(path.join(AUD, s.shot)).toString('base64');
   const rows = s.buttons.map((b) => {
@@ -29,6 +31,7 @@ const sections = R.map((s) => {
       const ex = EXPLAIN.find(([re]) => re.test(b.label));
       if (ex) { tone = 'ok'; label = 'Đúng (giải thích)'; note = ex[1]; explained++; } else bad++;
     } else if (b.kind === 'error') bad++;
+    else if (b.kind === 'disabled' && s.name === 'Con: Sửa thuốc' && /^Lưu/.test(b.label)) { tone = 'bad'; label = 'Lỗi, đã sửa'; note = 'Mở thẳng màn hình lúc dữ liệu chưa tải xong thì form trống, nút Lưu bị khóa. Đã sửa: màn hình chờ tải xong mới hiện (12/11).'; fixed++; }
     else if (b.kind === 'disabled') disabled++;
     else ok++;
     return `<tr class="${tone}"><td>${esc(b.label.replace(/^⏷⏷/, '') || '(biểu tượng)')}</td><td><span class="tag ${tone}">${label}</span></td><td>${esc(note)}</td></tr>`;
@@ -91,7 +94,7 @@ td { padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top } 
     <div class="stat"><b>${total}</b><span class="muted">nút đã bấm thử</span></div>
     <div class="stat"><b>${ok + explained}</b><span class="muted">chạy đúng</span></div>
     <div class="stat"><b>${disabled}</b><span class="muted">đang khóa đúng lúc</span></div>
-    <div class="stat"><b>${bad}</b><span class="muted">cần xem lại</span></div>
+    <div class="stat"><b>${bad + fixed}</b><span class="muted">lỗi tìm thấy (đã sửa ${fixed})</span></div>
   </div>
   <h2>Tính năng</h2>
   <div class="feats">${feat}</div>
