@@ -50,7 +50,10 @@ describe('diffData', () => {
     const a = shared(withMed(emptyData()));
     expect(diffData(a, a)).toEqual([]);
     const b = { ...a, medications: [{ ...a.medications[0], stockPills: 9 }] };
-    expect(diffData(a, b)).toEqual([{ op: 'set', coll: 'medications', id: 'amlo', data: b.medications[0] }]);
+    // Tài liệu đã có: chỉ ghi trường đổi.
+    expect(diffData(a, b)).toEqual([{ op: 'update', coll: 'medications', id: 'amlo', data: { stockPills: 9 }, removed: [] }]);
+    const n = { ...a, medications: [...a.medications, { ...a.medications[0], id: 'met' }] };
+    expect(diffData(a, n)).toEqual([{ op: 'set', coll: 'medications', id: 'met', data: n.medications[1] }]);
     const c = { ...a, medications: [] };
     expect(diffData(a, c)).toEqual([{ op: 'delete', coll: 'medications', id: 'amlo' }]);
   });
@@ -124,6 +127,36 @@ describe('hai máy qua máy chủ', () => {
     const { child, parent, fid } = await setup();
     await parent.sync.heartbeat(fid, 'bo', 80);
     expect(child.data.members[0]).toMatchObject({ lastSeenAt: NOW.toISOString(), battery: 80 });
+  });
+
+  it('máy bố mẹ có bản cũ (mất mạng) ghi số viên còn lại: không đè giờ uống con vừa sửa', async () => {
+    const { child, parent, server, fid } = await setup();
+    const stale = shared(parent.data);
+    await child.change((d) => ({ ...d, medications: [{ ...d.medications[0], times: ['08:00', '20:00'] }] }));
+    const mine = { ...stale, medications: [{ ...stale.medications[0], stockPills: 9 }] };
+    await parent.sync.apply(fid, diffData(stale, mine));
+    expect(server.families.get(fid)!.colls.medications.get('amlo')).toMatchObject({ times: ['08:00', '20:00'], stockPills: 9 });
+  });
+
+  it('thuốc con đã xóa không bị máy khác (bản cũ) tạo lại', async () => {
+    const { child, parent, server, fid } = await setup();
+    const stale = shared(parent.data);
+    child.engine!['o'].canDelete = () => true;
+    await child.change((d) => ({ ...d, medications: [] }));
+    await parent.sync.apply(fid, diffData(stale, { ...stale, medications: [{ ...stale.medications[0], stockPills: 3 }] }));
+    expect(server.families.get(fid)!.colls.medications.size).toBe(0);
+  });
+
+  it('tắt một cài đặt (vd nhắc đo huyết áp) thì máy chủ cũng bỏ', async () => {
+    const { child, server, fid } = await setup();
+    await child.change((d) => ({ ...d, settings: { ...d.settings, bpRemind: '07:00' } }));
+    expect(server.families.get(fid)!.settings).toMatchObject({ bpRemind: '07:00' });
+    await child.change((d) => {
+      const s = { ...d.settings };
+      delete s.bpRemind;
+      return { ...d, settings: s };
+    });
+    expect(server.families.get(fid)!.settings).not.toHaveProperty('bpRemind');
   });
 
   it('con sửa thuốc thì máy bố mẹ cập nhật, không bị máy bố mẹ ghi đè lại', async () => {

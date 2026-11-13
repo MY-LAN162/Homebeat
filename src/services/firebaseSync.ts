@@ -158,9 +158,12 @@ export class FirebaseSync implements FamilySync {
   async decideJoin(familyId: string, req: JoinRequest, approve: boolean): Promise<void> {
     const uid = await this.signIn();
     const fam = fb.doc(this.db, 'families', familyId);
-    // Ghi "Đồng ý" trước, rồi mới thêm vào gia đình (luật chỉ cho thêm máy có yêu cầu đã được Đồng ý).
-    await fb.updateDoc(fb.doc(fam, 'joinRequests', req.uid), { status: approve ? 'approved' : 'denied', decidedBy: uid, decidedAt: new Date().toISOString() });
-    if (approve) await fb.updateDoc(fam, { uids: fb.arrayUnion(req.uid) });
+    // Ghi "Đồng ý" và thêm vào gia đình trong CÙNG một lần ghi: máy mới thấy "đã đồng ý" là đã vào được ngay
+    // (luật chỉ cho thêm máy có yêu cầu đã được Đồng ý).
+    const batch = fb.writeBatch(this.db);
+    batch.update(fb.doc(fam, 'joinRequests', req.uid), { status: approve ? 'approved' : 'denied', decidedBy: uid, decidedAt: new Date().toISOString() });
+    if (approve) batch.update(fam, { uids: fb.arrayUnion(req.uid) });
+    await batch.commit();
     // Mã đã dùng (dù Đồng ý hay Từ chối) thì xóa, không ai dùng lại được.
     await fb.deleteDoc(fb.doc(this.db, 'pairingCodes', req.code)).catch(() => undefined);
   }
@@ -231,24 +234,29 @@ export class FirebaseSync implements FamilySync {
       const part = writes.slice(i, i + BATCH_LIMIT);
       const batch = fb.writeBatch(this.db);
       for (const w of part) {
-        if (w.op === 'settings') batch.set(fam, { settings: w.data }, { merge: true });
+        if (w.op === 'settings') batch.update(fam, settingsPatch(w.data, w.removed));
         else if (w.op === 'set') batch.set(fb.doc(fam, w.coll, w.id), w.data);
+        else if (w.op === 'update') batch.update(fb.doc(fam, w.coll, w.id), fieldPatch(w.data, w.removed));
         else batch.delete(fb.doc(fam, w.coll, w.id));
       }
       try {
         await batch.commit();
       } catch (e) {
-        if ((e as { code?: string }).code !== 'permission-denied') throw e;
+        const code = (e as { code?: string }).code;
+        if (code !== 'permission-denied' && code !== 'not-found') throw e;
         // Một tài liệu bị máy chủ từ chối thì cả lượt bị từ chối. Gửi lại từng cái một, bỏ qua cái bị từ chối,
         // để SOS, uống thuốc... vẫn lên được. Cái bị từ chối sẽ được máy chủ trả về bản đúng.
         let rejected = 0;
         for (const w of part) {
           try {
-            if (w.op === 'settings') await fb.setDoc(fam, { settings: w.data }, { merge: true });
+            if (w.op === 'settings') await fb.updateDoc(fam, settingsPatch(w.data, w.removed));
             else if (w.op === 'set') await fb.setDoc(fb.doc(fam, w.coll, w.id), w.data);
+            else if (w.op === 'update') await fb.updateDoc(fb.doc(fam, w.coll, w.id), fieldPatch(w.data, w.removed));
             else await fb.deleteDoc(fb.doc(fam, w.coll, w.id));
           } catch (err) {
-            if ((err as { code?: string }).code !== 'permission-denied') throw err;
+            // not-found: tài liệu đã bị máy khác xóa → không tạo lại.
+            const c = (err as { code?: string }).code;
+            if (c !== 'permission-denied' && c !== 'not-found') throw err;
             rejected++;
             console.warn(`[An Tâm] Máy chủ không nhận ${w.op === 'settings' ? 'cài đặt' : `${w.coll}/${w.id}`}`);
           }
@@ -450,4 +458,19 @@ export function getFamilySync(): FamilySync | undefined {
 function secureRandom(): number {
   const b = Crypto.getRandomBytes(4);
   return (((b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3]) >>> 0) / 0x1_0000_0000;
+}
+
+/** Ghi các trường đổi, gỡ các trường bị bỏ. */
+function fieldPatch(data: Record<string, unknown>, removed: string[]): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...data };
+  for (const k of removed) out[k] = fb.deleteField();
+  return out;
+}
+
+/** Cài đặt gia đình: chỉ ghi từng mục (settings.x), không ghi đè cả cài đặt. */
+function settingsPatch(data: Record<string, unknown>, removed: string[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(data)) out[`settings.${k}`] = v;
+  for (const k of removed) out[`settings.${k}`] = fb.deleteField();
+  return out;
 }

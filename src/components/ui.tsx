@@ -345,6 +345,7 @@ export function Field({
   placeholder,
   keyboard,
   secure,
+  maxLength,
 }: {
   label: string;
   value: string;
@@ -353,6 +354,8 @@ export function Field({
   keyboard?: 'default' | 'phone-pad' | 'number-pad' | 'decimal-pad' | 'email-address';
   /** Ẩn chữ khi gõ (mật khẩu). */
   secure?: boolean;
+  /** Số chữ tối đa (khớp giới hạn của máy chủ). Mặc định: số điện thoại 20, chữ 120. */
+  maxLength?: number;
 }) {
   const k = useK();
   return (
@@ -366,6 +369,7 @@ export function Field({
         placeholderTextColor={colors.muted}
         keyboardType={keyboard ?? 'default'}
         secureTextEntry={secure}
+        maxLength={maxLength ?? (keyboard === 'phone-pad' ? 20 : 120)}
         autoCapitalize={secure || keyboard === 'email-address' ? 'none' : 'sentences'}
         autoCorrect={!(secure || keyboard === 'email-address')}
         style={{

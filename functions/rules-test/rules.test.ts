@@ -2,7 +2,7 @@
 // Chạy: npm run test:rules (trong thư mục functions; cần Java và firebase-tools).
 // Lưu ý: máy có trong gia đình mà không có yêu cầu vào (vd máy tạo gia đình) được coi là máy của con.
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { arrayRemove, arrayUnion, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, collection, deleteDoc, deleteField, doc, getDoc, getDocs, query, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { after, before, beforeEach, describe, test } from 'node:test';
@@ -134,8 +134,12 @@ describe('vào gia đình bằng yêu cầu + đồng ý (không cần Cloud Fun
     await assertFails(updateDoc(doc(as('con'), 'families', FAM), { uids: ['con', 'bo', 'meThu', 'nguoiLa'] }));
     // Chưa bấm Đồng ý thì chưa thêm vào được.
     await assertFails(updateDoc(doc(as('con'), 'families', FAM), { uids: arrayUnion('meThu') }));
-    await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM, 'joinRequests', 'meThu'), { status: 'approved', decidedBy: 'con' }));
-    await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { uids: arrayUnion('meThu') }));
+    // Đồng ý + thêm vào gia đình trong cùng một lần ghi (như app).
+    const conDb = as('con');
+    const b = writeBatch(conDb);
+    b.update(doc(conDb, 'families', FAM, 'joinRequests', 'meThu'), { status: 'approved', decidedBy: 'con' });
+    b.update(doc(conDb, 'families', FAM), { uids: arrayUnion('meThu') });
+    await assertSucceeds(b.commit());
     await assertSucceeds(getDoc(doc(as('meThu'), 'families', FAM)));
     // Đã quyết rồi thì không đổi được nữa.
     await assertFails(updateDoc(doc(as('con'), 'families', FAM, 'joinRequests', 'meThu'), { status: 'denied' }));
@@ -266,6 +270,11 @@ test('nhịp còn sống có cờ tắt thông báo; cài đặt có giờ nhắ
   await assertFails(setDoc(doc(as('bo'), 'families', FAM, 'heartbeats', 'bo'), { at: '2026-11-10T01:00:00.000Z', uid: 'bo', notifOff: 'có' }));
   await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { settings: { lateMinutes: 30, bpRemind: '07:00' } }));
   await assertFails(updateDoc(doc(as('con'), 'families', FAM), { settings: { lateMinutes: 30, bpRemind: '7h' } }));
+  // App ghi từng mục cài đặt và gỡ mục bị tắt (không ghi đè cả cài đặt).
+  await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { 'settings.bpRemind': deleteField(), 'settings.lateMinutes': 45 }));
+  const fam = (await getDoc(doc(as('con'), 'families', FAM))).data() as { settings: Record<string, unknown> };
+  if ('bpRemind' in fam.settings || fam.settings.lateMinutes !== 45) throw new Error('cài đặt chưa đúng');
+  await assertFails(updateDoc(doc(as('con'), 'families', FAM), { 'settings.lateMinutes': 1 }));
 });
 
 test('gói cước và mã giới thiệu: không tự đổi ngày dùng thử, không ghi lượt giới thiệu giả', async () => {

@@ -28,14 +28,17 @@ export type HealthInfo = Pick<Member, 'birthYear' | 'conditions' | 'allergies' |
 export const HEALTH_KEYS: (keyof HealthInfo)[] = ['birthYear', 'conditions', 'allergies', 'bloodType', 'insurance', 'hospital', 'address'];
 
 /** Bỏ trường trống để không lưu chuỗi rỗng. */
-export function cleanHealth(h: HealthInfo): HealthInfo {
+/** Độ dài tối đa từng mục (khớp firestore.rules): dài hơn thì máy chủ từ chối. */
+const MAX = { allergies: 300, bloodType: 4, insurance: 20, hospital: 120, address: 200 } as const;
+
+export function cleanHealth(h: HealthInfo, now = new Date()): HealthInfo {
   const out: HealthInfo = {};
-  const year = h.birthYear && Number.isInteger(h.birthYear) && h.birthYear >= 1900 && h.birthYear <= 2025 ? h.birthYear : undefined;
+  const year = h.birthYear && Number.isInteger(h.birthYear) && h.birthYear >= 1900 && h.birthYear <= now.getFullYear() ? h.birthYear : undefined;
   if (year) out.birthYear = year;
-  const conds = [...new Set((h.conditions ?? []).map((c) => c.trim()).filter(Boolean))].slice(0, 20);
+  const conds = [...new Set((h.conditions ?? []).map((c) => c.trim().slice(0, 60)).filter(Boolean))].slice(0, 20);
   if (conds.length) out.conditions = conds;
   for (const k of ['allergies', 'bloodType', 'insurance', 'hospital', 'address'] as const) {
-    const v = h[k]?.trim();
+    const v = h[k]?.trim().slice(0, MAX[k]);
     if (v) out[k] = v;
   }
   return out;

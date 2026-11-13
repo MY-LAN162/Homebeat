@@ -85,7 +85,7 @@ export default function MessageScreen() {
           </View>
         </>
       )}
-      {!senders.length && <Field label="Tên của bạn" value={from} onChange={setFrom} placeholder="Ví dụ: Hà" />}
+      {!senders.length && <Field maxLength={60} label="Tên của bạn" value={from} onChange={setFrom} placeholder="Ví dụ: Hà" />}
 
       {sent ? (
         <Banner tone="green">

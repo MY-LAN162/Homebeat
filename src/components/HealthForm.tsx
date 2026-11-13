@@ -34,6 +34,7 @@ export function HealthForm({ value, onChange, call }: { value: HealthInfo; onCha
       </View>
       <Field
         label="Bệnh khác (cách nhau bằng dấu phẩy)"
+        maxLength={200}
         value={other}
         onChange={(v) => {
           setOther(v);
@@ -44,6 +45,7 @@ export function HealthForm({ value, onChange, call }: { value: HealthInfo; onCha
       />
       <Field
         label="Dị ứng thuốc hoặc thức ăn"
+        maxLength={300}
         value={value.allergies ?? ''}
         onChange={(v) => set({ allergies: v })}
         placeholder="Ví dụ: Penicillin, hải sản. Không có thì để trống"
@@ -74,6 +76,7 @@ export function HealthForm({ value, onChange, call }: { value: HealthInfo; onCha
       />
       <Field
         label={`Địa chỉ nhà ${who} (để báo cấp cứu)`}
+        maxLength={200}
         value={value.address ?? ''}
         onChange={(v) => set({ address: v })}
         placeholder="Số nhà, đường, phường, quận"

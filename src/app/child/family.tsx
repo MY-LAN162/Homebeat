@@ -99,7 +99,7 @@ export default function ChildFamily() {
         ))}
         {adding ? (
           <View style={{ gap: 8 }}>
-            <Field label="Tên" value={cName} onChange={setCName} />
+            <Field maxLength={60} label="Tên" value={cName} onChange={setCName} />
             <Field label="Số điện thoại" value={cPhone} onChange={setCPhone} keyboard="phone-pad" />
             {!!cPhone && !phoneOk && <T size={13} color={colors.red}>Số điện thoại chưa đúng (cần 9–11 chữ số). Khi SOS máy sẽ gọi số này.</T>}
             <Btn variant="secondary" height={44} size={14} label={sosOnly ? 'Chỉ báo khi SOS: Có' : 'Chỉ báo khi SOS: Không'} onPress={() => setSosOnly((x) => !x)} />

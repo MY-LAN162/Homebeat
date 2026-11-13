@@ -105,7 +105,7 @@ function MedEdit() {
         <H1 size={24}>{existing ? 'Sửa thuốc' : 'Thêm thuốc'}</H1>
       </View>
       <Card style={{ gap: 12 }}>
-        <Field label="Tên thuốc và hàm lượng" value={name} onChange={setName} placeholder="Ví dụ: Amlodipine 5mg" />
+        <Field maxLength={100} label="Tên thuốc và hàm lượng" value={name} onChange={setName} placeholder="Ví dụ: Amlodipine 5mg" />
         {!!allergyHit && member && (
           <View accessibilityRole="alert" style={{ backgroundColor: colors.amberSoft, borderRadius: 12, padding: 12 }}>
             <T size={14} weight="700" color={colors.amberDark}>
@@ -113,7 +113,7 @@ function MedEdit() {
             </T>
           </View>
         )}
-        <Field label="Dùng để (không bắt buộc)" value={purpose} onChange={setPurpose} placeholder="Ví dụ: Huyết áp" />
+        <Field maxLength={100} label="Dùng để (không bắt buộc)" value={purpose} onChange={setPurpose} placeholder="Ví dụ: Huyết áp" />
         <T size={14} weight="600">Số viên mỗi lần</T>
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
           {PILL_CHOICES.map((n) => (

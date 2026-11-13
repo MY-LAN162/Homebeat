@@ -72,7 +72,7 @@ export default function InviteScreen() {
       {!memberId ? (
         <>
           <Card style={{ gap: 12 }}>
-            <Field label="Tên của bố mẹ" value={name} onChange={setName} placeholder="Ví dụ: Hùng" />
+            <Field maxLength={60} label="Tên của bố mẹ" value={name} onChange={setName} placeholder="Ví dụ: Hùng" />
             <T size={14} weight="600">Bạn gọi là</T>
             <View style={{ flexDirection: 'row', gap: 6 }}>
               {CALLS.map((c) => (
@@ -111,7 +111,7 @@ export default function InviteScreen() {
           {needOwn && (
             <Card style={{ gap: 12 }}>
               <T size={15} weight="700">Bạn (người nhận cảnh báo đầu tiên)</T>
-              <Field label="Tên của bạn" value={myName} onChange={setMyName} placeholder="Ví dụ: Hà" />
+              <Field maxLength={60} label="Tên của bạn" value={myName} onChange={setMyName} placeholder="Ví dụ: Hà" />
               <Field label="Số điện thoại của bạn" value={myPhone} onChange={setMyPhone} keyboard="phone-pad" />
               <T size={13} color={myPhone && !phoneOk ? colors.red : colors.muted}>
                 {myPhone && !phoneOk

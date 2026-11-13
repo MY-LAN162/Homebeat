@@ -69,7 +69,7 @@ export function VisitForm({ existing, onDone }: { existing?: Appointment; onDone
       </View>
       <Field label="Hoặc gõ giờ khác" value={time} onChange={setTime} placeholder="08:00" />
       {!!day && !when && <T size={13} color={colors.red}>Ngày hoặc giờ chưa đúng (ví dụ ngày 30/12, giờ 08:00).</T>}
-      <Field label="Ai đưa đi" value={companion} onChange={setCompanion} placeholder="Ví dụ: Hà" />
+      <Field maxLength={60} label="Ai đưa đi" value={companion} onChange={setCompanion} placeholder="Ví dụ: Hà" />
       <Btn
         label="Lưu lịch khám"
         disabled={!title.trim() || !when || !memberId}

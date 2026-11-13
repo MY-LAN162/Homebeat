@@ -189,6 +189,23 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 1. **Miễn phí, làm trước:** Expo (build file cài Android, 30 lần/tháng miễn phí) → Firebase gói Spark (đồng bộ 2 máy, đưa trang web lên `*.web.app`) → thử trên điện thoại thật, sửa lỗi.
 2. **Tốn phí, làm cuối cùng:** Google Play Console (25 USD, một lần: thanh toán, mã giới thiệu, lên Google Play) · Apple Developer (99 USD/năm: bản iPhone) · Firebase Blaze (trả theo dùng: Cloud Functions báo đúng giờ hơn, kiểm tra hóa đơn) · tên miền riêng (vd antam.vn) · xin Apple quyền "Critical Alerts" cho SOS (đi kèm Apple Developer).
 
+## Đồng bộ đợt 2 (13/11/2026): không đè dữ liệu của nhau
+
+- **Chỉ gửi phần thay đổi.** Trước đây, sửa một trường là gửi đè cả tài liệu. Nay `diffData` (`src/domain/syncdiff.ts`) tạo lệnh `update` chỉ gồm các trường đổi, kèm danh sách trường bị bỏ (gỡ bằng `deleteField`). Tài liệu mới vẫn ghi cả tài liệu. Kết quả:
+  - Máy bố mẹ có bản cũ (lúc mất mạng) ghi số viên còn lại thì **không đè giờ uống** con vừa sửa.
+  - "Hủy SOS" (máy bố mẹ) và "Con đã thấy" (máy con) không còn đè nhau.
+  - Hai con sửa hai trường khác nhau của cùng một thuốc / lịch khám thì giữ được cả hai thay đổi.
+  - **Thuốc đã xóa không bị máy khác tạo lại**: cập nhật một tài liệu không còn thì máy chủ báo "not-found", và app bỏ qua.
+- **Cài đặt gia đình ghi từng mục** (`settings.x`). Mục bị tắt, ví dụ nhắc đo huyết áp, được gỡ trên máy chủ, không còn "sống lại" trên máy bố mẹ.
+- **Duyệt máy mới:** ghi "Đồng ý" và thêm máy vào gia đình trong **cùng một lần ghi**. Bài chạy thử hai máy bắt được lỗi máy mới thấy "đã đồng ý" trước khi thật sự được thêm vào; đã sửa. Luật dùng `getAfter` để kiểm tra.
+- **Ô nhập có giới hạn độ dài khớp với máy chủ:** tên 60, tên thuốc 100, dị ứng 300, địa chỉ 200, số điện thoại 20; các ô khác mặc định 120. Gõ dài quá không còn làm máy chủ từ chối.
+  - Năm sinh: tới năm hiện tại, không còn cố định tới 2025. Luật dùng `request.time.year()`.
+- Sự kiện cũ hơn 120 ngày được bỏ khỏi máy (máy chủ vẫn giữ), để máy không nặng dần.
+- Kiểm thử thêm:
+  - 3 bài trong `sync.test.ts`: máy bố mẹ có bản cũ; thuốc đã xóa không bị tạo lại; tắt cài đặt.
+  - Luật cho kiểu ghi cài đặt từng mục.
+- Đã chạy: 115 kiểm thử app, `test:rules` 28/28, `npm run e2e` 49/49, `npm run e2e:sync` 20/20.
+
 ## Bảo mật đợt 1 (13/11/2026): bịt 4 lỗ hổng mức cao
 
 Một đợt rà soát tìm ra 4 lỗ hổng mức cao. Cả 4 đã bịt, và có kiểm thử luật cho từng kiểu tấn công (`functions/rules-test/rules.test.ts`, nhóm "đợt bảo mật 13/11").

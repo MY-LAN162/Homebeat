@@ -20,8 +20,8 @@ service cloud.firestore {
       return request.resource.data.uids.hasAll(resource.data.uids)
         && added.size() == 1
         && exists(/databases/$(database)/documents/families/$(familyId)/joinRequests/$(added[0]))
-        // Chỉ thêm máy có yêu cầu đã được Đồng ý (ghi "Đồng ý" trước, thêm vào gia đình sau).
-        && get(/databases/$(database)/documents/families/$(familyId)/joinRequests/$(added[0])).data.status == 'approved';
+        // Chỉ thêm máy có yêu cầu đã được Đồng ý (app ghi "Đồng ý" và thêm máy trong cùng một lần ghi).
+        && getAfter(/databases/$(database)/documents/families/$(familyId)/joinRequests/$(added[0])).data.status == 'approved';
     }
     // Mã kết nối có 2 loại: role 'parent' (máy của bố/mẹ, kèm memberId) và 'child' (máy mới của con, memberId rỗng).
     // ---- Kiểm tra dữ liệu ----
@@ -40,7 +40,7 @@ service cloud.firestore {
                                'birthYear', 'conditions', 'allergies', 'bloodType', 'insurance', 'hospital', 'address'])
           && d.id == id && str(d.name, 60) && d.call in ['Bố', 'Mẹ', 'Ông', 'Bà'] && d.self in ['Con', 'Cháu']
           && optStr(d, 'phone', 20) && optStr(d, 'note', 300) && optNum(d, 'textScale', 0.8, 2)
-          && optNum(d, 'birthYear', 1900, 2025) && optList(d, 'conditions', 20) && optStr(d, 'allergies', 300)
+          && optNum(d, 'birthYear', 1900, 2100) && (!('birthYear' in d) || d.birthYear <= request.time.year()) && optList(d, 'conditions', 20) && optStr(d, 'allergies', 300)
           && optStr(d, 'bloodType', 4) && optStr(d, 'insurance', 20) && optStr(d, 'hospital', 120) && optStr(d, 'address', 200))
         || (coll == 'caregivers'
           && d.keys().hasOnly(['id', 'name', 'phone', 'order', 'sosOnly'])

@@ -27,6 +27,8 @@ export const CONFIG_COLLECTIONS: readonly CollectionName[] = ['members', 'caregi
 
 /** Sự kiện cũ hơn số ngày này không tải về (giữ máy nhẹ). */
 export const EVENT_DAYS = 30;
+/** Sự kiện cũ hơn số ngày này được bỏ khỏi máy (máy chủ vẫn giữ), để máy không nặng dần. */
+export const KEEP_DAYS = 120;
 
 type Item<C extends CollectionName> = AppData[C][number];
 
@@ -69,9 +71,28 @@ export function toDoc<C extends CollectionName>(coll: C, item: Item<C>): Record<
 }
 
 export type SyncWrite =
+  /** Tài liệu mới (máy chủ chưa có): ghi cả tài liệu. */
   | { op: 'set'; coll: CollectionName; id: string; data: Record<string, unknown> }
+  /**
+   * Tài liệu đã có: chỉ ghi những trường đổi (`data`) và gỡ trường bị bỏ (`removed`).
+   * Hai máy sửa hai trường khác nhau không đè nhau; máy bố mẹ ghi số viên còn lại không đè giờ uống con vừa sửa;
+   * tài liệu đã bị máy khác xóa thì không bị tạo lại.
+   */
+  | { op: 'update'; coll: CollectionName; id: string; data: Record<string, unknown>; removed: string[] }
   | { op: 'delete'; coll: CollectionName; id: string }
-  | { op: 'settings'; data: AlertSettings };
+  /** Cài đặt gia đình: chỉ các mục đổi, và các mục bị bỏ (vd tắt nhắc đo huyết áp). */
+  | { op: 'settings'; data: Partial<AlertSettings>; removed: string[] };
+
+/** Trường nào đổi, trường nào bị bỏ (so theo nội dung). */
+export function fieldDiff(prev: Record<string, unknown>, next: Record<string, unknown>): { data: Record<string, unknown>; removed: string[] } {
+  const data: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(next)) {
+    if (v === undefined) continue;
+    if (JSON.stringify(prev[k]) !== JSON.stringify(v)) data[k] = v;
+  }
+  const removed = Object.keys(prev).filter((k) => prev[k] !== undefined && next[k] === undefined);
+  return { data, removed };
+}
 
 /** Phần dữ liệu có trên máy chủ (không gồm vai trò, người đang dùng máy, mã kết nối...). */
 export type SharedData = Pick<AppData, CollectionName | 'settings'>;
@@ -89,23 +110,27 @@ export function diffData(
 ): SyncWrite[] {
   const out: SyncWrite[] = [];
   for (const coll of COLLECTIONS) {
-    const prev = new Map<string, string>();
+    const prev = new Map<string, Record<string, unknown>>();
     // `?? []`: bản lưu từ phiên bản cũ có thể chưa có danh sách mới (vd messages).
     for (const item of (before[coll] ?? []) as Item<typeof coll>[]) {
-      prev.set(docId(coll, item), JSON.stringify(toDoc(coll, item)));
+      prev.set(docId(coll, item), toDoc(coll, item));
     }
     const seen = new Set<string>();
     for (const item of (after[coll] ?? []) as Item<typeof coll>[]) {
       const id = docId(coll, item);
       seen.add(id);
       const data = toDoc(coll, item);
-      if (prev.get(id) !== JSON.stringify(data)) out.push({ op: 'set', coll, id, data });
+      const old = prev.get(id);
+      if (!old) out.push({ op: 'set', coll, id, data });
+      else {
+        const d = fieldDiff(old, data);
+        if (Object.keys(d.data).length || d.removed.length) out.push({ op: 'update', coll, id, ...d });
+      }
     }
     for (const id of prev.keys()) if (!seen.has(id) && canDelete(coll, id)) out.push({ op: 'delete', coll, id });
   }
-  if (JSON.stringify(before.settings) !== JSON.stringify(after.settings)) {
-    out.push({ op: 'settings', data: after.settings });
-  }
+  const s = fieldDiff((before.settings ?? {}) as unknown as Record<string, unknown>, (after.settings ?? {}) as unknown as Record<string, unknown>);
+  if (Object.keys(s.data).length || s.removed.length) out.push({ op: 'settings', data: s.data as Partial<AlertSettings>, removed: s.removed });
   return out;
 }
 
@@ -150,7 +175,10 @@ export function mergeRemote<T extends SharedData>(local: T, remote: RemoteSnapsh
     const byId = new Map<string, Item<typeof coll>>();
     for (const item of (local[coll] ?? []) as Item<typeof coll>[]) byId.set(docId(coll, item), item);
     for (const item of r) byId.set(docId(coll, item), item);
-    const merged = [...byId.values()].sort((a, b) => eventTime(a).localeCompare(eventTime(b)));
+    const cutoff = new Date(Date.now() - KEEP_DAYS * 86400_000).toISOString();
+    const merged = [...byId.values()]
+      .filter((e) => !eventTime(e) || eventTime(e) >= cutoff)
+      .sort((a, b) => eventTime(a).localeCompare(eventTime(b)));
     (next as SharedData)[coll] = merged as never;
   }
   if (remote.settings) {

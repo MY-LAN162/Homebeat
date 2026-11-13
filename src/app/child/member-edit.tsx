@@ -36,7 +36,7 @@ function MemberEdit() {
         <H1 size={24}>Hồ sơ {displayName(m)}</H1>
       </View>
       <Card style={{ gap: 12 }}>
-        <Field label="Tên" value={name} onChange={setName} />
+        <Field maxLength={60} label="Tên" value={name} onChange={setName} />
         <Field label={`Số điện thoại của ${m.call.toLowerCase()}`} value={phone} onChange={setPhone} keyboard="phone-pad" />
       </Card>
       <Card style={{ gap: 8 }}>

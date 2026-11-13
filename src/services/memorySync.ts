@@ -252,9 +252,19 @@ export class MemorySync implements FamilySync {
   async apply(familyId: string, writes: SyncWrite[]) {
     const f = this.server.family(familyId, this.uid);
     for (const w of writes) {
-      if (w.op === 'settings') f.settings = clone(w.data);
-      else if (w.op === 'set') f.colls[w.coll].set(w.id, clone(w.data));
-      else f.colls[w.coll].delete(w.id);
+      if (w.op === 'settings') {
+        const s = { ...(f.settings ?? {}), ...clone(w.data) } as Record<string, unknown>;
+        for (const k of w.removed) delete s[k];
+        f.settings = s as unknown as typeof f.settings;
+      } else if (w.op === 'set') f.colls[w.coll].set(w.id, clone(w.data));
+      else if (w.op === 'update') {
+        // Giống Firestore: tài liệu đã bị xóa thì không cập nhật (không tạo lại).
+        const cur = f.colls[w.coll].get(w.id);
+        if (!cur) continue;
+        const next = { ...cur, ...clone(w.data) } as Record<string, unknown>;
+        for (const k of w.removed) delete next[k];
+        f.colls[w.coll].set(w.id, next as typeof cur);
+      } else f.colls[w.coll].delete(w.id);
     }
     this.server.notify(familyId);
   }

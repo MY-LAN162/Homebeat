@@ -122,7 +122,7 @@ export default function VisitPrep() {
         </Card>
       )}
 
-      <Field label="Tự thêm câu hỏi" value={newQ} onChange={setNewQ} placeholder="Ví dụ: Có cần kiêng muối không?" />
+      <Field maxLength={200} label="Tự thêm câu hỏi" value={newQ} onChange={setNewQ} placeholder="Ví dụ: Có cần kiêng muối không?" />
       <Btn
         variant="secondary"
         label="+ Thêm câu hỏi"
