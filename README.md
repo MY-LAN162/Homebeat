@@ -189,6 +189,38 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 1. **Miễn phí, làm trước:** Expo (build file cài Android, 30 lần/tháng miễn phí) → Firebase gói Spark (đồng bộ 2 máy, đưa trang web lên `*.web.app`) → thử trên điện thoại thật, sửa lỗi.
 2. **Tốn phí, làm cuối cùng:** Google Play Console (25 USD, một lần: thanh toán, mã giới thiệu, lên Google Play) · Apple Developer (99 USD/năm: bản iPhone) · Firebase Blaze (trả theo dùng: Cloud Functions báo đúng giờ hơn, kiểm tra hóa đơn) · tên miền riêng (vd antam.vn) · xin Apple quyền "Critical Alerts" cho SOS (đi kèm Apple Developer).
 
+## Bảo mật đợt 1 (13/11/2026): bịt 4 lỗ hổng mức cao
+
+Một đợt rà soát tìm ra 4 lỗ hổng mức cao. Cả 4 đã bịt, và có kiểm thử luật cho từng kiểu tấn công (`functions/rules-test/rules.test.ts`, nhóm "đợt bảo mật 13/11").
+
+1. **Máy bố mẹ tự nâng thành máy của con.** Trước đây máy bố mẹ tự ghi "từ chối" vào yêu cầu của mình, xóa yêu cầu đó, rồi được coi là máy của con.
+   - Nay chỉ máy của con (hoặc máy quản lý) mới duyệt được.
+   - Chỉ duyệt được yêu cầu đang chờ; đã quyết thì không đổi được.
+   - Máy còn trong gia đình không tự xóa được yêu cầu của mình.
+   - Yêu cầu chưa được Đồng ý thì không có vai trò nào.
+2. **Lừa qua điện thoại.** Kẻ gian gọi nhờ bố mẹ "đọc mã rồi bấm Đồng ý".
+   - Máy bố mẹ **không tạo mã và không duyệt máy mới** nữa.
+   - Màn hình "Con đổi điện thoại?" chỉ còn hướng dẫn (lấy lại bằng email, hoặc nhờ anh chị em tạo mã) và cảnh báo đỏ "Không đọc mã số nào cho người gọi điện thoại", có nút đọc to.
+3. **Mã kết nối dễ dò.**
+   - Mã tạo bằng bộ sinh số ngẫu nhiên an toàn (`expo-crypto`), không còn dùng `Math.random`.
+   - Mã mời người nhà chỉ sống **1 giờ**. Mã cho máy bố mẹ vẫn **24 giờ**, vì con gửi qua Zalo và bố mẹ cài sau. Luật máy chủ chặn mã sống lâu hơn các mức này.
+   - Mã bị xóa sau khi Đồng ý **hoặc Từ chối**.
+   - Chỉ thêm vào gia đình được máy có yêu cầu đã được Đồng ý. App ghi "Đồng ý" trước, thêm máy sau.
+   - Việc giới hạn số lần thử mã cần bật App Check: chờ có dự án Firebase.
+4. **Hàm máy chủ cũ `redeemPairingCode`** cho vào gia đình không cần duyệt: đã xóa.
+
+Siết thêm:
+- **Máy bố mẹ chỉ ghi được việc của chính mình:** uống thuốc, điểm danh, huyết áp, SOS (tạo và hủy), "Đã xem" tin nhắn, số viên còn lại, cỡ chữ.
+  - Máy bố mẹ không sửa được thuốc, giờ uống, cài đặt, hồ sơ, và **không đổi được số người nhận SOS**.
+  - Nhịp "còn sống" chỉ máy của đúng bố/mẹ đó ghi được.
+- Ảnh thuốc phải là ảnh nhúng `data:image/...`, không nhận đường link ra ngoài (link ngoài có thể dùng để theo dõi địa chỉ mạng của máy bố mẹ).
+- Thứ trong tuần chỉ nhận 0–6. Tạo gia đình không được kèm trường lạ.
+- **Gửi dữ liệu lên không còn bị kẹt:** trước đây một tài liệu bị máy chủ từ chối làm hỏng cả lượt gửi. Nay app gửi lại từng tài liệu, bỏ qua cái bị từ chối, để SOS và uống thuốc vẫn lên được.
+
+Chưa làm được: luật Firestore không kiểm tra được từng phần tử trong danh sách (giờ uống, câu hỏi…), mới chỉ giới hạn số phần tử. App tự kiểm tra trước khi ghi.
+
+Đã chạy: `test:rules` 28/28, 112 kiểm thử app, `npm run e2e` 49/49, `npm run e2e:sync` 20/20. Bài chạy thử hai máy đã đổi: máy bố chỉ thấy hướng dẫn và cảnh báo; máy con tạo mã cho máy mới và duyệt.
+
 ## Bổ sung lần 9 (13/11/2026): hồ sơ sức khỏe, ảnh thuốc, ghi âm và đọc đơn trên điện thoại
 
 ### Hồ sơ sức khỏe của bố mẹ

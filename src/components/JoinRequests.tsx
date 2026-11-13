@@ -1,5 +1,5 @@
 // Có máy mới (người nhà, hoặc máy mới của con) xin vào gia đình → Đồng ý / Từ chối. Hiện trên máy con (trang chủ, tab Gia đình)
-// và trên máy bố mẹ (để bố mẹ duyệt máy mới của con khi con đổi điện thoại).
+// Hiện trên máy con (trang chủ, tab Gia đình). Máy bố mẹ không duyệt máy mới (chống lừa qua điện thoại).
 import { useState } from 'react';
 import { View } from 'react-native';
 import { hm } from '../domain/time';

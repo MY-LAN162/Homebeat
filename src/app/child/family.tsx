@@ -125,7 +125,7 @@ export default function ChildFamily() {
           <Card style={{ gap: 8 }}>
             <T size={16} weight="700">Mời anh chị em cùng theo dõi bố mẹ</T>
             <T size={14} color={colors.muted}>
-              Cả nhà cùng nhận cảnh báo, cùng xem thuốc và lịch khám. Tạo mã rồi gửi qua Zalo. Trên máy của họ: cài An Tâm › “Người nhà mời tôi cùng theo dõi” › nhập mã. Bạn bấm Đồng ý ở đây là xong. Đổi điện thoại cũng dùng mã này.
+              Cả nhà cùng nhận cảnh báo, cùng xem thuốc và lịch khám. Tạo mã rồi gửi qua Zalo. Trên máy của họ: cài An Tâm › “Người nhà mời tôi cùng theo dõi” › nhập mã. Bạn bấm Đồng ý ở đây là xong. Mã dùng trong 1 giờ. Đổi điện thoại cũng dùng mã này (nhờ anh chị em tạo), hoặc lấy lại bằng email đã liên kết trong Cài đặt.
             </T>
             {childCode && (
               <View style={{ gap: 2 }}>

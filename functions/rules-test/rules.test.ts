@@ -23,6 +23,8 @@ beforeEach(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), 'families', FAM), { ownerUid: 'con', uids: ['con', 'bo'] });
+    // 'bo' là máy của bố (vào gia đình bằng mã, đã được Đồng ý).
+    await setDoc(doc(ctx.firestore(), 'families', FAM, 'joinRequests', 'bo'), { uid: 'bo', code: '000000', memberId: 'bo', role: 'parent', status: 'approved' });
   });
 });
 
@@ -130,9 +132,13 @@ describe('vào gia đình bằng yêu cầu + đồng ý (không cần Cloud Fun
     await assertFails(updateDoc(doc(as('meThu'), 'families', FAM, 'joinRequests', 'meThu'), { status: 'approved' }));
     await assertFails(updateDoc(doc(as('con'), 'families', FAM), { uids: arrayUnion('nguoiLa') }));
     await assertFails(updateDoc(doc(as('con'), 'families', FAM), { uids: ['con', 'bo', 'meThu', 'nguoiLa'] }));
-    await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { uids: arrayUnion('meThu') }));
+    // Chưa bấm Đồng ý thì chưa thêm vào được.
+    await assertFails(updateDoc(doc(as('con'), 'families', FAM), { uids: arrayUnion('meThu') }));
     await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM, 'joinRequests', 'meThu'), { status: 'approved', decidedBy: 'con' }));
+    await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { uids: arrayUnion('meThu') }));
     await assertSucceeds(getDoc(doc(as('meThu'), 'families', FAM)));
+    // Đã quyết rồi thì không đổi được nữa.
+    await assertFails(updateDoc(doc(as('con'), 'families', FAM, 'joinRequests', 'meThu'), { status: 'denied' }));
   });
 
   test('mã cho máy mới của con: xin vào đúng vai trò; mã máy bố mẹ không dùng để vào làm máy con', async () => {
@@ -142,8 +148,11 @@ describe('vào gia đình bằng yêu cầu + đồng ý (không cần Cloud Fun
     await assertFails(setDoc(doc(as('x2'), 'families', FAM, 'joinRequests', 'x2'), req('x2', '444444', '', 'parent')));
     await assertFails(setDoc(doc(as('x3'), 'families', FAM, 'joinRequests', 'x3'), req('x3', '555555', 'me', 'child')));
     await assertFails(setDoc(doc(as('x4'), 'families', FAM, 'joinRequests', 'x4'), req('x4', '444444', '', 'admin')));
-    // Máy bố mẹ (đã trong gia đình) đồng ý máy mới của con được.
-    await assertSucceeds(updateDoc(doc(as('bo'), 'families', FAM), { uids: arrayUnion('conMoi') }));
+    // Máy bố mẹ KHÔNG duyệt được (chống kẻ gian gọi điện nhờ bố mẹ bấm Đồng ý); máy con thì được.
+    await assertFails(updateDoc(doc(as('bo'), 'families', FAM, 'joinRequests', 'conMoi'), { status: 'approved' }));
+    await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM, 'joinRequests', 'conMoi'), { status: 'approved' }));
+    await assertFails(updateDoc(doc(as('bo'), 'families', FAM), { uids: arrayUnion('conMoi') }));
+    await assertSucceeds(updateDoc(doc(as('con'), 'families', FAM), { uids: arrayUnion('conMoi') }));
   });
 
   test('tìm lại gia đình của mình (sau khi đăng nhập email) được, gia đình người khác thì không', async () => {
@@ -233,6 +242,7 @@ test('lời nhắn, "con đã thấy" SOS, cỡ chữ của bố mẹ: ghi đư�
   await assertFails(updateDoc(doc(as('con'), 'families', FAM, 'sosEvents', 's'), { ackBy: 'x'.repeat(61) }));
 
   const BO = { id: 'bo', name: 'Hùng', call: 'Bố', self: 'Con' };
+  await assertSucceeds(setDoc(doc(as('con'), 'families', FAM, 'members', 'bo'), BO));
   await assertSucceeds(setDoc(doc(as('bo'), 'families', FAM, 'members', 'bo'), { ...BO, textScale: 1.4 }));
   await assertFails(setDoc(doc(as('bo'), 'families', FAM, 'members', 'bo'), { ...BO, textScale: 9 }));
 });
@@ -295,4 +305,66 @@ test('đăng ký dùng thử từ web: ai cũng gửi được đúng dạng, kh
   await assertFails(setDoc(doc(anon, 'signups', 's3'), { ...S, admin: true }));
   await assertFails(getDoc(doc(anon, 'signups', 's1')));
   await assertFails(getDoc(doc(as('con'), 'signups', 's1')));
+});
+
+describe('đợt bảo mật 13/11: máy bố mẹ bị lợi dụng, mã kết nối', () => {
+  const fam = (uid: string, c: string, id: string) => doc(as(uid), 'families', FAM, c, id);
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'families', FAM, 'medications', 'amlo'), MED);
+      await setDoc(doc(db, 'families', FAM, 'caregivers', 'ha'), { id: 'ha', name: 'Hà', phone: '0912345678', order: 1 });
+      await setDoc(doc(db, 'families', FAM, 'joinRequests', 'la'), { uid: 'la', code: '777777', memberId: '', role: 'child', status: 'pending' });
+    });
+  });
+
+  test('máy bố mẹ không tự nâng thành máy của con (tự từ chối rồi tự xóa yêu cầu)', async () => {
+    await assertFails(updateDoc(fam('bo', 'joinRequests', 'bo'), { status: 'denied' }));
+    await assertFails(deleteDoc(fam('bo', 'joinRequests', 'bo')));
+    await assertFails(setDoc(fam('bo', 'devices', 'bo'), { role: 'child' }));
+  });
+
+  test('máy bố mẹ không tạo mã, không duyệt máy lạ', async () => {
+    const code = { familyId: FAM, memberId: '', role: 'child', expiresAt: future(), expiresAtMs: futureMs(), createdBy: 'bo' };
+    await assertFails(setDoc(doc(as('bo'), 'pairingCodes', '135790'), code));
+    await assertFails(setDoc(doc(as('bo'), 'pairingCodes', '135791'), { ...code, role: 'parent', memberId: 'bo' }));
+    await assertFails(updateDoc(fam('bo', 'joinRequests', 'la'), { status: 'approved' }));
+  });
+
+  test('mã kết nối không sống quá lâu: mã người nhà ≤ 1 giờ, mã bố mẹ ≤ 24 giờ', async () => {
+    const base = { familyId: FAM, expiresAt: future(), createdBy: 'con' };
+    await assertSucceeds(setDoc(doc(as('con'), 'pairingCodes', '246801'), { ...base, memberId: '', role: 'child', expiresAtMs: Date.now() + 3500_000 }));
+    await assertFails(setDoc(doc(as('con'), 'pairingCodes', '246802'), { ...base, memberId: '', role: 'child', expiresAtMs: Date.now() + 2 * 3600_000 }));
+    await assertSucceeds(setDoc(doc(as('con'), 'pairingCodes', '246803'), { ...base, memberId: 'bo', expiresAtMs: Date.now() + 23 * 3600_000 }));
+    await assertFails(setDoc(doc(as('con'), 'pairingCodes', '246804'), { ...base, memberId: 'bo', expiresAtMs: Date.now() + 48 * 3600_000 }));
+  });
+
+  test('máy bố mẹ chỉ ghi việc của chính mình', async () => {
+    // Không đổi số người nhận SOS, không sửa giờ uống thuốc, không sửa cài đặt.
+    await assertFails(updateDoc(fam('bo', 'caregivers', 'ha'), { phone: '0999999999' }));
+    await assertFails(setDoc(fam('bo', 'caregivers', 'ke'), { id: 'ke', name: 'Kẻ gian', phone: '0999999999', order: 0 }));
+    await assertFails(updateDoc(fam('bo', 'medications', 'amlo'), { times: ['23:00'] }));
+    await assertFails(setDoc(fam('bo', 'medications', 'moi'), { ...MED, id: 'moi' }));
+    await assertFails(updateDoc(doc(as('bo'), 'families', FAM), { settings: { lateMinutes: 240 } }));
+    // Ghi được: số viên còn lại, uống thuốc / huyết áp / SOS của chính mình.
+    await assertSucceeds(updateDoc(fam('bo', 'medications', 'amlo'), { stockPills: 29 }));
+    await assertSucceeds(setDoc(fam('bo', 'doseLogs', 'd9'), DOSE));
+    await assertFails(setDoc(fam('bo', 'doseLogs', 'd8'), { ...DOSE, memberId: 'me' }));
+    await assertSucceeds(setDoc(fam('bo', 'sosEvents', 's9'), { ...SOS, id: 's9' }));
+    await assertSucceeds(updateDoc(fam('bo', 'sosEvents', 's9'), { cancelled: true }));
+    await assertFails(setDoc(fam('bo', 'sosEvents', 's8'), { ...SOS, id: 's8', memberId: 'me' }));
+    // Nhịp còn sống: chỉ cho đúng bố/mẹ của máy đó; máy con không giả được.
+    await assertFails(setDoc(fam('bo', 'heartbeats', 'me'), { at: 'x', uid: 'bo' }));
+    await assertFails(setDoc(fam('con', 'heartbeats', 'bo'), { at: 'x', uid: 'con' }));
+  });
+
+  test('ảnh thuốc phải là ảnh nhúng, không phải đường link ra ngoài', async () => {
+    await assertFails(setDoc(fam('con', 'medications', 'amlo'), { ...MED, photoUri: 'https://ke-gian.example/theo-doi.jpg' }));
+    await assertSucceeds(setDoc(fam('con', 'medications', 'amlo'), { ...MED, photoUri: 'data:image/jpeg;base64,/9j/4AAQ' }));
+    await assertFails(setDoc(fam('con', 'medications', 'amlo'), { ...MED, weekdays: [1, 9] }));
+  });
+
+  test('tạo gia đình không kèm trường lạ', async () => {
+    await assertFails(setDoc(doc(as('a'), 'families', 'f9'), { ownerUid: 'a', uids: ['a'], plan: 'large' }));
+  });
 });

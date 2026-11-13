@@ -2,6 +2,8 @@
 import type { Pairing } from './types';
 
 export const PAIRING_HOURS = 24;
+/** Mã cho máy mới của người nhà (con, cháu) sống ngắn hơn: 1 giờ. */
+export const CHILD_PAIRING_HOURS = 1;
 
 export function generateCode(random: () => number = Math.random): string {
   let code = '';
@@ -9,11 +11,11 @@ export function generateCode(random: () => number = Math.random): string {
   return code;
 }
 
-export function createPairing(memberId: string, now: Date, random?: () => number): Pairing {
+export function createPairing(memberId: string, now: Date, random?: () => number, hours = PAIRING_HOURS): Pairing {
   return {
     code: generateCode(random),
     memberId,
-    expiresAt: new Date(now.getTime() + PAIRING_HOURS * 3600_000).toISOString(),
+    expiresAt: new Date(now.getTime() + hours * 3600_000).toISOString(),
   };
 }
 

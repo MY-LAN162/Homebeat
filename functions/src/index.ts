@@ -1,5 +1,5 @@
 // Cloud Functions của An Tâm.
-//  - redeemPairingCode: máy bố mẹ đổi mã 6 số lấy quyền vào gia đình.
+//  (Đã bỏ hàm đổi mã lấy quyền vào gia đình: vào gia đình luôn phải qua yêu cầu + máy con bấm Đồng ý.)
 //  - onSosCreated: bố mẹ bấm SOS → gửi thông báo đẩy ngay cho máy các con.
 //  - checkAlerts: 5 phút một lần, kiểm tra trễ thuốc / chưa điểm danh / huyết áp cao / báo không khỏe
 //    và gửi thông báo đẩy cho con (mỗi cảnh báo một lần mỗi ngày). Đồng thời xóa mã kết nối hết hạn.
@@ -11,12 +11,11 @@ import { FieldValue, getFirestore, type DocumentReference } from 'firebase-admin
 import * as logger from 'firebase-functions/logger';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
-import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { COLLECTIONS, EVENT_COLLECTIONS, type RemoteSnapshot } from '../../src/domain/syncdiff';
 import { dateKey } from '../../src/domain/time';
 import type { Member, SosEvent } from '../../src/domain/types';
-import { alertsToPush, buildAppData, checkAttempts, checkPairingDoc, sosMessage, type AttemptState } from './logic';
+import { alertsToPush, buildAppData, sosMessage } from './logic';
 import { sendPush } from './push';
 
 initializeApp();
@@ -24,35 +23,6 @@ const db = getFirestore();
 
 /** Khu vực Singapore, gần Việt Nam nhất. Phải trùng EXPO_PUBLIC_FIREBASE_REGION trong app. */
 setGlobalOptions({ region: 'asia-southeast1', maxInstances: 10 });
-
-export const redeemPairingCode = onCall<{ code?: unknown }>(async (req) => {
-  const uid = req.auth?.uid;
-  if (!uid) throw new HttpsError('unauthenticated', 'Cần đăng nhập');
-  const code = typeof req.data?.code === 'string' ? req.data.code.replace(/\s/g, '') : req.data?.code;
-
-  // Giới hạn số lần thử để không dò được mã 6 số.
-  const attemptRef = db.doc(`pairingAttempts/${uid}`);
-  const allowed = await db.runTransaction(async (tx) => {
-    const cur = (await tx.get(attemptRef)).data() as AttemptState | undefined;
-    const r = checkAttempts(cur, Date.now());
-    tx.set(attemptRef, r.next);
-    return r.allowed;
-  });
-  if (!allowed) throw new HttpsError('resource-exhausted', 'Nhập sai quá nhiều lần');
-
-  return db.runTransaction(async (tx) => {
-    const codeRef = typeof code === 'string' && /^\d{6}$/.test(code) ? db.doc(`pairingCodes/${code}`) : undefined;
-    const snap = codeRef ? await tx.get(codeRef) : undefined;
-    const res = checkPairingDoc(code, snap?.data() as Parameters<typeof checkPairingDoc>[1], new Date());
-    if (!res.ok) throw new HttpsError(res.code, res.code);
-    const famRef = db.doc(`families/${res.familyId}`);
-    tx.update(famRef, { uids: FieldValue.arrayUnion(uid) });
-    tx.set(famRef.collection('devices').doc(uid), { role: 'parent', memberId: res.memberId, joinedAt: FieldValue.serverTimestamp() }, { merge: true });
-    tx.delete(codeRef!); // Mã chỉ dùng một lần.
-    tx.delete(attemptRef);
-    return { familyId: res.familyId, memberId: res.memberId };
-  });
-});
 
 /** Mã nhận thông báo của các máy con trong gia đình. */
 async function childTokens(famRef: DocumentReference): Promise<string[]> {

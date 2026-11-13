@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
-import { JoinRequests } from '../../components/JoinRequests';
 import { ParentInbox } from '../../components/ParentInbox';
 import { ParentNotifCard } from '../../components/ParentNotifCard';
 import { Btn, H1, HoldButton, Screen, SpeakButton, T } from '../../components/ui';
@@ -84,7 +83,6 @@ export default function ParentHome() {
         <SpeakButton text={speech} />
       </View>
 
-      <JoinRequests big />
       <ParentNotifCard />
       <ParentInbox m={m} />
 

@@ -19,7 +19,9 @@ service cloud.firestore {
       let added = request.resource.data.uids.removeAll(resource.data.uids);
       return request.resource.data.uids.hasAll(resource.data.uids)
         && added.size() == 1
-        && exists(/databases/$(database)/documents/families/$(familyId)/joinRequests/$(added[0]));
+        && exists(/databases/$(database)/documents/families/$(familyId)/joinRequests/$(added[0]))
+        // Chỉ thêm máy có yêu cầu đã được Đồng ý (ghi "Đồng ý" trước, thêm vào gia đình sau).
+        && get(/databases/$(database)/documents/families/$(familyId)/joinRequests/$(added[0])).data.status == 'approved';
     }
     // Mã kết nối có 2 loại: role 'parent' (máy của bố/mẹ, kèm memberId) và 'child' (máy mới của con, memberId rỗng).
     // ---- Kiểm tra dữ liệu ----
@@ -46,11 +48,12 @@ service cloud.firestore {
         || (coll == 'medications'
           && d.keys().hasOnly(['id', 'memberId', 'name', 'purpose', 'pillsPerDose', 'times', 'afterMeal', 'stockPills', 'note', 'photoUri', 'createdAt', 'start', 'until', 'every', 'weekdays'])
           && (!('start' in d) || day(d.start)) && (!('until' in d) || day(d.until))
-          && optNum(d, 'every', 1, 30) && optList(d, 'weekdays', 7)
+          && optNum(d, 'every', 1, 30) && optList(d, 'weekdays', 7) && (!('weekdays' in d) || d.weekdays.hasOnly([0, 1, 2, 3, 4, 5, 6]))
           && d.id == id && str(d.memberId, 80) && str(d.name, 100) && d.name.size() > 0
           && num(d.pillsPerDose, 0, 20) && list(d.times, 12) && optBool(d, 'afterMeal')
           && optNum(d, 'stockPills', 0, 100000) && optStr(d, 'purpose', 100) && optStr(d, 'note', 300)
-          && optStr(d, 'photoUri', 60000) && optStr(d, 'createdAt', 40))
+          && optStr(d, 'photoUri', 60000) && (!('photoUri' in d) || d.photoUri.matches('data:image/(jpeg|png);base64,[A-Za-z0-9+/=]*'))
+          && optStr(d, 'createdAt', 40))
         || (coll == 'appointments'
           && d.keys().hasOnly(['id', 'memberId', 'title', 'at', 'place', 'companion', 'questions', 'asked', 'bring', 'transcript', 'shareTranscript'])
           && d.id == id && str(d.memberId, 80) && str(d.title, 120) && str(d.at, 40)
@@ -104,9 +107,32 @@ service cloud.firestore {
     }
     // Vai trò của máy đang gọi, theo yêu cầu vào gia đình đã được Đồng ý (máy không tự đổi được).
     // Máy tạo gia đình (không có yêu cầu vào) là máy của con.
+    // Yêu cầu chưa / không được Đồng ý thì không có vai trò nào ('none').
     function approvedRole(familyId) {
       let jr = /databases/$(database)/documents/families/$(familyId)/joinRequests/$(request.auth.uid);
-      return exists(jr) ? get(jr).data.role : 'child';
+      return !exists(jr) ? 'child' : (get(jr).data.status == 'approved' ? get(jr).data.role : 'none');
+    }
+    // Bố/mẹ nào dùng máy này (theo yêu cầu vào gia đình đã được Đồng ý).
+    function myMemberId(familyId) {
+      return get(/databases/$(database)/documents/families/$(familyId)/joinRequests/$(request.auth.uid)).data.memberId;
+    }
+    // Máy của con (hoặc máy quản lý): được sửa mọi dữ liệu, tạo mã kết nối, duyệt máy mới.
+    function isChildDevice(familyId) {
+      return isMember(familyId) && (isOwner(familyId) || approvedRole(familyId) == 'child');
+    }
+    function onlyChanged(keys) {
+      return resource != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+    // Máy của bố mẹ chỉ ghi được việc của chính mình: uống thuốc, điểm danh, huyết áp, SOS, "Đã xem" tin nhắn,
+    // số viên còn lại, cỡ chữ. Không sửa được thuốc, người nhận cảnh báo (số gọi SOS), hồ sơ của người khác.
+    function parentMayWrite(familyId, coll, docId) {
+      let mid = myMemberId(familyId);
+      let d = request.resource.data;
+      return (coll in ['doseLogs', 'checkins', 'bpReadings'] && d.memberId == mid && (resource == null || resource.data.memberId == mid))
+        || (coll == 'sosEvents' && d.memberId == mid && (resource == null || onlyChanged(['cancelled'])))
+        || (coll == 'messages' && resource != null && resource.data.memberId == mid && onlyChanged(['seenAt']))
+        || (coll == 'medications' && resource != null && resource.data.memberId == mid && onlyChanged(['stockPills']))
+        || (coll == 'members' && docId == mid && onlyChanged(['textScale']));
     }
     // Xóa dữ liệu gia đình (thuốc, lịch khám, người, nhật ký): chỉ máy của con hoặc máy quản lý.
     // Máy của bố mẹ không cần xóa gì; nếu máy đó nhiễm mã độc cũng không xóa được dữ liệu cả nhà.
@@ -130,15 +156,17 @@ service cloud.firestore {
       allow read: if signedIn() && request.auth.uid in resource.data.uids;
       // Tạo gia đình mới: chỉ có chính mình trong danh sách.
       allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['ownerUid', 'uids', 'createdAt'])
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.uids == [request.auth.uid];
       // Người trong gia đình được: sửa cài đặt; thêm ĐÚNG MỘT máy đã gửi yêu cầu vào gia đình.
       // Gỡ máy: chỉ người tạo gia đình (chủ) gỡ được máy khác; máy khác chỉ tự rời được; chủ không tự gỡ mình.
       // Chuyển quyền chủ: chỉ chủ, cho một máy đang trong gia đình.
       allow update: if isMember(familyId) && (
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['settings']) && validSettings(request.resource.data.settings))
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['settings']) && validSettings(request.resource.data.settings)
+          && isChildDevice(familyId))
         || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uids']) && (
-          addsOneRequester(familyId) || removesAllowed()
+          (addsOneRequester(familyId) && isChildDevice(familyId)) || removesAllowed()
         ))
         || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerUid'])
           && request.auth.uid == resource.data.ownerUid
@@ -157,13 +185,16 @@ service cloud.firestore {
         allow delete: if isMember(familyId) && canDeleteData(familyId)
           && coll in ['members', 'caregivers', 'medications', 'appointments',
                       'doseLogs', 'checkins', 'bpReadings', 'sosEvents', 'messages'];
-        allow create, update: if isMember(familyId) && validDoc(coll, docId, request.resource.data);
+        allow create, update: if isMember(familyId) && validDoc(coll, docId, request.resource.data)
+          && (isChildDevice(familyId) || (approvedRole(familyId) == 'parent' && parentMayWrite(familyId, coll, docId)));
       }
       // Nhịp "còn sống" của máy bố mẹ.
       match /heartbeats/{memberId} {
         allow read: if isMember(familyId);
         allow delete: if isOwner(familyId);
-        allow write: if isMember(familyId) && request.resource.data.uid == request.auth.uid
+        // Chỉ máy của đúng bố/mẹ đó ghi được (máy khác không giả "còn tín hiệu" được).
+        allow create, update: if isMember(familyId) && request.resource.data.uid == request.auth.uid
+          && approvedRole(familyId) == 'parent' && myMemberId(familyId) == memberId
           && request.resource.data.keys().hasOnly(['at', 'battery', 'uid', 'notifOff'])
           && (!('notifOff' in request.resource.data) || request.resource.data.notifOff is bool)
           && str(request.resource.data.at, 40) && optNum(request.resource.data, 'battery', 0, 100);
@@ -190,13 +221,15 @@ service cloud.firestore {
           && request.resource.data.role in ['parent', 'child']
           && validCode(request.resource.data.code, familyId, request.resource.data.memberId, request.resource.data.role);
         allow read: if signedIn() && (request.auth.uid == uid || isMember(familyId));
-        allow update: if isMember(familyId)
+        // Chỉ máy của con (hoặc máy quản lý) duyệt, và chỉ duyệt yêu cầu đang chờ (đã quyết thì không đổi được).
+        // Máy của bố mẹ không duyệt được: tránh kẻ gian gọi điện nhờ bố mẹ "đọc mã rồi bấm Đồng ý".
+        allow update: if isChildDevice(familyId) && request.auth.uid != uid
+          && resource.data.status == 'pending'
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'decidedAt', 'decidedBy'])
           && request.resource.data.status in ['approved', 'denied'];
-        // Yêu cầu đã được Đồng ý là bằng chứng vai trò của máy: máy còn trong gia đình không tự xóa được
-        // (để không tự đổi thành "máy của con"). Máy đã rời / bị gỡ thì xóa được để xin vào lại.
-        allow delete: if signedIn() && (isOwner(familyId)
-          || (request.auth.uid == uid && (resource.data.status != 'approved' || !isMember(familyId))));
+        // Yêu cầu là bằng chứng vai trò của máy: máy còn trong gia đình không tự xóa được
+        // (để không tự đổi thành "máy của con"). Máy đã rời / bị gỡ, hoặc chưa được vào, thì xóa được để xin lại.
+        allow delete: if signedIn() && (isOwner(familyId) || (request.auth.uid == uid && !isMember(familyId)));
       }
       // Gói cước của gia đình. Người trong gia đình đọc / ghi; ngày bắt đầu dùng thử và mã giới thiệu
       // không đổi được; mã giới thiệu đã nhập thì không đổi sang mã khác.
@@ -220,11 +253,15 @@ service cloud.firestore {
     // khi biết đúng mã và mã còn hạn; không ai liệt kê được danh sách mã.
     // Tạo đè mã đang có bị tính là sửa → bị từ chối, app tự thử mã khác.
     match /pairingCodes/{code} {
+      // Chỉ máy của con tạo mã. Mã cho máy bố mẹ sống tối đa 24 giờ (con gửi qua Zalo, bố mẹ cài sau);
+      // mã cho máy mới của người nhà chỉ sống 1 giờ.
       allow create: if code.matches('^[0-9]{6}$')
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.expiresAtMs is int
         && request.resource.data.get('role', 'parent') in ['parent', 'child']
-        && isMember(request.resource.data.familyId);
+        && request.resource.data.expiresAtMs <= request.time.toMillis()
+             + (request.resource.data.get('role', 'parent') == 'child' ? 3660000 : 86460000)
+        && isChildDevice(request.resource.data.familyId);
       allow get: if signedIn() && resource.data.expiresAtMs > request.time.toMillis();
       // Liệt kê mã của gia đình mình (để xóa hết khi xóa gia đình).
       allow list: if isMember(resource.data.familyId);

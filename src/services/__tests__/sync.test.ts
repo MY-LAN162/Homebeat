@@ -195,8 +195,8 @@ describe('hai máy qua máy chủ', () => {
     expect(server.families.get(fid)!.colls.medications.size).toBe(0);
   });
 
-  it('con đổi điện thoại: máy bố mẹ tạo mã, máy mới xin vào, bố mẹ Đồng ý → máy mới thấy dữ liệu', async () => {
-    const { server, fid, parent } = await setup();
+  it('con đổi điện thoại: máy con khác tạo mã, máy mới xin vào, Đồng ý → máy mới thấy dữ liệu', async () => {
+    const { server, fid, child: parent } = await setup();
     const code = await parent.sync.createPairingCode(fid, '', 'child');
     const newPhone = new Device(new MemorySync(server, 'uid-con-may-moi'));
     const res = await newPhone.sync.requestJoin(code.code);

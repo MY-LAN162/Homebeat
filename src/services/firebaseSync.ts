@@ -9,7 +9,8 @@
 //   families/{familyId}/devices/{uid}           { role, memberId, pushToken, platform }
 //   pairingCodes/{code}                 { familyId, memberId, expiresAt, createdBy }
 import { Platform } from 'react-native';
-import { createPairing } from '../domain/pairing';
+import * as Crypto from 'expo-crypto';
+import { CHILD_PAIRING_HOURS, createPairing, PAIRING_HOURS } from '../domain/pairing';
 import {
   COLLECTIONS,
   CONFIG_COLLECTIONS,
@@ -52,7 +53,7 @@ export class FirebaseSync implements FamilySync {
     const uid = await this.signIn();
     // Mã trùng với mã đang có thì máy chủ từ chối (luật chỉ cho tạo mới) → thử mã khác.
     for (let i = 0; i < 5; i++) {
-      const p = createPairing(memberId, new Date());
+      const p = createPairing(memberId, new Date(), secureRandom, role === 'child' ? CHILD_PAIRING_HOURS : PAIRING_HOURS);
       try {
         await fb.setDoc(fb.doc(this.db, 'pairingCodes', p.code), {
           familyId,
@@ -157,10 +158,11 @@ export class FirebaseSync implements FamilySync {
   async decideJoin(familyId: string, req: JoinRequest, approve: boolean): Promise<void> {
     const uid = await this.signIn();
     const fam = fb.doc(this.db, 'families', familyId);
-    // Thêm vào gia đình trước (luật kiểm tra máy đó đã gửi yêu cầu), rồi mới ghi kết quả.
-    if (approve) await fb.updateDoc(fam, { uids: fb.arrayUnion(req.uid) });
+    // Ghi "Đồng ý" trước, rồi mới thêm vào gia đình (luật chỉ cho thêm máy có yêu cầu đã được Đồng ý).
     await fb.updateDoc(fb.doc(fam, 'joinRequests', req.uid), { status: approve ? 'approved' : 'denied', decidedBy: uid, decidedAt: new Date().toISOString() });
-    if (approve) await fb.deleteDoc(fb.doc(this.db, 'pairingCodes', req.code)).catch(() => undefined);
+    if (approve) await fb.updateDoc(fam, { uids: fb.arrayUnion(req.uid) });
+    // Mã đã dùng (dù Đồng ý hay Từ chối) thì xóa, không ai dùng lại được.
+    await fb.deleteDoc(fb.doc(this.db, 'pairingCodes', req.code)).catch(() => undefined);
   }
 
   async deleteFamily(familyId: string): Promise<void> {
@@ -226,13 +228,33 @@ export class FirebaseSync implements FamilySync {
     if (!writes.length) return;
     const fam = fb.doc(this.db, 'families', familyId);
     for (let i = 0; i < writes.length; i += BATCH_LIMIT) {
+      const part = writes.slice(i, i + BATCH_LIMIT);
       const batch = fb.writeBatch(this.db);
-      for (const w of writes.slice(i, i + BATCH_LIMIT)) {
+      for (const w of part) {
         if (w.op === 'settings') batch.set(fam, { settings: w.data }, { merge: true });
         else if (w.op === 'set') batch.set(fb.doc(fam, w.coll, w.id), w.data);
         else batch.delete(fb.doc(fam, w.coll, w.id));
       }
-      await batch.commit();
+      try {
+        await batch.commit();
+      } catch (e) {
+        if ((e as { code?: string }).code !== 'permission-denied') throw e;
+        // Một tài liệu bị máy chủ từ chối thì cả lượt bị từ chối. Gửi lại từng cái một, bỏ qua cái bị từ chối,
+        // để SOS, uống thuốc... vẫn lên được. Cái bị từ chối sẽ được máy chủ trả về bản đúng.
+        let rejected = 0;
+        for (const w of part) {
+          try {
+            if (w.op === 'settings') await fb.setDoc(fam, { settings: w.data }, { merge: true });
+            else if (w.op === 'set') await fb.setDoc(fb.doc(fam, w.coll, w.id), w.data);
+            else await fb.deleteDoc(fb.doc(fam, w.coll, w.id));
+          } catch (err) {
+            if ((err as { code?: string }).code !== 'permission-denied') throw err;
+            rejected++;
+            console.warn(`[An Tâm] Máy chủ không nhận ${w.op === 'settings' ? 'cài đặt' : `${w.coll}/${w.id}`}`);
+          }
+        }
+        if (rejected === part.length) throw e;
+      }
     }
   }
 
@@ -422,4 +444,10 @@ export function getFamilySync(): FamilySync | undefined {
   if (!core) return undefined;
   instance = new FirebaseSync(core);
   return instance;
+}
+
+/** Số ngẫu nhiên an toàn (0 ≤ x < 1) cho mã kết nối, không dùng Math.random (đoán được). */
+function secureRandom(): number {
+  const b = Crypto.getRandomBytes(4);
+  return (((b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3]) >>> 0) / 0x1_0000_0000;
 }

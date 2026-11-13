@@ -144,7 +144,7 @@ export class MemorySync implements FamilySync {
     if (!r) throw new Error('not-found');
     if (approve && !f.uids.includes(req.uid)) f.uids.push(req.uid);
     r.status = approve ? 'approved' : 'denied';
-    if (approve) this.server.codes.delete(req.code);
+    this.server.codes.delete(req.code);
     this.server.notifyRequests(familyId);
   }
 

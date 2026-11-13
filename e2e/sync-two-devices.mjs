@@ -165,20 +165,26 @@ const fsGet = async (p) => (await fetch(`http://127.0.0.1:8080/v1/projects/demo-
   });
   const moi = await mk(), moi2 = await mk();
   for (const [n, p] of [['máy mới', moi], ['máy mới 2', moi2]]) p.on('pageerror', (e) => errs.push(`${n}: ${e.message}`));
-  await step('Con đổi điện thoại: máy bố tạo mã cho máy mới của con', async () => {
+  await step('Máy bố: "Con đổi điện thoại?" chỉ hướng dẫn + cảnh báo lừa đảo, không tạo mã', async () => {
     await vis(bo, /đổi điện thoại\? Bấm vào đây/i).click();
-    await vis(bo, 'Tạo mã cho máy mới của con').click();
-    const el = bo.getByText(/^\d{3} \d{3}$/).filter({ visible: true }).first(); await el.waitFor({ timeout: 15000 });
-    code = (await el.textContent()).replace(' ', '');
+    await vis(bo, /Cẩn thận lừa đảo/).waitFor({ timeout: 15000 });
+    if (await bo.getByRole('button', { name: /Tạo mã/ }).filter({ visible: true }).count()) throw new Error('máy bố vẫn tạo được mã');
+    await bo.getByLabel('Quay lại').filter({ visible: true }).first().click();
+  });
+  await step('Con đổi điện thoại: máy con tạo mã mời người nhà (dùng trong 1 giờ)', async () => {
+    await con.getByText('Gia đình', { exact: true }).last().click();
+    await vis(con, 'Tạo mã mời người nhà').click();
+    const el = con.getByText(/^Mã mời: \d{3} \d{3}$/).filter({ visible: true }); await el.waitFor({ timeout: 15000 });
+    code = (await el.textContent()).replace(/\D/g, '');
   });
   await step('Máy mới: "Lấy lại gia đình" → nhập mã → chờ đồng ý', async () => {
     await firstOpen(moi); await vis(moi, 'Đổi điện thoại? Lấy lại gia đình đã có').click();
     await vis(moi, 'Nhập mã').click(); await enterCode(moi, code);
     await vis(moi, 'Đã gửi yêu cầu kết nối').waitFor({ timeout: 15000 });
   });
-  await step('Máy bố thấy "Có người nhà xin cùng theo dõi" → Đồng ý → máy mới vào màn hình con', async () => {
-    await vis(bo, 'Có người nhà xin cùng theo dõi (máy của con, cháu)').waitFor({ timeout: 15000 });
-    await bo.getByText('Đồng ý', { exact: true }).filter({ visible: true }).last().click();
+  await step('Máy con thấy "Có người nhà xin cùng theo dõi" → Đồng ý → máy mới vào màn hình con', async () => {
+    await vis(con, 'Có người nhà xin cùng theo dõi (máy của con, cháu)').waitFor({ timeout: 15000 });
+    await con.getByText('Đồng ý', { exact: true }).filter({ visible: true }).last().click();
     await vis(moi, 'Bố mẹ hôm nay').waitFor({ timeout: 15000 });
     await vis(moi, /Bố Hùng ›/).waitFor({ timeout: 15000 });
   });

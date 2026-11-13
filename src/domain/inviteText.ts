@@ -29,6 +29,6 @@ export function familyInviteText(code: string, url = DOWNLOAD_URL): string {
     'Mời bạn cùng theo dõi bố mẹ trên An Tâm.',
     howToGet(url),
     '2. Mở app, bấm “Người nhà mời tôi cùng theo dõi”.',
-    `3. Nhập mã: ${formatCode(code)}. Mình bấm Đồng ý là xong.`,
+    `3. Nhập mã: ${formatCode(code)} (dùng trong 1 giờ). Mình bấm Đồng ý là xong.`,
   ].join('\n');
 }
