@@ -58,7 +58,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     items: [
       'Google Firebase: lưu trữ và đồng bộ dữ liệu.',
       'Expo (và Apple / Google): chuyển thông báo đẩy tới máy con; nội dung thông báo (vd "Bố chưa uống thuốc 12:00") đi qua các dịch vụ này.',
-      'Bản chạy trên trình duyệt: nhận giọng nói dùng dịch vụ của trình duyệt (Chrome gửi âm thanh lên máy chủ của Google).',
+      'Ghi lời bác sĩ thành chữ: dùng dịch vụ nhận giọng nói có sẵn của máy (Google trên Android, Apple trên iPhone; trên trình duyệt Chrome là Google). Âm thanh có thể được gửi tới máy chủ của họ để chuyển thành chữ; An Tâm không lưu âm thanh.',
       'Link vị trí SOS mở bằng Google Maps.',
     ],
   },

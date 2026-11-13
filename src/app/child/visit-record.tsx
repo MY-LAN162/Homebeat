@@ -50,7 +50,14 @@ function VisitRecord() {
         setText(baseRef.current + final);
         setInterim(now);
       },
-      (m) => setErr(m),
+      (m, fatal) => {
+        setErr(m);
+        if (fatal) {
+          stopRef.current = undefined;
+          setListening(false);
+          setInterim('');
+        }
+      },
     );
     setListening(true);
   };
@@ -89,16 +96,19 @@ function VisitRecord() {
             style={{ alignSelf: 'stretch' }}
           />
           {err && <T size={14} color={colors.red}>{err}</T>}
-          {Platform.OS === 'web' && (
-            <T size={12} color={colors.muted} style={{ textAlign: 'center' }}>
-              Trên trình duyệt, giọng nói được trình duyệt gửi tới máy chủ của họ (vd Google) để chuyển thành chữ. Lời ghi chỉ lưu trên máy này, trừ khi bạn chia sẻ.
-            </T>
-          )}
+          <T size={12} color={colors.muted} style={{ textAlign: 'center' }}>
+            {Platform.OS === 'web'
+              ? 'Trên trình duyệt, giọng nói được trình duyệt gửi tới máy chủ của họ (vd Google) để chuyển thành chữ.'
+              : `Giọng nói được chuyển thành chữ bằng dịch vụ có sẵn của ${Platform.OS === 'ios' ? 'Apple' : 'Google'} trên máy.`}{' '}
+            Lời ghi chỉ lưu trên máy này, trừ khi bạn chia sẻ.
+          </T>
         </Card>
       ) : (
         <Banner tone="blue">
           <T size={14} color={colors.blueDark}>
-            Máy / trình duyệt này chưa chuyển giọng nói thành chữ được. Ở bản cài trên điện thoại sẽ dùng nhận dạng giọng nói có sẵn của máy (miễn phí). Bây giờ có thể ghi chú tay vào ô bên dưới, hoặc thử bằng lời mẫu.
+            {Platform.OS === 'web'
+              ? 'Trình duyệt này chưa chuyển giọng nói thành chữ được (dùng Chrome hoặc bản cài trên điện thoại). Bây giờ có thể ghi chú tay vào ô bên dưới, hoặc thử bằng lời mẫu.'
+              : 'Máy này chưa có dịch vụ nhận giọng nói (Android: cần ứng dụng Google). Bạn có thể ghi chú tay vào ô bên dưới, hoặc thử bằng lời mẫu.'}
           </T>
           <Btn variant="secondary" label="Thử với lời bác sĩ mẫu" height={44} size={15} onPress={() => setText(SAMPLE_TRANSCRIPT)} />
         </Banner>

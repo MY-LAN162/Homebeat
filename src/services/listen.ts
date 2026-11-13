@@ -1,7 +1,6 @@
 // Chuyển lời nói thành chữ (tiếng Việt), miễn phí, chạy bằng dịch vụ có sẵn của máy.
 // - Bản web (Chrome, Edge, Safari): Web Speech API.
-// - Bản cài trên điện thoại: sẽ dùng nhận dạng giọng nói của Android / iPhone (thư viện expo-speech-recognition)
-//   ở bước triển khai thật; hiện trả về "chưa hỗ trợ" để màn hình cho con tự ghi.
+// - Bản cài trên điện thoại: src/services/listen.native.ts (nhận dạng giọng nói của Android / iPhone).
 import { Platform } from 'react-native';
 
 type Rec = {
@@ -29,7 +28,7 @@ export function canListen(): boolean {
  * Bắt đầu nghe. `onText(final, interim)`: final là câu đã chốt (cộng dồn), interim là câu đang nói.
  * Trả về hàm dừng.
  */
-export function startListening(onText: (finalText: string, interim: string) => void, onError?: (msg: string) => void): () => void {
+export function startListening(onText: (finalText: string, interim: string) => void, onError?: (msg: string, fatal?: boolean) => void): () => void {
   const C = ctor();
   if (!C) {
     onError?.('Máy này chưa hỗ trợ chuyển giọng nói thành chữ.');
@@ -51,7 +50,10 @@ export function startListening(onText: (finalText: string, interim: string) => v
     onText(done, interim);
   };
   rec.onerror = (e) => {
-    if (e.error === 'not-allowed') onError?.('Chưa cho phép dùng micro.');
+    if (e.error === 'not-allowed') {
+      stopped = true;
+      onError?.('Chưa cho phép dùng micro. Bấm biểu tượng ổ khóa cạnh địa chỉ trang để cho phép, hoặc gõ tay.', true);
+    }
     else if (e.error !== 'no-speech' && e.error !== 'aborted') onError?.('Mất kết nối nhận giọng nói, đang thử lại...');
   };
   // Trình duyệt tự dừng sau một lúc im lặng: tự bật lại cho đến khi người dùng bấm dừng.

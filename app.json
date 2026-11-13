@@ -72,6 +72,13 @@
           "photosPermission": "An Tâm cần chọn ảnh viên thuốc hoặc đơn thuốc có sẵn trong máy.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "An Tâm dùng micro để ghi lời bác sĩ dặn thành chữ.",
+          "speechRecognitionPermission": "An Tâm chuyển lời bác sĩ dặn thành chữ để bạn đọc lại."
+        }
       ]
     ],
     "scheme": "homebeat",

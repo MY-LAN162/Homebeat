@@ -213,6 +213,17 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
   - `app.json` có plugin `expo-image-picker` với câu xin quyền tiếng Việt và tắt quyền micro của plugin này.
 - Đã thử trên bản web: chọn ảnh có sẵn rồi lưu, danh sách thuốc có ảnh, máy bố mẹ hiện ảnh (`npm run e2e`). **Chưa thử được trên điện thoại thật** phần mở camera và hộp thoại xin quyền.
 
+### Ghi lời bác sĩ thành chữ trên điện thoại
+- Bản cài trên điện thoại dùng `src/services/listen.native.ts` (thư viện `expo-speech-recognition` ~57.1.1, bản hợp với SDK 57) để nhận giọng nói tiếng Việt `vi-VN`. Thư viện này gọi bộ nhận giọng nói có sẵn trong máy: Google trên Android, Apple trên iPhone, nên miễn phí.
+  - Máy tự dừng khi im lặng lâu thì app tự bật lại, cho tới khi người dùng bấm "Tạm dừng".
+- Bản web vẫn dùng Web Speech API của Chrome (`listen.ts`).
+- Trước khi xin quyền micro, app giải thích micro dùng để làm gì. Nếu bị từ chối:
+  - App dừng ghi và báo "có thể gõ tay".
+  - Nếu đã bị chặn hẳn thì hiện nút "Mở Cài đặt".
+  - Nếu máy không có dịch vụ nhận giọng nói, ví dụ Android không có ứng dụng Google, app báo rõ lý do.
+- Đã thêm câu xin quyền micro và quyền nhận giọng nói (iPhone) bằng tiếng Việt trong `app.json`.
+- Đã kiểm tra: typecheck, gói JS Android build được (`expo export -p android`), e2e bản web 49/49. **Cần điện thoại thật** để thử nghe tiếng Việt, độ chính xác, và việc tự bật lại khi im lặng.
+
 ## Gói cước và giới thiệu bạn bè trong app (12/11/2026)
 
 - `src/domain/billing.ts`: dùng thử 30 ngày; giá Nhỏ 89.000đ / Vừa 119.000đ / Lớn 179.000đ (năm: trả 10 tháng); mỗi gia đình một **mã giới thiệu 6 ký tự** (không có 0, O, 1, I). Giảm **10%** cho gia đình được giới thiệu, **5%** cho người giới thiệu, trong 2 tháng đầu sau khi gia đình được giới thiệu bắt đầu trả phí. Giới thiệu nhiều nhà: không cộng %, mỗi nhà thêm 2 tháng giảm 5%. Hai loại giảm không cộng nhau (lấy mức cao hơn). Gói năm chỉ giảm phần 2 tháng đầu.
