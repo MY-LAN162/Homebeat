@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 import { Restock } from '../../components/Restock';
 import { Btn, Card, Chip, H1, Screen, T } from '../../components/ui';
 import { displayName } from '../../domain/address';
@@ -46,7 +46,10 @@ export default function ChildMeds() {
             onPress={() => router.push({ pathname: '/child/med-edit', params: { id: m.id } })}
           >
             <Card style={{ borderWidth: 2, borderColor: low ? '#E0925A' : colors.white }}>
-              <T size={16} weight="700">{m.name}</T>
+              {!!m.photoUri && (
+                <Image source={{ uri: m.photoUri }} accessibilityLabel={`Ảnh ${m.name}`} style={{ position: 'absolute', top: 12, right: 12, width: 44, height: 44, borderRadius: 10 }} />
+              )}
+              <T size={16} weight="700" style={m.photoUri ? { paddingRight: 52 } : undefined}>{m.name}</T>
               <T size={13} color={colors.muted}>
                 {[m.purpose, `${pillsText(m.pillsPerDose)}/lần`, m.afterMeal ? 'sau ăn' : ''].filter(Boolean).join(' · ')}
               </T>

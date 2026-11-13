@@ -50,7 +50,7 @@ service cloud.firestore {
           && d.id == id && str(d.memberId, 80) && str(d.name, 100) && d.name.size() > 0
           && num(d.pillsPerDose, 0, 20) && list(d.times, 12) && optBool(d, 'afterMeal')
           && optNum(d, 'stockPills', 0, 100000) && optStr(d, 'purpose', 100) && optStr(d, 'note', 300)
-          && optStr(d, 'photoUri', 2000) && optStr(d, 'createdAt', 40))
+          && optStr(d, 'photoUri', 60000) && optStr(d, 'createdAt', 40))
         || (coll == 'appointments'
           && d.keys().hasOnly(['id', 'memberId', 'title', 'at', 'place', 'companion', 'questions', 'asked', 'bring', 'transcript', 'shareTranscript'])
           && d.id == id && str(d.memberId, 80) && str(d.title, 120) && str(d.at, 40)

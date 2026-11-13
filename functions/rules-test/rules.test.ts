@@ -58,6 +58,8 @@ test('dữ liệu phải đúng dạng: trường lạ, số vô lý, chữ quá
   await assertFails(setDoc(fam('medications', 'amlo'), { ...MED, name: 'x'.repeat(101) }));
   await assertFails(setDoc(fam('medications', 'amlo'), { ...MED, name: '' }));
   await assertFails(setDoc(fam('medications', 'khac'), MED));
+  await assertSucceeds(setDoc(fam('medications', 'anh'), { ...MED, id: 'anh', photoUri: 'data:image/jpeg;base64,' + 'A'.repeat(40000) }));
+  await assertFails(setDoc(fam('medications', 'anh'), { ...MED, id: 'anh', photoUri: 'A'.repeat(60001) }));
   await assertFails(setDoc(fam('doseLogs', 'd2'), { ...DOSE, time: '7h sáng' }));
   await assertFails(setDoc(fam('doseLogs', 'd3'), { ...DOSE, status: 'maybe' }));
   await assertFails(setDoc(fam('checkins', 'c1'), { memberId: 'bo', at: 'x', mood: 'happy', symptoms: [] }));

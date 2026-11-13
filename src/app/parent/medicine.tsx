@@ -96,7 +96,7 @@ export default function ParentMedicine() {
           style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderColor: colors.soft }}
         >
           {med.photoUri ? (
-            <Image source={{ uri: med.photoUri }} accessibilityLabel={`Ảnh ${med.name}`} style={{ width: 80, height: 80, borderRadius: 16 }} />
+            <Image source={{ uri: med.photoUri }} accessibilityLabel={`Ảnh ${med.name}`} style={{ width: 96, height: 96, borderRadius: 16 }} />
           ) : (
             <View style={{ width: 80, height: 80, borderRadius: 16, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center', padding: 6 }}>
               <T size={12} color={colors.muted} style={{ textAlign: 'center' }}>Chưa có ảnh</T>

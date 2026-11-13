@@ -46,3 +46,8 @@ export function notify(title: string, message?: string) {
 export function confirm(title: string, message: string, okLabel: string): Promise<boolean> {
   return show({ title, message, okLabel, cancelLabel: 'Hủy', danger: true });
 }
+
+/** Hỏi có / không, không phải việc nguy hiểm (nút chính màu xanh). */
+export function ask(title: string, message: string, okLabel: string, cancelLabel = 'Để sau'): Promise<boolean> {
+  return show({ title, message, okLabel, cancelLabel });
+}

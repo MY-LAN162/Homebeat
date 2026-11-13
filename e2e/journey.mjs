@@ -148,6 +148,16 @@ p.on('pageerror', (e) => errs.push(e.message));
   await step('Thuốc › Quét đơn › Quay lại về Thuốc', async () => { await tap('📷  Quét đơn thuốc'); await expectScreen('Thử với đơn thuốc mẫu'); await back(); await expectScreen('Thuốc của bố mẹ'); });
   await step('Quét đơn › đơn mẫu › Quay lại về Quét đơn', async () => { await tap('📷  Quét đơn thuốc'); await tap('Thử với đơn thuốc mẫu'); await expectScreen('Kiểm tra lại đơn thuốc'); await back(); await expectScreen('Thử với đơn thuốc mẫu'); await back(); await expectScreen('Thuốc của bố mẹ'); });
   await step('Thuốc › sửa thuốc › Quay lại về Thuốc', async () => { await tap(/^Aspirin/); await expectScreen('Xóa thuốc này'); await back(); await expectScreen('Thuốc của bố mẹ'); });
+  await step('Thuốc › sửa Aspirin › chọn ảnh viên thuốc có sẵn › Lưu › danh sách có ảnh', async () => {
+    await tap(/^Aspirin/); await expectScreen('Ảnh viên thuốc');
+    const img = await p.screenshot({ type: 'jpeg', clip: { x: 0, y: 0, width: 120, height: 120 } });
+    const [chooser] = await Promise.all([p.waitForEvent('filechooser'), tap('Chọn ảnh có sẵn', { exact: true })]);
+    await chooser.setFiles({ name: 'vien-thuoc.jpg', mimeType: 'image/jpeg', buffer: img });
+    await expectScreen('📷 Chụp lại', 15000);
+    await p.mouse.wheel(0, 4000); await p.waitForTimeout(300); await tap('Lưu và tạo lịch nhắc'); await expectScreen('Thuốc của bố mẹ');
+    const shown = await p.evaluate(() => [...document.querySelectorAll('[aria-label="Ảnh Aspirin 81mg"]')].some((e) => e.getBoundingClientRect().width > 0 && (e.innerHTML.includes('data:image/jpeg;base64') || getComputedStyle(e).backgroundImage.includes('data:image/jpeg'))));
+    if (!shown) throw new Error('danh sách thuốc chưa có ảnh');
+  });
   await step('Thuốc › + Thêm thuốc › Quay lại về Thuốc', async () => { await tap('+ Thêm thuốc'); await expectScreen(/Thêm thuốc|Tên thuốc/); await back(); await expectScreen('Thuốc của bố mẹ'); });
   // Đi khám
   await step('Tab Đi khám', async () => { await tab('Đi khám'); await expectScreen('Lịch đi khám'); });
@@ -241,7 +251,9 @@ p.on('pageerror', (e) => errs.push(e.message));
     await tap('Con ơi, bố ổn'); await expectScreen(/Đã báo cho các con lúc 13:3/, 10000);
   });
   await step('Bố › thuốc › "Bố đã uống" → "Đã ghi" (có hoàn tác) → về trang chủ bố', async () => {
-    await tap(/Thuốc lần tới|Thuốc bây giờ|Đến giờ/); await expectScreen('Bố đã uống'); await tap('Bố đã uống');
+    await tap(/Thuốc lần tới|Thuốc bây giờ|Đến giờ/); await expectScreen('Bố đã uống');
+    if (!(await p.evaluate(() => [...document.querySelectorAll('[aria-label="Ảnh Aspirin 81mg"]')].some((e) => e.getBoundingClientRect().width > 90 && e.innerHTML.includes('data:image/jpeg'))))) throw new Error('máy bố chưa hiện ảnh viên Aspirin');
+    await tap('Bố đã uống');
     await expectScreen(/Đã ghi: bố đã uống thuốc 12:00/); await tap('Xong', { exact: true }); await expectScreen('Con ơi, bố ổn');
   });
   await step('Bố › thuốc lần 19:00 chưa đến giờ: không có nút "Đã uống"', async () => {

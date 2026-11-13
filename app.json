@@ -64,7 +64,15 @@
           "faceIDPermission": "An Tâm dùng Face ID để khóa app, giữ kín thông tin sức khỏe của bố mẹ."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "An Tâm dùng camera để chụp viên thuốc và đơn thuốc. Ảnh đơn thuốc được đọc ngay trên máy.",
+          "photosPermission": "An Tâm cần chọn ảnh viên thuốc hoặc đơn thuốc có sẵn trong máy.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "scheme": "homebeat",
     "runtimeVersion": {

@@ -202,6 +202,17 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 - Luật máy chủ: thêm trường vào `members` (năm sinh 1900–2025, tối đa 20 bệnh, dị ứng ≤ 300 ký tự…).
 - Chính sách quyền riêng tư lên **bản 3**, nên người dùng sẽ được hỏi đồng ý lại.
 
+### Chụp ảnh viên thuốc
+- **Thuốc › sửa / thêm thuốc › Ảnh viên thuốc**: có nút "📷 Chụp ảnh" (camera, cắt vuông quanh viên thuốc), "Chọn ảnh có sẵn" và "Bỏ ảnh".
+  - Ảnh thu nhỏ còn 240px JPEG (khoảng 10–20 KB). Ảnh lưu thẳng trong dữ liệu thuốc trên Firestore, không dùng Firebase Storage vì Storage cần gói Blaze trả phí. Luật máy chủ cho `photoUri` tối đa 60.000 ký tự.
+  - Ảnh hiện ở danh sách thuốc của con, và hiện to (96px) trên màn hình uống thuốc của bố mẹ.
+- **Xin quyền camera dễ hiểu** (`src/services/permission.ts`, dùng chung cho micro):
+  - Trước khi máy hiện hộp thoại của hệ thống, app giải thích camera dùng để làm gì.
+  - Nếu đã bị chặn hẳn, app hiện nút "Mở Cài đặt" kèm chỉ dẫn bật lại.
+  - "Chọn ảnh có sẵn" dùng bộ chọn ảnh của hệ thống nên không cần xin quyền.
+  - `app.json` có plugin `expo-image-picker` với câu xin quyền tiếng Việt và tắt quyền micro của plugin này.
+- Đã thử trên bản web: chọn ảnh có sẵn rồi lưu, danh sách thuốc có ảnh, máy bố mẹ hiện ảnh (`npm run e2e`). **Chưa thử được trên điện thoại thật** phần mở camera và hộp thoại xin quyền.
+
 ## Gói cước và giới thiệu bạn bè trong app (12/11/2026)
 
 - `src/domain/billing.ts`: dùng thử 30 ngày; giá Nhỏ 89.000đ / Vừa 119.000đ / Lớn 179.000đ (năm: trả 10 tháng); mỗi gia đình một **mã giới thiệu 6 ký tự** (không có 0, O, 1, I). Giảm **10%** cho gia đình được giới thiệu, **5%** cho người giới thiệu, trong 2 tháng đầu sau khi gia đình được giới thiệu bắt đầu trả phí. Giới thiệu nhiều nhà: không cộng %, mỗi nhà thêm 2 tháng giảm 5%. Hai loại giảm không cộng nhau (lấy mức cao hơn). Gói năm chỉ giảm phần 2 tháng đầu.

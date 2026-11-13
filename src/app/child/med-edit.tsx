@@ -2,7 +2,9 @@ import { whenReady } from '../../components/WhenReady';
 import { useLocalSearchParams } from 'expo-router';
 import { goBack } from '../../services/nav';
 import { useState } from 'react';
-import { Switch, View } from 'react-native';
+import { Image, Switch, View } from 'react-native';
+import { pillPhoto, type PhotoSource } from '../../services/camera';
+import { notify } from '../../services/dialog';
 import { confirm } from '../../services/dialog';
 import { Back, Btn, Card, Chip, Field, H1, Screen, T } from '../../components/ui';
 import { allergyMatch } from '../../domain/health';
@@ -34,6 +36,19 @@ function MedEdit() {
   const [custom, setCustom] = useState('');
   const [stock, setStock] = useState(existing?.stockPills != null ? String(existing.stockPills) : '');
   const [afterMeal, setAfterMeal] = useState(existing?.afterMeal ?? true);
+  const [photo, setPhoto] = useState(existing?.photoUri);
+  const [shooting, setShooting] = useState(false);
+  const takePhoto = async (src: PhotoSource) => {
+    setShooting(true);
+    try {
+      const p = await pillPhoto(src);
+      if (p) setPhoto(p);
+    } catch {
+      notify('Chưa lấy được ảnh', 'Thử chụp lại, hoặc chọn ảnh có sẵn trong máy.');
+    } finally {
+      setShooting(false);
+    }
+  };
   // Uống thế nào: hằng ngày / cách ngày / theo thứ. Uống bao lâu: lâu dài hoặc theo đợt N ngày.
   const [freq, setFreq] = useState<'daily' | 'every2' | 'weekdays'>(
     existing?.weekdays?.length ? 'weekdays' : existing?.every && existing.every > 1 ? 'every2' : 'daily',
@@ -72,7 +87,7 @@ function MedEdit() {
       times,
       afterMeal,
       stockPills: Number.isFinite(stockN as number) ? stockN : undefined,
-      photoUri: existing?.photoUri,
+      photoUri: photo,
       start: freq !== 'daily' || courseDays ? start : undefined,
       until: courseDays ? dateKey(addDays(fromKey(start), courseDays - 1)) : undefined,
       every: freq === 'every2' ? 2 : undefined,
@@ -109,6 +124,26 @@ function MedEdit() {
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <T size={15} weight="600" style={{ flex: 1 }}>Uống sau bữa ăn</T>
           <Switch value={afterMeal} onValueChange={setAfterMeal} trackColor={{ true: colors.green }} accessibilityLabel="Uống sau bữa ăn" />
+        </View>
+      </Card>
+      <Card style={{ gap: 10 }}>
+        <T size={15} weight="700">Ảnh viên thuốc</T>
+        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+          {photo ? (
+            <Image source={{ uri: photo }} accessibilityLabel="Ảnh viên thuốc" style={{ width: 96, height: 96, borderRadius: 16 }} />
+          ) : (
+            <View style={{ width: 96, height: 96, borderRadius: 16, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' }}>
+              <T size={32}>💊</T>
+            </View>
+          )}
+          <T size={13} color={colors.muted} style={{ flex: 1 }}>
+            Ảnh hiện trên máy bố mẹ lúc đến giờ uống, để bố mẹ nhận ra đúng viên. Đặt viên thuốc trên nền trắng, chụp gần.
+          </T>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+          <Btn label={photo ? '📷 Chụp lại' : '📷 Chụp ảnh'} height={46} size={15} disabled={shooting} onPress={() => void takePhoto('camera')} />
+          <Btn variant="secondary" label="Chọn ảnh có sẵn" height={46} size={15} disabled={shooting} onPress={() => void takePhoto('library')} />
+          {!!photo && <Btn variant="ghost" label="Bỏ ảnh" height={46} size={15} onPress={() => setPhoto(undefined)} />}
         </View>
       </Card>
       <Card style={{ gap: 10 }}>
