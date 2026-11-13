@@ -107,6 +107,19 @@ function applyDose(item: RxItem, text: string) {
   if (total) item.totalPills = Number(total[1]);
 }
 
+/**
+ * Sửa lỗi hay gặp khi máy đọc chữ từ ảnh: "5rng" → "5mg", "500 mq" → "500mg", "1O mg" → "10mg",
+ * và nối các khối chữ máy trả về thành từng dòng.
+ */
+export function cleanOcr(blocks: string[]): string {
+  return blocks
+    .join('\n')
+    .replace(/(\d)[oO](?=\s*(?:mg|rng|mq)\b)/g, '$10')
+    .replace(/(\d)\s*(?:rng|rnq|mq|nig|ma)\b/gi, '$1mg')
+    .replace(/[|]/g, ' ')
+    .replace(/[ \t]+/g, ' ');
+}
+
 /** Tách chữ của đơn thuốc thành danh sách thuốc. */
 export function parsePrescription(text: string): RxItem[] {
   const lines = text

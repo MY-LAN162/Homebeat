@@ -70,7 +70,7 @@
         {
           "cameraPermission": "An Tâm dùng camera để chụp viên thuốc và đơn thuốc. Ảnh đơn thuốc được đọc ngay trên máy.",
           "photosPermission": "An Tâm cần chọn ảnh viên thuốc hoặc đơn thuốc có sẵn trong máy.",
-          "microphonePermission": false
+          "microphonePermission": "An Tâm dùng micro để ghi lời bác sĩ dặn thành chữ."
         }
       ],
       [
@@ -79,7 +79,8 @@
           "microphonePermission": "An Tâm dùng micro để ghi lời bác sĩ dặn thành chữ.",
           "speechRecognitionPermission": "An Tâm chuyển lời bác sĩ dặn thành chữ để bạn đọc lại."
         }
-      ]
+      ],
+      "./plugins/withMlkitOcr"
     ],
     "scheme": "homebeat",
     "runtimeVersion": {

@@ -224,6 +224,19 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 - Đã thêm câu xin quyền micro và quyền nhận giọng nói (iPhone) bằng tiếng Việt trong `app.json`.
 - Đã kiểm tra: typecheck, gói JS Android build được (`expo export -p android`), e2e bản web 49/49. **Cần điện thoại thật** để thử nghe tiếng Việt, độ chính xác, và việc tự bật lại khi im lặng.
 
+### Chụp đơn thuốc, máy tự đọc chữ
+- **Thuốc › 📷 Quét đơn thuốc** trên bản cài: có nút "📷 Chụp đơn thuốc" và "Chọn ảnh đơn có sẵn".
+  - Thư viện `expo-text-extractor` đọc chữ ngay trên điện thoại (Android: Google ML Kit, iPhone: Apple Vision). Miễn phí, ảnh không gửi đi đâu và không được lưu.
+  - Đọc xong, app sửa các lỗi hay gặp như "5rng" → "5mg", "500 mq" → "500mg" (`cleanOcr` trong `src/domain/rx.ts`), rồi tách thuốc như trước và mở màn hình "Kiểm tra lại đơn thuốc".
+  - Nếu đọc được chữ nhưng chưa nhận ra thuốc, chữ đã đọc được đưa vào ô "Gõ hoặc dán" để con sửa lại, không phải gõ từ đầu.
+- Bản web vẫn dùng đơn mẫu hoặc gõ / dán chữ.
+- Plugin `plugins/withMlkitOcr.js` báo Android tải sẵn mô hình đọc chữ khi cài app.
+- Đã sửa lỗi cấu hình: plugin chụp ảnh đặt `microphonePermission: false` làm mất câu xin quyền micro trên iPhone. Thiếu câu này thì app bị iOS đóng khi ghi âm. Giờ cả hai plugin dùng cùng một câu.
+- Kiểm thử thêm: `src/domain/__tests__/ocr.test.ts` dùng chữ giống máy đọc từ ảnh (mất dấu, khối chữ rời, có phần đầu đơn).
+- **Chưa kiểm tra được** độ chính xác trên đơn thuốc thật: chữ viết tay, đơn in mờ, đơn dạng bảng nhiều cột. iPhone đọc theo tiếng Anh nên có thể mất dấu tiếng Việt; tên thuốc và các từ "sang / toi / sau an" vẫn nhận được vì app so khớp không dấu. Cần thử trên điện thoại thật với vài đơn thật.
+
+Đã chạy lần 9: typecheck, lint, 112 kiểm thử app, `npm run e2e` 49/49, `test:rules` 22/22, `npm run e2e:sync` 19/19, gói JS Android và iPhone build được (`expo export`). **Cần bản cài** (APK hoặc development build; Expo Go không có các thư viện này) để thử camera, micro và đọc chữ.
+
 ## Gói cước và giới thiệu bạn bè trong app (12/11/2026)
 
 - `src/domain/billing.ts`: dùng thử 30 ngày; giá Nhỏ 89.000đ / Vừa 119.000đ / Lớn 179.000đ (năm: trả 10 tháng); mỗi gia đình một **mã giới thiệu 6 ký tự** (không có 0, O, 1, I). Giảm **10%** cho gia đình được giới thiệu, **5%** cho người giới thiệu, trong 2 tháng đầu sau khi gia đình được giới thiệu bắt đầu trả phí. Giới thiệu nhiều nhà: không cộng %, mỗi nhà thêm 2 tháng giảm 5%. Hai loại giảm không cộng nhau (lấy mức cao hơn). Gói năm chỉ giảm phần 2 tháng đầu.

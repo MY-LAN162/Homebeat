@@ -27,6 +27,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       'Điểm danh mỗi ngày, mức khỏe và triệu chứng bố mẹ tự báo; số đo huyết áp, nhịp tim.',
       'Hồ sơ sức khỏe nếu bạn điền: năm sinh, bệnh nền, dị ứng, nhóm máu, số thẻ bảo hiểm y tế, nơi khám quen, địa chỉ nhà.',
       'Ảnh viên thuốc do con chụp (thu nhỏ, lưu cùng thông tin thuốc để máy bố mẹ hiện khi đến giờ uống).',
+      'Ảnh đơn thuốc: máy đọc chữ ngay trên điện thoại (Google ML Kit / Apple Vision), ảnh không được gửi lên máy chủ và không được lưu lại; chỉ lưu tên thuốc, giờ uống sau khi bạn kiểm tra.',
       'Vị trí của bố mẹ, chỉ khi bố mẹ bấm SOS.',
       'Lời nhắn con gửi bố mẹ, lúc bố mẹ bấm "Đã xem", và tên người con bấm "Đã thấy" khi bố mẹ bấm SOS.',
       'Lịch khám, câu hỏi cho bác sĩ. Lời bác sĩ đã ghi chỉ giữ trên máy ghi, trừ khi bạn bấm chia sẻ với cả nhà.',
