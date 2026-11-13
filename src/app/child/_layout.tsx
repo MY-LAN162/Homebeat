@@ -24,6 +24,7 @@ export default function ChildLayout() {
       <Tabs.Screen name="family" options={{ title: 'Gia đình' }} />
       <Tabs.Screen name="member/[id]" options={{ href: null }} />
       <Tabs.Screen name="med-edit" options={{ href: null }} />
+      <Tabs.Screen name="member-edit" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="scan" options={{ href: null }} />
       <Tabs.Screen name="scan-confirm" options={{ href: null }} />

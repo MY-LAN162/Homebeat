@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { Btn, H1, Screen, T } from '../../components/ui';
 import { displayName } from '../../domain/address';
+import { hasHealth, healthLines } from '../../domain/health';
 import { hm } from '../../domain/time';
 import { call, getLocation, mapsLink, smsCaregivers } from '../../services/phone';
 import { speak } from '../../services/speech';
@@ -74,7 +75,7 @@ export default function ParentSos() {
   const kids = m.self.toLowerCase();
   const counting = left > 0 && !sentId;
   const reached = !!called || sms === 'sent' || synced;
-  const message = `[An Tâm] ${displayName(m)} bấm SOS lúc ${hm(new Date())}.${loc ? ` Vị trí: ${mapsLink(loc.lat, loc.lng)}` : ''}`;
+  const message = `[An Tâm] ${displayName(m)} bấm SOS lúc ${hm(new Date())}.${m.allergies ? ` Dị ứng: ${m.allergies}.` : ''}${loc ? ` Vị trí: ${mapsLink(loc.lat, loc.lng)}` : ''}`;
   const next = receivers.filter((c) => c.name !== called);
 
   return (
@@ -118,6 +119,16 @@ export default function ParentSos() {
           )}
           {!loc && sentId && <T size={15} color={colors.white}>Không lấy được vị trí (chưa cho phép hoặc mất GPS).</T>}
           {ack?.ackBy && <Line ok text={`${m.self} ${ack.ackBy} đã thấy lúc ${ack.ackAt ? hm(new Date(ack.ackAt)) : ''}, đang lo cho ${callName}`} />}
+        </View>
+      )}
+
+      {!counting && hasHealth(m) && (
+        <View accessibilityLabel="Thông tin y tế" style={{ backgroundColor: colors.white, borderRadius: 20, padding: 16, gap: 6 }}>
+          <T size={18} weight="700" color={colors.red}>THÔNG TIN Y TẾ · đưa cho người cấp cứu xem</T>
+          <T size={18} weight="700">{displayName(m)}</T>
+          {healthLines(m, new Date()).map((l) => (
+            <T key={l} size={17}>{l}</T>
+          ))}
         </View>
       )}
 

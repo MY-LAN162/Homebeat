@@ -127,6 +127,15 @@ p.on('pageerror', (e) => errs.push(e.message));
   // Trang chủ
   await step('Trang chủ › cảnh báo › Quay lại', async () => { await tap('Xem chi tiết ›'); await expectScreen(/Hôm nay của/); await back(); await expectScreen('Bố mẹ hôm nay'); });
   await step('Trang chủ › Bố Hùng › Quay lại', async () => { await tap(/Bố Hùng ›/); await expectScreen('Xem tình hình 30 ngày (đưa bác sĩ xem)'); await back(); await expectScreen('Bố mẹ hôm nay'); });
+  await step('Bố Hùng › Hồ sơ sức khỏe có dị ứng › Sửa › thêm thẻ BHYT › Lưu › thấy trong hồ sơ và bảng 30 ngày', async () => {
+    await tap(/Bố Hùng ›/); await expectScreen('Dị ứng thuốc: Penicillin'); await expectScreen('Nhóm máu: O+');
+    await tap('Sửa', { exact: true }); await expectScreen('Hồ sơ Bố Hùng');
+    await p.getByRole('textbox', { name: 'Số thẻ bảo hiểm y tế', exact: true }).fill('ht 2797924000123');
+    await p.mouse.wheel(0, 4000); await p.waitForTimeout(300); await tap('Lưu', { exact: true });
+    await expectScreen('Thẻ BHYT: HT2797924000123');
+    await tap('Xem tình hình 30 ngày (đưa bác sĩ xem)'); await expectScreen('Bệnh nền: Huyết áp cao, Tiểu đường');
+    await back(); await back(); await expectScreen('Bố mẹ hôm nay');
+  });
   await step('Bố Hùng › Bảng 30 ngày › Quay lại về Bố Hùng', async () => { await tap(/Bố Hùng ›/); await tap('Xem tình hình 30 ngày (đưa bác sĩ xem)'); await expectScreen(/Tình hình 30 ngày/); await back(); await expectScreen('Xem tình hình 30 ngày (đưa bác sĩ xem)'); await back(); await expectScreen('Bố mẹ hôm nay'); });
   await step('Trang chủ › Nhắn bố › chọn câu có sẵn › Gửi › thấy trong "đã nhắn" › Quay lại', async () => {
     await tap('💬 Nhắn bố'); await expectScreen('Chọn nhanh');
@@ -158,8 +167,10 @@ p.on('pageerror', (e) => errs.push(e.message));
   await step('Thuốc › + Thêm thuốc theo đợt 7 ngày, cách ngày › Lưu › danh sách ghi rõ', async () => {
     await tab('Thuốc'); await p.mouse.move(195, 500); await p.mouse.wheel(0, 4000); await p.waitForTimeout(300); await tap('+ Thêm thuốc');
     await p.getByRole('textbox', { name: 'Tên thuốc và hàm lượng', exact: true }).fill('Amoxicillin 500mg');
+    await expectScreen(/Bố đã ghi dị ứng “Penicillin”/);
     await tap('Cách ngày', { exact: true }); await tap('7 ngày', { exact: true }); await expectScreen(/sau đó máy tự dừng nhắc/);
-    await p.mouse.wheel(0, 4000); await p.waitForTimeout(300); await tap('Lưu và tạo lịch nhắc'); await expectScreen('Thuốc của bố mẹ');
+    await p.mouse.wheel(0, 4000); await p.waitForTimeout(300); await tap('Lưu và tạo lịch nhắc');
+    await expectScreen('Có thể trùng với dị ứng'); await tap('Vẫn lưu', { exact: true }); await expectScreen('Thuốc của bố mẹ');
     await p.mouse.move(195, 500); await p.mouse.wheel(0, 4000); await p.waitForTimeout(300); await expectScreen(/Cách ngày · Theo đợt: còn 7 ngày/);
   });
   await step('Tab Gia đình', async () => { await tab('Gia đình'); await expectScreen('NGƯỜI ĐƯỢC CHĂM SÓC'); });

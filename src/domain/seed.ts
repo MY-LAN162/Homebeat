@@ -38,7 +38,11 @@ export function demoData(now: Date): AppData {
     role: 'child',
     currentMemberId: 'bo',
     members: [
-      { id: 'bo', name: 'Hùng', call: 'Bố', self: 'Con', phone: '' },
+      {
+        id: 'bo', name: 'Hùng', call: 'Bố', self: 'Con', phone: '',
+        birthYear: 1954, conditions: ['Huyết áp cao', 'Tiểu đường'], allergies: 'Penicillin', bloodType: 'O+',
+        hospital: 'BV Chợ Rẫy, khoa Tim mạch',
+      },
       { id: 'me', name: 'Thu', call: 'Mẹ', self: 'Con', phone: '' },
     ],
     caregivers: [

@@ -2,12 +2,12 @@
 // Dùng chung cho màn hình trong app và file PRIVACY.md (scripts/privacy-md.mjs).
 
 /** Đổi nội dung chính sách thì tăng số này: người dùng sẽ được hỏi đồng ý lại. */
-export const PRIVACY_VERSION = 2;
-export const PRIVACY_UPDATED = '01/11/2026';
+export const PRIVACY_VERSION = 3;
+export const PRIVACY_UPDATED = '13/11/2026';
 
 /** Tóm tắt ngắn trên màn hình xin đồng ý. */
 export const PRIVACY_SUMMARY: string[] = [
-  'An Tâm lưu thông tin sức khỏe của bố mẹ (thuốc, giờ uống, huyết áp, điểm danh, triệu chứng) và vị trí khi bấm SOS.',
+  'An Tâm lưu thông tin sức khỏe của bố mẹ (thuốc, giờ uống, huyết áp, điểm danh, triệu chứng; bệnh nền, dị ứng, nhóm máu, thẻ BHYT nếu bạn điền) và vị trí khi bấm SOS.',
   'Chỉ các máy trong gia đình mà bạn bấm "Đồng ý" mới xem được. Nhóm làm app không bán, không quảng cáo bằng dữ liệu này.',
   'Dữ liệu lưu trên điện thoại và trên máy chủ Google Firebase (khu vực Singapore) để các máy đồng bộ với nhau.',
   'Bạn có thể xóa toàn bộ dữ liệu gia đình bất cứ lúc nào trong Cài đặt.',
@@ -25,6 +25,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       'Tên, cách xưng hô, số điện thoại của bố mẹ và người nhận cảnh báo (do con nhập).',
       'Thuốc, giờ uống, việc đã uống / bỏ qua, số viên còn lại.',
       'Điểm danh mỗi ngày, mức khỏe và triệu chứng bố mẹ tự báo; số đo huyết áp, nhịp tim.',
+      'Hồ sơ sức khỏe nếu bạn điền: năm sinh, bệnh nền, dị ứng, nhóm máu, số thẻ bảo hiểm y tế, nơi khám quen, địa chỉ nhà.',
       'Vị trí của bố mẹ, chỉ khi bố mẹ bấm SOS.',
       'Lời nhắn con gửi bố mẹ, lúc bố mẹ bấm "Đã xem", và tên người con bấm "Đã thấy" khi bố mẹ bấm SOS.',
       'Lịch khám, câu hỏi cho bác sĩ. Lời bác sĩ đã ghi chỉ giữ trên máy ghi, trừ khi bạn bấm chia sẻ với cả nhà.',
@@ -39,6 +40,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     items: [
       'Nhắc bố mẹ uống thuốc; báo cho con khi bố mẹ trễ thuốc, chưa điểm danh, huyết áp cao, báo không khỏe, bấm SOS hoặc máy mất tín hiệu.',
       'Hiển thị tình hình cho các máy trong gia đình; lập bảng tóm tắt để đưa bác sĩ xem khi bạn yêu cầu.',
+      'Hồ sơ sức khỏe hiện trên màn hình SOS của máy bố mẹ để người cấp cứu đọc, và dùng để nhắc khi thuốc mới có thể trùng với dị ứng đã ghi. Dị ứng được kèm trong tin nhắn SOS.',
       'Không dùng để quảng cáo, không bán, không đưa cho bên khác vì mục đích thương mại.',
     ],
   },

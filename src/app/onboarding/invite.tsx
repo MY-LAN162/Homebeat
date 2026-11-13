@@ -3,7 +3,9 @@ import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Share, View } from 'react-native';
 import { notify } from '../../services/dialog';
+import { HealthForm } from '../../components/HealthForm';
 import { NotifCard } from '../../components/NotifCard';
+import { cleanHealth, type HealthInfo } from '../../domain/health';
 import { Back, Btn, Card, Chip, Field, H1, Screen, T } from '../../components/ui';
 import { medPrompt, okLabel } from '../../domain/address';
 import { formatCode } from '../../domain/pairing';
@@ -28,6 +30,8 @@ export default function InviteScreen() {
   const [myPhone, setMyPhone] = useState('');
   const [memberId, setMemberId] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [health, setHealth] = useState<HealthInfo>({});
+  const [showHealth, setShowHealth] = useState(true);
 
   const preview = { call, self, name: name || '...' };
   const pairing = data.pairing && data.pairing.memberId === memberId ? data.pairing : undefined;
@@ -37,7 +41,7 @@ export default function InviteScreen() {
   const canCreate = name.trim().length > 0 && (!needOwn || (myName.trim().length > 0 && phoneOk));
 
   const create = async () => {
-    const m = addMember({ name: name.trim(), call, self, phone: phone.trim() });
+    const m = addMember({ name: name.trim(), call, self, phone: phone.trim(), ...cleanHealth(health) });
     if (needOwn) {
       const order = data.caregivers.reduce((mx, c) => Math.max(mx, c.order), 0) + 1;
       upsertCaregiver({ name: myName.trim(), phone: myPhone.trim(), order });
@@ -91,6 +95,18 @@ export default function InviteScreen() {
               <T size={14}>Nút điểm danh: “{okLabel(preview)}”</T>
             </View>
             <Field label={`Số điện thoại của ${call.toLowerCase()} (để gọi)`} value={phone} onChange={setPhone} keyboard="phone-pad" />
+          </Card>
+          <Card style={{ gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <T size={15} weight="700" style={{ flex: 1 }}>Sức khỏe của {call.toLowerCase()} (nên điền)</T>
+              <Btn variant="secondary" label={showHealth ? 'Để sau' : 'Điền'} height={40} size={14} onPress={() => setShowHealth((x) => !x)} />
+            </View>
+            <T size={13} color={colors.muted}>
+              {showHealth
+                ? `Bệnh nền, dị ứng thuốc, nhóm máu, thẻ BHYT. Khi ${call.toLowerCase()} bấm SOS, máy hiện các thông tin này cho người cấp cứu. Sửa lại được trong Gia đình.`
+                : 'Bạn có thể điền sau trong mục Gia đình → chọn bố mẹ → Hồ sơ sức khỏe.'}
+            </T>
+            {showHealth && <HealthForm value={health} onChange={setHealth} call={call} />}
           </Card>
           {needOwn && (
             <Card style={{ gap: 12 }}>

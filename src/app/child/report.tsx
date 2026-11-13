@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Share, View } from 'react-native';
 import { Back, Btn, Card, Chip, H1, Screen, T } from '../../components/ui';
 import { displayName } from '../../domain/address';
+import { hasHealth, healthLines } from '../../domain/health';
 import { doctorReport, reportText } from '../../domain/report';
 import { notify } from '../../services/dialog';
 import { track } from '../../services/usage';
@@ -100,6 +101,15 @@ export default function DoctorReportScreen() {
         />
         <Tile label="Ngày báo mệt" value={String(r.moods.tired + r.moods.unwell)} sub={`trên ${r.moods.good + r.moods.tired + r.moods.unwell} ngày điểm danh`} />
       </View>
+
+      {hasHealth(m) && (
+        <Card style={{ gap: 4 }}>
+          <T size={15} weight="700">Hồ sơ</T>
+          {healthLines(m, now).filter((l) => !l.startsWith('Địa chỉ')).map((l) => (
+            <T key={l} size={14}>{l}</T>
+          ))}
+        </Card>
+      )}
 
       <Card style={{ gap: 8 }}>
         <T size={15} weight="700">Huyết áp</T>

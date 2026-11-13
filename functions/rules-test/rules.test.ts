@@ -65,6 +65,11 @@ test('dữ liệu phải đúng dạng: trường lạ, số vô lý, chữ quá
   await assertFails(setDoc(fam('sosEvents', 's2'), { ...SOS, id: 's2', lat: 200 }));
   await assertFails(setDoc(fam('members', 'm1'), { id: 'm1', name: 'Hùng', call: 'Chú', self: 'Con' }));
   await assertSucceeds(setDoc(fam('members', 'm1'), { id: 'm1', name: 'Hùng', call: 'Bố', self: 'Con', phone: '0912345678' }));
+  const HEALTH = { birthYear: 1954, conditions: ['Huyết áp cao'], allergies: 'Penicillin', bloodType: 'O+', insurance: 'HT2797924000123', hospital: 'BV Chợ Rẫy', address: '12 Lê Lợi' };
+  await assertSucceeds(setDoc(fam('members', 'm1'), { id: 'm1', name: 'Hùng', call: 'Bố', self: 'Con', ...HEALTH }));
+  await assertFails(setDoc(fam('members', 'm1'), { id: 'm1', name: 'Hùng', call: 'Bố', self: 'Con', birthYear: 1800 }));
+  await assertFails(setDoc(fam('members', 'm1'), { id: 'm1', name: 'Hùng', call: 'Bố', self: 'Con', allergies: 'x'.repeat(301) }));
+  await assertFails(setDoc(fam('members', 'm1'), { id: 'm1', name: 'Hùng', call: 'Bố', self: 'Con', diagnosis: 'x' }));
   await assertFails(updateDoc(doc(as('con'), 'families', FAM), { settings: { lateMinutes: 1 } }));
   await assertFails(updateDoc(doc(as('con'), 'families', FAM), { settings: { lateMinutes: 30, x: 1 } }));
   await assertFails(setDoc(doc(as('bo'), 'families', FAM, 'heartbeats', 'bo'), { at: 'x', uid: 'bo', battery: 150 }));

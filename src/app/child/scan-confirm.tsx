@@ -3,6 +3,7 @@ import { goBack } from '../../services/nav';
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Back, Banner, Btn, Card, Chip, H1, Screen, T } from '../../components/ui';
+import { allergyMatch } from '../../domain/health';
 import { DAY_PARTS, findExisting, rxToMedication, type DayPart, type RxItem } from '../../domain/rx';
 import { track } from '../../services/usage';
 import { getRxDraft, setRxDraft } from '../../state/drafts';
@@ -112,6 +113,13 @@ export default function ScanConfirm() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <T size={18} weight="700" style={{ flex: 1 }}>{it.name || '(chưa có tên)'}</T>
                 <Btn variant="ghost" label="Sửa tên" height={36} size={14} onPress={() => setEditing(i)} />
+              </View>
+            )}
+            {!!allergyMatch(it.name, member.allergies) && (
+              <View accessibilityRole="alert" style={{ backgroundColor: colors.amberSoft, borderRadius: 10, padding: 10 }}>
+                <T size={14} color={colors.amberDark} weight="700">
+                  ⚠ {member.call} đã ghi dị ứng “{allergyMatch(it.name, member.allergies)}”. Hỏi lại bác sĩ, dược sĩ trước khi uống thuốc này.
+                </T>
               </View>
             )}
             {old && (

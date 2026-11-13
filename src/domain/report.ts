@@ -1,5 +1,6 @@
 // Bảng tóm tắt N ngày để đưa bác sĩ xem: huyết áp, uống thuốc, triệu chứng.
 // Chỉ dùng dữ liệu đã ghi trong app, không suy đoán bệnh.
+import { hasHealth, healthLines } from './health';
 import { displayName } from './address';
 import { isBpHigh } from './alerts';
 import { activeMedsOn, slotsForDay } from './schedule';
@@ -103,6 +104,7 @@ const dm = (d: Date) => `${d.getDate()}/${d.getMonth() + 1}`;
 /** Văn bản gửi bác sĩ / cả nhà qua Zalo, tin nhắn. */
 export function reportText(member: Member, r: DoctorReport): string {
   const L = [`Tình hình ${displayName(member)} từ ${dm(r.from)} đến ${dm(r.to)} (${r.days} ngày), ghi bằng app An Tâm`];
+  if (hasHealth(member)) L.push('', 'HỒ SƠ', ...healthLines(member, r.to).filter((l) => !l.startsWith('Địa chỉ')).map((l) => `• ${l}`));
   L.push('', 'HUYẾT ÁP');
   if (r.bp.readings.length) {
     L.push(`• ${r.bp.readings.length} lần đo, trung bình ${r.bp.avgSys}/${r.bp.avgDia}, cao nhất ${r.bp.maxSys}/${r.bp.maxDia}`);

@@ -34,9 +34,12 @@ service cloud.firestore {
     function optList(d, k, max) { return !(k in d) || list(d[k], max); }
     function validDoc(coll, id, d) {
       return (coll == 'members'
-          && d.keys().hasOnly(['id', 'name', 'call', 'self', 'phone', 'note', 'textScale'])
+          && d.keys().hasOnly(['id', 'name', 'call', 'self', 'phone', 'note', 'textScale',
+                               'birthYear', 'conditions', 'allergies', 'bloodType', 'insurance', 'hospital', 'address'])
           && d.id == id && str(d.name, 60) && d.call in ['Bố', 'Mẹ', 'Ông', 'Bà'] && d.self in ['Con', 'Cháu']
-          && optStr(d, 'phone', 20) && optStr(d, 'note', 300) && optNum(d, 'textScale', 0.8, 2))
+          && optStr(d, 'phone', 20) && optStr(d, 'note', 300) && optNum(d, 'textScale', 0.8, 2)
+          && optNum(d, 'birthYear', 1900, 2025) && optList(d, 'conditions', 20) && optStr(d, 'allergies', 300)
+          && optStr(d, 'bloodType', 4) && optStr(d, 'insurance', 20) && optStr(d, 'hospital', 120) && optStr(d, 'address', 200))
         || (coll == 'caregivers'
           && d.keys().hasOnly(['id', 'name', 'phone', 'order', 'sosOnly'])
           && d.id == id && str(d.name, 60) && str(d.phone, 20) && num(d.order, 0, 100) && optBool(d, 'sosOnly'))

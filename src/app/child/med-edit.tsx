@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Switch, View } from 'react-native';
 import { confirm } from '../../services/dialog';
 import { Back, Btn, Card, Chip, Field, H1, Screen, T } from '../../components/ui';
+import { allergyMatch } from '../../domain/health';
 import { pillsText } from '../../domain/schedule';
 import { addDays, dateKey, formatShortDate, isValidTime, toMinutes } from '../../domain/time';
 import { useStore } from '../../state/store';
@@ -48,8 +49,19 @@ function MedEdit() {
   const pillsN = Number(pills.replace(',', '.'));
   const valid = name.trim() && times.length > 0 && (freq !== 'weekdays' || weekdays.length > 0) && Number.isFinite(pillsN) && pillsN > 0 && !!memberId;
 
-  const save = () => {
+  const member = data.members.find((m) => m.id === memberId);
+  const allergyHit = member ? allergyMatch(name, member.allergies) : undefined;
+
+  const save = async () => {
     if (!valid || !memberId) return;
+    if (allergyHit && member) {
+      const ok = await confirm(
+        'Có thể trùng với dị ứng',
+        `${member.call} ${member.name} đã ghi dị ứng "${allergyHit}". ${name.trim()} có thể thuộc nhóm này. Hãy hỏi lại bác sĩ hoặc dược sĩ trước khi cho ${member.call.toLowerCase()} uống.`,
+        'Vẫn lưu',
+      );
+      if (!ok) return;
+    }
     const stockN = stock.trim() === '' ? undefined : Math.max(0, Math.floor(Number(stock)));
     upsertMedication({
       id: existing?.id,
@@ -79,6 +91,13 @@ function MedEdit() {
       </View>
       <Card style={{ gap: 12 }}>
         <Field label="Tên thuốc và hàm lượng" value={name} onChange={setName} placeholder="Ví dụ: Amlodipine 5mg" />
+        {!!allergyHit && member && (
+          <View accessibilityRole="alert" style={{ backgroundColor: colors.amberSoft, borderRadius: 12, padding: 12 }}>
+            <T size={14} weight="700" color={colors.amberDark}>
+              ⚠ {member.call} đã ghi dị ứng “{allergyHit}”. Thuốc này có thể thuộc nhóm đó: hỏi lại bác sĩ, dược sĩ trước khi uống.
+            </T>
+          </View>
+        )}
         <Field label="Dùng để (không bắt buộc)" value={purpose} onChange={setPurpose} placeholder="Ví dụ: Huyết áp" />
         <T size={14} weight="600">Số viên mỗi lần</T>
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>

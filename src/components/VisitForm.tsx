@@ -36,7 +36,8 @@ export function VisitForm({ existing, onDone }: { existing?: Appointment; onDone
   const [picked, setMemberId] = useState<string>();
   const memberId = picked ?? existing?.memberId ?? data.members[0]?.id;
   // Nơi đã khám trước đây, để chọn lại nhanh.
-  const places = [...new Set(data.appointments.map((a) => a.place).filter((p): p is string => !!p))].slice(0, 4);
+  const usual = data.members.find((m) => m.id === memberId)?.hospital;
+  const places = [...new Set([usual, ...data.appointments.map((a) => a.place)].filter((p): p is string => !!p))].slice(0, 4);
   const when = parseDay(day, time, now);
   const days = Array.from({ length: 14 }, (_, i) => addDays(now, i + 1));
 

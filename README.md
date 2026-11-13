@@ -189,6 +189,19 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 1. **Miễn phí, làm trước:** Expo (build file cài Android, 30 lần/tháng miễn phí) → Firebase gói Spark (đồng bộ 2 máy, đưa trang web lên `*.web.app`) → thử trên điện thoại thật, sửa lỗi.
 2. **Tốn phí, làm cuối cùng:** Google Play Console (25 USD, một lần: thanh toán, mã giới thiệu, lên Google Play) · Apple Developer (99 USD/năm: bản iPhone) · Firebase Blaze (trả theo dùng: Cloud Functions báo đúng giờ hơn, kiểm tra hóa đơn) · tên miền riêng (vd antam.vn) · xin Apple quyền "Critical Alerts" cho SOS (đi kèm Apple Developer).
 
+## Bổ sung lần 9 (13/11/2026): hồ sơ sức khỏe, ảnh thuốc, ghi âm và đọc đơn trên điện thoại
+
+### Hồ sơ sức khỏe của bố mẹ
+- Trường mới của `Member`: năm sinh, bệnh nền (chọn nhanh 12 bệnh hay gặp + ô "bệnh khác"), dị ứng thuốc/thức ăn, nhóm máu (A/B/AB/O, Rh), số thẻ BHYT, bệnh viện/bác sĩ hay khám, địa chỉ nhà. Đều không bắt buộc.
+- Nhập ở **bước "Thêm bố hoặc mẹ"** lúc mới cài (mở sẵn, có nút "Để sau") và ở **Gia đình › bố mẹ › Hồ sơ sức khỏe › Sửa** (`src/app/child/member-edit.tsx`, ô nhập dùng chung `src/components/HealthForm.tsx`).
+- Dùng ở đâu:
+  - **Màn hình SOS trên máy bố mẹ**: thẻ trắng "THÔNG TIN Y TẾ · đưa cho người cấp cứu xem". Tin nhắn SOS kèm dị ứng.
+  - **Bảng 30 ngày cho bác sĩ**, kể cả bản gửi Zalo, có mục "Hồ sơ". Địa chỉ không đưa vào bảng này.
+  - **Cảnh báo dị ứng** khi thêm thuốc và khi kiểm tra đơn quét. App so tên thuốc với dị ứng đã ghi, theo cả nhóm thuốc: dị ứng penicillin thì cảnh báo amoxicillin/augmentin, aspirin thì cảnh báo ibuprofen… (`src/domain/health.ts`). Lưu vẫn được sau khi bấm "Vẫn lưu". Đây chỉ là gợi ý để hỏi lại bác sĩ hoặc dược sĩ, danh sách nhóm thuốc chưa đầy đủ.
+  - Ô bệnh viện khi thêm lịch khám gợi ý sẵn nơi khám quen.
+- Luật máy chủ: thêm trường vào `members` (năm sinh 1900–2025, tối đa 20 bệnh, dị ứng ≤ 300 ký tự…).
+- Chính sách quyền riêng tư lên **bản 3**, nên người dùng sẽ được hỏi đồng ý lại.
+
 ## Gói cước và giới thiệu bạn bè trong app (12/11/2026)
 
 - `src/domain/billing.ts`: dùng thử 30 ngày; giá Nhỏ 89.000đ / Vừa 119.000đ / Lớn 179.000đ (năm: trả 10 tháng); mỗi gia đình một **mã giới thiệu 6 ký tự** (không có 0, O, 1, I). Giảm **10%** cho gia đình được giới thiệu, **5%** cho người giới thiệu, trong 2 tháng đầu sau khi gia đình được giới thiệu bắt đầu trả phí. Giới thiệu nhiều nhà: không cộng %, mỗi nhà thêm 2 tháng giảm 5%. Hai loại giảm không cộng nhau (lấy mức cao hơn). Gói năm chỉ giảm phần 2 tháng đầu.

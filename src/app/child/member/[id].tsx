@@ -5,6 +5,7 @@ import { Back, Btn, Card, Chip, H1, Screen, T } from '../../../components/ui';
 import { PARENT_SIZES } from '../../../domain/textSize';
 import { displayName } from '../../../domain/address';
 import { isBpHigh } from '../../../domain/alerts';
+import { hasHealth, healthLines } from '../../../domain/health';
 import { pillsText, slotsForDay } from '../../../domain/schedule';
 import { dateKey, hm } from '../../../domain/time';
 import { call } from '../../../services/phone';
@@ -61,6 +62,19 @@ export default function MemberDetail() {
         size={16}
         onPress={() => router.push({ pathname: '/child/message', params: { memberId: m.id } })}
       />
+      <Card style={{ gap: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <T size={16} weight="700" style={{ flex: 1 }}>Hồ sơ sức khỏe</T>
+          <Btn variant="secondary" label={hasHealth(m) ? 'Sửa' : 'Điền hồ sơ'} height={40} size={14} onPress={() => router.push({ pathname: '/child/member-edit', params: { id: m.id } })} />
+        </View>
+        {hasHealth(m) ? (
+          healthLines(m, now).map((l) => (
+            <T key={l} size={14} color={l.startsWith('Dị ứng') && m.allergies ? colors.amberDark : colors.ink} weight={l.startsWith('Dị ứng') && m.allergies ? '700' : '400'}>{l}</T>
+          ))
+        ) : (
+          <T size={14} color={colors.muted}>Chưa có. Điền bệnh nền, dị ứng, nhóm máu, thẻ BHYT để khi {m.call.toLowerCase()} bấm SOS, người cấp cứu biết ngay.</T>
+        )}
+      </Card>
       <Card style={{ gap: 8 }}>
         <T size={14} weight="700">Cỡ chữ trên máy của {m.call.toLowerCase()}</T>
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>

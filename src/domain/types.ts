@@ -22,6 +22,20 @@ export interface Member {
   battery?: number;
   /** Máy của bố/mẹ đang tắt thông báo (theo nhịp còn sống gần nhất). Chỉ trên máy, không gửi lên. */
   notifOff?: boolean;
+  // Hồ sơ sức khỏe (không bắt buộc). Hiện khi SOS, trong báo cáo bác sĩ, và để cảnh báo dị ứng khi thêm thuốc.
+  birthYear?: number;
+  /** Bệnh nền, ví dụ ["Huyết áp cao", "Tiểu đường"]. */
+  conditions?: string[];
+  /** Dị ứng thuốc / thức ăn, gõ tự do: "Penicillin, aspirin". */
+  allergies?: string;
+  /** Nhóm máu, ví dụ "O+". */
+  bloodType?: string;
+  /** Số thẻ bảo hiểm y tế. */
+  insurance?: string;
+  /** Bệnh viện / bác sĩ hay khám. */
+  hospital?: string;
+  /** Địa chỉ nhà (để báo cấp cứu). */
+  address?: string;
 }
 
 /** Người nhận cảnh báo (con, cháu, hàng xóm). Thứ tự gọi theo `order`. */
