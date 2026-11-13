@@ -11,6 +11,9 @@
       "bundleIdentifier": "co.keendigital.homebeat",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "An Tâm gửi vị trí của bố mẹ cho các con khi bấm SOS."
+      },
+      "entitlements": {
+        "com.apple.developer.usernotifications.time-sensitive": true
       }
     },
     "android": {

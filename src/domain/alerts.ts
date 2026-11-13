@@ -106,8 +106,16 @@ export function memberAlerts(data: AppData, member: Member, realNow: Date): Fami
     });
   }
 
-  if (member.lastSeenAt) {
-    const mins = (realNow.getTime() - new Date(member.lastSeenAt).getTime()) / 60000;
+  // Lần cuối máy bố mẹ còn hoạt động: nhịp "còn sống", hoặc bất cứ việc gì bố mẹ vừa làm (uống thuốc, điểm danh,
+  // đo huyết áp, SOS). iPhone ít cho app chạy nền nên nhịp có thể thưa; tính cả việc bố mẹ làm để đỡ báo nhầm.
+  const lastActive = [
+    member.lastSeenAt,
+    ...[data.doseLogs, data.checkins, data.bpReadings, data.sosEvents].map((list) =>
+      (list as { memberId: string; at: string }[]).filter((e) => e.memberId === member.id).reduce((mx, e) => (e.at > mx ? e.at : mx), ''),
+    ),
+  ].reduce<string>((mx, x) => (x && x > mx ? x : mx), '');
+  if (member.lastSeenAt && lastActive) {
+    const mins = (realNow.getTime() - new Date(lastActive).getTime()) / 60000;
     const sleeping = s.excludeSleep && inWindow(now, s.sleepStart, s.sleepEnd);
     if (mins >= s.stillHours * 60 && !sleeping) {
       out.push({

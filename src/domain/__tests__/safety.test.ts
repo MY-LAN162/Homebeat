@@ -50,7 +50,7 @@ describe('hết thuốc / không uống được', () => {
     expect(skip?.detail).toBe('Hết thuốc: Amlodipin 5mg');
     expect(al.some((x) => x.kind === 'late-dose')).toBe(false);
     const p = skipPush(bo, '07:00', 'out', ['Amlodipin 5mg']);
-    expect(p.body).toBe('Hết thuốc: Amlodipin 5mg. Cần mua thêm.');
+    expect(p.body).toBe('Bố báo hết thuốc (1 loại). Mở app để xem, cần mua thêm.');
     expect(skipPush(bo, '07:00', 'unable', []).body).toBe('Bố báo không uống được. Nên gọi hỏi thăm.');
   });
 });

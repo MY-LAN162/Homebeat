@@ -18,8 +18,15 @@ export function levelOf(kind: AlertKind | string | undefined): NotifyLevel {
 }
 
 /** Phần gửi kèm cho dịch vụ Expo Push theo mức: kênh, âm thanh, độ ưu tiên. */
-export function pushOptions(level: NotifyLevel): { channelId: string; sound: string | null; priority: 'high' | 'normal'; interruptionLevel?: 'passive' } {
-  if (level === 'urgent') return { channelId: LEVEL_CHANNEL.urgent, sound: SOS_SOUND, priority: 'high' };
+// iPhone: SOS là "time-sensitive" để vẫn hiện khi đang bật chế độ Tập trung / Không làm phiền
+// (cần quyền com.apple.developer.usernotifications.time-sensitive trong app.json).
+export function pushOptions(level: NotifyLevel): {
+  channelId: string;
+  sound: string | null;
+  priority: 'high' | 'normal';
+  interruptionLevel?: 'passive' | 'time-sensitive';
+} {
+  if (level === 'urgent') return { channelId: LEVEL_CHANNEL.urgent, sound: SOS_SOUND, priority: 'high', interruptionLevel: 'time-sensitive' };
   if (level === 'warn') return { channelId: LEVEL_CHANNEL.warn, sound: 'default', priority: 'high' };
   return { channelId: LEVEL_CHANNEL.info, sound: null, priority: 'normal', interruptionLevel: 'passive' };
 }

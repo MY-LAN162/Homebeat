@@ -6,7 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Battery from 'expo-battery';
 import { Platform } from 'react-native';
-import { backgroundPushes, childSignalAlerts, eveningSummary, scheduleKey, scheduleNotice, SUMMARY_AT, withSchedule } from '../domain/background';
+import { backgroundPushes, childMissedAlerts, childSignalAlerts, eveningSummary, scheduleKey, scheduleNotice, SUMMARY_AT, withSchedule } from '../domain/background';
 import { mergeRemote } from '../domain/syncdiff';
 import { dateKey, minutesOfDay, toMinutes } from '../domain/time';
 import { toZone } from '../domain/tz';
@@ -14,6 +14,7 @@ import { emptyData, type AppData } from '../domain/types';
 import { BG_LAST_KEY, BG_SCHED_KEY, BG_SENT_KEY, BG_SIGNAL_KEY, BG_SUMMARY_KEY, DATA_KEY } from '../state/keys';
 import { getFamilySync } from './firebaseSync';
 import { hasPermission, rescheduleMedReminders, showAlertNow, showNotice } from './notifications';
+import { flushOutbox } from './outbox';
 import { sendPush } from './push';
 import { readSecure } from './vault';
 
@@ -37,6 +38,9 @@ export async function checkAndAlert(now = new Date()): Promise<void> {
     const raw = await readSecure(DATA_KEY);
     if (!raw) return;
     const data: AppData = { ...emptyData(), ...(JSON.parse(raw) as AppData) };
+    // Thông báo đẩy chưa gửi được lúc mất mạng (SOS...): gửi lại trước tiên.
+    const s0 = getFamilySync();
+    if (s0 && data.familyId && !data.demo) await flushOutbox(s0, now).catch(() => undefined);
     if (data.role === 'child' && data.familyId && !data.demo) {
       await checkSignals(data, now);
       return;
@@ -76,7 +80,15 @@ async function checkSignals(data: AppData, now: Date): Promise<void> {
   const sent = JSON.parse((await AsyncStorage.getItem(BG_SIGNAL_KEY)) ?? '[]') as string[];
   const r = childSignalAlerts(data, heartbeats, now, sent);
   for (const a of r.alerts) await showAlertNow(a.title, a.body, a.data);
-  await AsyncStorage.setItem(BG_SIGNAL_KEY, JSON.stringify(r.sent));
+  // Trễ thuốc / chưa điểm danh mà máy bố mẹ không báo được: máy con tự báo (đọc dữ liệu mới nhất từ máy chủ).
+  let fresh = data;
+  const remote = await sync.readSchedule(data.familyId).catch(() => undefined);
+  if (remote) fresh = { ...fresh, medications: remote.medications, appointments: remote.appointments ?? fresh.appointments, settings: remote.settings ?? fresh.settings };
+  const events = await sync.readEvents(data.familyId, new Date(now.getTime() - 30 * 3600_000).toISOString()).catch(() => undefined);
+  if (events) fresh = mergeRemote(fresh, events);
+  const b = childMissedAlerts(fresh, now, r.sent);
+  for (const a of b.alerts) await showAlertNow(a.title, a.body, a.data);
+  await AsyncStorage.setItem(BG_SIGNAL_KEY, JSON.stringify(b.sent));
   await maybeEveningSummary(data, now).catch(() => undefined);
   await AsyncStorage.setItem(BG_LAST_KEY, now.toISOString());
 }

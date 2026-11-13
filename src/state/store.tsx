@@ -24,8 +24,8 @@ import { bpPush, checkinPush, messagePush, skipPush, sosAckPush, sosPush, type P
 import { getFamilySync } from '../services/firebaseSync';
 import { setBackgroundEnabled } from '../services/background';
 import { checkAndAlert } from '../services/checkAndAlert';
+import { deliver, flushOutbox } from '../services/outbox';
 import { readSecure, writeSecure } from '../services/vault';
-import { sendPush } from '../services/push';
 import { scheduleKey } from '../domain/background';
 import { canEnterReferral, extendPaid, makeRefCode, normalizeRefCode, type Period, type PlanId } from '../domain/billing';
 import { buy } from '../services/purchases';
@@ -271,11 +271,19 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
     }
     void setBackgroundEnabled(true);
     const beat = () => checkAndAlert().catch(() => undefined);
+    const retry = () => flushOutbox(sync).catch(() => undefined);
     beat();
     const t = setInterval(beat, HEARTBEAT_MS);
-    const sub = AppState.addEventListener('change', (s) => s === 'active' && beat());
+    // Thông báo chưa gửi được (mất mạng): thử lại mỗi phút khi đang mở app.
+    const r = setInterval(retry, 60_000);
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s !== 'active') return;
+      beat();
+      retry();
+    });
     return () => {
       clearInterval(t);
+      clearInterval(r);
       sub.remove();
     };
   }, [ready, sync, familyId, beatMember]);
@@ -313,20 +321,15 @@ export function StoreProvider({ children, sync = getFamilySync() }: { children: 
       setData((d) => ({ ...emptyData(), consentAt: d.consentAt, consentVersion: d.consentVersion, textScale: d.textScale }));
     };
     // Máy bố mẹ tự gửi thông báo cho các con (miễn phí, không cần máy chủ riêng). Chạy ngầm, không chặn màn hình.
+    // Mất mạng thì giữ lại, gửi lại sau (services/outbox.ts).
     const alertChildren = (msg: PushMessage) => {
       if (!sync || !familyId || data.role !== 'parent') return;
-      sync
-        .childPushTokens(familyId)
-        .then((tokens) => sendPush(tokens, msg))
-        .catch(() => undefined);
+      deliver(sync, familyId, 'children', msg).catch(() => undefined);
     };
     // Máy con báo cho máy bố mẹ (con đã thấy SOS, lời nhắn). Chạy ngầm.
     const alertParent = (memberId: string, msg: PushMessage) => {
       if (!sync || !familyId || data.role !== 'child') return;
-      sync
-        .parentPushTokens(familyId, memberId)
-        .then((tokens) => sendPush(tokens, msg))
-        .catch(() => undefined);
+      deliver(sync, familyId, { memberId }, msg).catch(() => undefined);
     };
     const myName = () => data.myName ?? [...data.caregivers].sort((a, b) => a.order - b.order).find((c) => !c.sosOnly)?.name ?? '';
     return {

@@ -189,6 +189,27 @@ Nguyên tắc: chỉ thêm tính năng người dùng sẽ dùng thường xuyê
 1. **Miễn phí, làm trước:** Expo (build file cài Android, 30 lần/tháng miễn phí) → Firebase gói Spark (đồng bộ 2 máy, đưa trang web lên `*.web.app`) → thử trên điện thoại thật, sửa lỗi.
 2. **Tốn phí, làm cuối cùng:** Google Play Console (25 USD, một lần: thanh toán, mã giới thiệu, lên Google Play) · Apple Developer (99 USD/năm: bản iPhone) · Firebase Blaze (trả theo dùng: Cloud Functions báo đúng giờ hơn, kiểm tra hóa đơn) · tên miền riêng (vd antam.vn) · xin Apple quyền "Critical Alerts" cho SOS (đi kèm Apple Developer).
 
+## Cảnh báo đợt 3 (13/11/2026): chắc chắn hơn khi mất mạng hoặc tắt app
+
+- **Gửi lại thông báo khi mất mạng** (`src/services/outbox.ts`, `src/domain/outbox.ts`).
+  - Áp dụng cho SOS, không khỏe, huyết áp cao, không uống thuốc, con đã thấy SOS, lời nhắn.
+  - Nếu chưa tới được dịch vụ Expo, thông báo được giữ lại trên máy và gửi lại: mỗi phút khi đang mở app, khi mở lại app, và mỗi lần chạy nền.
+  - SOS giữ tối đa 12 giờ, tin khác 6 giờ. Tin gửi trễ ghi rõ "Xảy ra lúc HH:MM, gửi trễ vì máy mất mạng".
+  - Nếu đã tới dịch vụ mà máy nhận báo lỗi (ví dụ máy đã gỡ app) thì không gửi lại.
+- **Máy con tự báo khi máy bố mẹ không báo được** (`childMissedAlerts`).
+  - Máy con đọc dữ liệu mới nhất từ máy chủ, khi đang mở app (15 phút một lần) và khi chạy nền.
+  - Sau mốc máy bố mẹ lẽ ra đã báo 30 phút, nếu bố mẹ vẫn trễ thuốc hoặc chưa điểm danh, máy con tự hiện cảnh báo "Máy của bố có thể chưa báo được (tắt app, mất mạng)". Mỗi cảnh báo một lần mỗi ngày.
+  - Trường hợp này cần cho iPhone của bố mẹ khi đã tắt hẳn app.
+- **SOS trên iPhone là "time-sensitive"**: vẫn hiện khi bật Tập trung / Không làm phiền. `app.json` đã thêm quyền `com.apple.developer.usernotifications.time-sensitive`. Phải bật quyền này cho mã ứng dụng khi có tài khoản Apple Developer.
+- **"Mất tín hiệu" tính cả việc bố mẹ vừa làm** (uống thuốc, điểm danh, đo huyết áp, SOS), không chỉ nhịp chạy nền. iPhone ít cho chạy nền nên trước đây dễ báo nhầm.
+- **Màn hình khóa không lộ chi tiết sức khỏe.** Thông báo không còn ghi số huyết áp, triệu chứng, tên thuốc, link vị trí; chi tiết xem trong app. Vị trí SOS vẫn có trong app và trong tin nhắn SMS từ máy bố mẹ. Lời nhắn của con cho bố mẹ vẫn hiện nội dung, để bố mẹ đọc ngay.
+- Kiểm thử thêm: `src/domain/__tests__/batch3-alerts.test.ts`, 6 bài.
+- Đã chạy: 121 kiểm thử app, `npm run e2e` 49/49, `npm run e2e:sync` 20/20, gói JS Android build được.
+- **Cần điện thoại thật** để thử:
+  - Gửi lại sau khi bật lại mạng.
+  - Máy con tự báo khi chạy nền (iPhone không hứa giờ chạy).
+  - SOS hiện được khi đang bật Không làm phiền.
+
 ## Đồng bộ đợt 2 (13/11/2026): không đè dữ liệu của nhau
 
 - **Chỉ gửi phần thay đổi.** Trước đây, sửa một trường là gửi đè cả tài liệu. Nay `diffData` (`src/domain/syncdiff.ts`) tạo lệnh `update` chỉ gồm các trường đổi, kèm danh sách trường bị bỏ (gỡ bằng `deleteField`). Tài liệu mới vẫn ghi cả tài liệu. Kết quả:

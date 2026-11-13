@@ -12,3 +12,5 @@ export const BG_SIGNAL_KEY = 'homebeat:bg-signal:v1';
 /** Ngày máy con đã gửi tóm tắt buổi tối (mỗi ngày một lần). */
 export const BG_SUMMARY_KEY = 'homebeat:bg-summary:v1';
 export const BG_SCHED_KEY = 'homebeat:bg-sched:v1';
+/** Thông báo đẩy chưa gửi được (mất mạng), chờ gửi lại. */
+export const OUTBOX_KEY = 'homebeat:outbox:v1';

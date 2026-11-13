@@ -32,11 +32,47 @@ export function backgroundPushes(data: AppData, now: Date, sent: string[]): { pu
     keep.push(key);
     pushes.push({
       title: a.title,
-      body: `${a.detail ? `${a.detail}. ` : ''}Nên gọi hỏi thăm ${m.call.toLowerCase()}.`,
+      // Không ghi chi tiết (tên thuốc...) lên màn hình khóa.
+      body: `Mở app để xem. Nên gọi hỏi thăm ${m.call.toLowerCase()}.`,
       data: { kind: a.kind, memberId: m.id },
     });
   }
   return { pushes, sent: keep };
+}
+
+/** Máy con chờ thêm bấy nhiêu phút sau khi máy bố mẹ lẽ ra đã báo, rồi mới tự báo (đỡ báo trùng). */
+export const CHILD_BACKUP_MINUTES = 30;
+
+/**
+ * Máy con tự báo trễ thuốc / chưa điểm danh, phòng khi máy bố mẹ không báo được
+ * (iPhone đã tắt hẳn app, máy bố mẹ mất mạng, hết pin). Chỉ báo khi cảnh báo đã có từ
+ * CHILD_BACKUP_MINUTES phút trước mà đến giờ vẫn còn. Mỗi cảnh báo một lần mỗi ngày.
+ */
+export function childMissedAlerts(data: AppData, now: Date, sent: string[]): { alerts: LocalAlert[]; sent: string[] } {
+  if (data.role !== 'child' || data.demo) return { alerts: [], sent };
+  const today = dateKey(toZone(now, data.settings.timeZone));
+  const keep = sent.filter((k) => !k.startsWith('backup|') || k.startsWith(`backup|${today}|`));
+  const earlier = new Date(now.getTime() - CHILD_BACKUP_MINUTES * 60_000);
+  const alerts: LocalAlert[] = [];
+  for (const m of data.members) {
+    const before = new Set(memberAlerts(data, m, earlier).filter((a) => BACKGROUND_KINDS.includes(a.kind)).map((a) => `${a.kind}|${a.title}`));
+    for (const a of memberAlerts(data, m, now)) {
+      if (!BACKGROUND_KINDS.includes(a.kind)) continue;
+      // Tiêu đề trễ thuốc có số phút trễ (đổi theo giờ): so theo loại + giờ uống.
+      const slot = a.kind === 'late-dose' ? (a.title.match(/\d{1,2}:\d{2}/) ?? [''])[0] : '';
+      const stillThere = [...before].some((b) => b.startsWith(`${a.kind}|`) && (!slot || b.includes(slot)));
+      if (!stillThere) continue;
+      const key = `backup|${today}|${m.id}|${a.kind}|${slot}`;
+      if (keep.includes(key)) continue;
+      keep.push(key);
+      alerts.push({
+        title: a.title,
+        body: `Máy của ${m.call.toLowerCase()} có thể chưa báo được (tắt app, mất mạng). Nên gọi hỏi thăm ${m.call.toLowerCase()}.`,
+        data: { kind: a.kind, memberId: m.id },
+      });
+    }
+  }
+  return { alerts, sent: keep.slice(-100) };
 }
 
 /** Loại cảnh báo máy CON tự kiểm tra (không cần máy bố mẹ còn chạy): mất tín hiệu, pin yếu. */

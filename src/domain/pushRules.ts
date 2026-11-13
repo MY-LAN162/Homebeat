@@ -12,12 +12,14 @@ export interface PushMessage {
   level?: NotifyLevel;
 }
 
-export function sosPush(m: Member, at: Date, loc?: { lat: number; lng: number }): PushMessage {
+// Nội dung thông báo hiện trên màn hình khóa và đi qua dịch vụ của Expo / Google / Apple:
+// chỉ ghi việc cần làm, KHÔNG ghi số huyết áp, triệu chứng, tên thuốc, vị trí. Chi tiết xem trong app.
+
+export function sosPush(m: Member, at: Date, _loc?: { lat: number; lng: number }): PushMessage {
   const t = at.toTimeString().slice(0, 5);
-  const where = loc ? ` Vị trí: https://maps.google.com/?q=${loc.lat.toFixed(6)},${loc.lng.toFixed(6)}` : '';
   return {
     title: `🆘 ${displayName(m)} bấm SOS`,
-    body: `Lúc ${t}. Gọi ngay cho ${m.call.toLowerCase()}.${where}`,
+    body: `Lúc ${t}. Gọi ngay cho ${m.call.toLowerCase()}. Mở app để xem vị trí.`,
     data: { kind: 'sos', memberId: m.id },
     level: 'urgent',
   };
@@ -47,7 +49,7 @@ export function messagePush(m: Member, from: string, text: string): PushMessage 
 export function skipPush(m: Member, time: string, reason: 'out' | 'unable', medNames: string[]): PushMessage {
   return {
     title: `${displayName(m)} không uống thuốc ${time}`,
-    body: reason === 'out' ? `Hết thuốc: ${medNames.join(', ')}. Cần mua thêm.` : `${m.call} báo không uống được. Nên gọi hỏi thăm.`,
+    body: reason === 'out' ? `${m.call} báo hết thuốc (${medNames.length} loại). Mở app để xem, cần mua thêm.` : `${m.call} báo không uống được. Nên gọi hỏi thăm.`,
     data: { kind: 'skipped-dose', memberId: m.id },
     level: 'warn',
   };
@@ -58,7 +60,7 @@ export function checkinPush(m: Member, mood: Mood, symptoms: string[]): PushMess
   if (mood !== 'unwell') return undefined;
   return {
     title: `${displayName(m)} báo "không khỏe"`,
-    body: symptoms.length ? `Triệu chứng: ${symptoms.join(', ')}. Nên gọi hỏi thăm.` : 'Nên gọi hỏi thăm.',
+    body: symptoms.length ? `${m.call} có báo triệu chứng, mở app để xem. Nên gọi hỏi thăm.` : 'Nên gọi hỏi thăm.',
     data: { kind: 'unwell', memberId: m.id },
   };
 }
@@ -66,8 +68,8 @@ export function checkinPush(m: Member, mood: Mood, symptoms: string[]): PushMess
 export function bpPush(m: Member, sys: number, dia: number, s: Pick<AlertSettings, 'bpSys' | 'bpDia'>): PushMessage | undefined {
   if (!isBpHigh(sys, dia, s)) return undefined;
   return {
-    title: `Huyết áp ${displayName(m)}: ${sys}/${dia}`,
-    body: `Từ mức ${s.bpSys}/${s.bpDia} đã đặt trở lên. Nên gọi hỏi thăm.`,
+    title: `Huyết áp ${displayName(m)} cao`,
+    body: `Cao hơn mức con đã đặt. Mở app để xem số đo, nên gọi hỏi thăm.`,
     data: { kind: 'bp-high', memberId: m.id },
   };
 }
