@@ -89,6 +89,12 @@
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "extra": {}
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5b5978dc-b552-4a9d-9611-6376f4d63b35"
+      }
+    },
+    "owner": "mylannis-team"
   }
 }
